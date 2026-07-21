@@ -12,7 +12,7 @@ export default function Composer({ chunks, filled, label, glowIndex }:
             <span key={i}
               className={`rounded-tile px-2.5 py-1.5 text-sm font-display font-bold border-2 leading-tight
                 ${on ? "bg-vi text-white border-ink animate-spring" : "bg-sunken border-dashed border-ink text-transparent"}
-                ${glowIndex === i ? "brightness-125 ring-2 ring-mastered" : ""}`}>
+                ${glowIndex === i ? "brightness-125 ring-2 ring-ink" : ""}`}>
               {c.en}
             </span>
           );
