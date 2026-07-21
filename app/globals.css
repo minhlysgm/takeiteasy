@@ -13,9 +13,11 @@ body { background: #FFFCF2; color: #2B2118; }
 @keyframes dot-blink { 0%,80%,100%{opacity:.25} 40%{opacity:1} }
 @keyframes fly-in { 0%{transform:translateY(14px) scale(.9);opacity:0} 100%{transform:translateY(0) scale(1);opacity:1} }
 @keyframes combo-in { 0%{transform:scale(.4) rotate(-8deg);opacity:0} 60%{transform:scale(1.15) rotate(3deg);opacity:1} 100%{transform:scale(1) rotate(-2deg);opacity:1} }
+@keyframes particle { 0%{transform:translate(0,0) scale(1);opacity:1} 100%{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0} }
 
 .animate-spring { animation: pop-spring .32s cubic-bezier(.2,1.5,.4,1) both; }
 
 @media (prefers-reduced-motion: reduce) {
   .animate-spring, .animate-spring * { animation: none !important; }
+  [style*="animation: particle"]{ display:none }
 }
