@@ -1,5 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import * as g from "../lib/useGame";
+import * as storage from "../lib/storage";
 import scene from "../content/scenes/sep-hoi-task.json";
 import type { Scene } from "../content/types";
 const S = scene as Scene;
@@ -47,5 +48,24 @@ describe("useGame reducer", () => {
     let s = g.initState(S, "Minh", 0);
     s = { ...s, screen: "play", lineIndex: S.lines.length - 1 };
     expect(g.nextLine(s, S).screen).toBe("boss");
+  });
+  it("nextBoss on last question goes to summary and persists best score + completion", () => {
+    const setBest = vi.spyOn(storage, "setBestScore");
+    const addDone = vi.spyOn(storage, "addCompleted");
+    let s = g.initState(S, "Minh", 0);
+    s = { ...s, screen: "boss", bossIndex: S.boss.length - 1, score: 170 };
+    const out = g.nextBoss(s, S);
+    expect(out.screen).toBe("summary");
+    expect(setBest).toHaveBeenCalledWith(170);
+    expect(addDone).toHaveBeenCalledWith(S.id);
+    setBest.mockRestore();
+    addDone.mockRestore();
+  });
+  it("nextBoss before last question just advances bossIndex", () => {
+    let s = g.initState(S, "Minh", 0);
+    s = { ...s, screen: "boss", bossIndex: 0 };
+    const out = g.nextBoss(s, S);
+    expect(out.screen).toBe("boss");
+    expect(out.bossIndex).toBe(1);
   });
 });
