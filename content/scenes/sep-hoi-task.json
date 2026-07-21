@@ -1,0 +1,124 @@
+{
+  "id": "sep-hoi-task",
+  "icon": "🧑‍💼",
+  "title": "Sếp hỏi task",
+  "blurb": "Vừa tới công ty, chưa kịp đi mua ly cà phê thì thông báo Zalo nổ rùm beng.",
+  "lines": [
+    {
+      "sit": "",
+      "them": {
+        "en": "{name}, where are we on yesterday's task?",
+        "vi": "{name} ơi task hôm qua tới đâu ời?"
+      },
+      "think": "Dạ em vẫn đang làm anh ơi 😭, để em ráng xong sớm trong sáng nay ạ",
+      "en": "Still working on it — I'll try to have it done this morning.",
+      "vi": "Em vẫn đang làm, để em ráng xong trong sáng nay.",
+      "chunks": [
+        { "en": "Still working on it", "vi": "em vẫn đang làm" },
+        { "en": "I'll try to", "vi": "để em ráng" },
+        { "en": "have it done this morning", "vi": "xong trong sáng nay" }
+      ],
+      "tone": "Khi chat với người nước ngoài trong công việc (người mà bạn nhắn tin hằng ngày), có thể giữ I'm hoặc bỏ I'm cũng được. Có thể nói ngắn gọn từ \"I'm still working on it\" thành \"Still working on it\" → cảm giác ko bị cộc lốc đâu, đừng lo haha",
+      "variants": [
+        {
+          "en": "Almost there — should be done this morning.",
+          "why": "Almost there là kiểu \"sắp xong rồi\", còn \"still working on it\" là \"vẫn đang làm\". Nên nếu task đó gần xong thì dùng \"almost there\" để cho Sếp biết là sắp xong, để sếp đỡ chờ =)))), còn chưa xong thì đừng có xài \"Almost there\" nghe chưa"
+        }
+      ]
+    },
+    {
+      "sit": "Sếp đang soạn tin trên máy tính…",
+      "them": {
+        "en": "This morning as in what time? I need something specific to tell the client.",
+        "vi": "Trong sáng nay là mấy giờ? Cho anh giờ cụ thể để anh còn báo khách nữa."
+      },
+      "think": "Dạ trước 12h trưa nay nhe anh, nếu xong sớm thì em báo liền ạ",
+      "en": "Before 12 — I'll ping you as soon as it's ready.",
+      "vi": "Trước 12h, xong em báo anh liền.",
+      "chunks": [
+        { "en": "Before 12", "vi": "trước 12h" },
+        { "en": "I'll ping you", "vi": "em báo anh liền" },
+        { "en": "as soon as it's ready", "vi": "ngay khi xong" }
+      ],
+      "tone": "Từ \"báo\" tiếng Việt mình hay dùng có thể dùng từ \"ping\" trong tiếng Anh (nghe nó cũng kiểu ko quá nguy hiểm mà cũng ko quá sách vở). Còn trong tiếng Anh người ta không thường dùng từ \"dạ\" ở đầu câu như mình, nên có thể thay thành dấu gạch ngang \"—\" cũng được",
+      "variants": [
+        {
+          "en": "I should have it to you by 12.",
+          "why": "Chữ \"should\" hiểu theo kiểu \"chắc là, chắc cỡ\", nên nếu bạn cảm thấy 12h có thể hoàn thành được thì dùng \"Should\" nhen"
+        }
+      ]
+    },
+    {
+      "sit": "Sếp thả tim cái tin nhắn. Xong nhắn thêm câu nữa.",
+      "them": {
+        "en": "Alright. Let me know if you're stuck on anything.",
+        "vi": "Ừ được. Có kẹt chỗ nào thì nói anh nha."
+      },
+      "think": "Dạ em cảm ơn anh, có gì em hú anh ạ",
+      "en": "Will do, thanks!",
+      "vi": "Dạ được, em cảm ơn anh.",
+      "chunks": [
+        { "en": "Will do", "vi": "dạ được ạ" },
+        { "en": "thanks", "vi": "cảm ơn anh" }
+      ],
+      "tone": "Câu tiếng Việt thì dài vậy thôi chứ tiếng Anh chỉ cần nói ngắn gọn như trên là người ta hiểu được liền",
+      "variants": [
+        {
+          "en": "Got it",
+          "why": "Kiểu \"dạ em nắm rồi ạ\" — gọn hơn nữa mà vẫn ổn"
+        },
+        {
+          "en": "Will let you know if anything comes up",
+          "why": "Là kiểu \"Nếu có gì em sẽ báo anh biết liền\""
+        }
+      ]
+    }
+  ],
+  "boss": [
+    {
+      "q": "Sếp đang chờ bạn cho một cái giờ cụ thể để ảnh báo khách. Bạn nhắn gì?",
+      "opts": [
+        {
+          "en": "Before 12 — I'll ping you as soon as it's ready.",
+          "ok": true,
+          "why": "Đúng rồi đó"
+        },
+        {
+          "en": "Before 12",
+          "ok": false,
+          "why": "Hmmm nói như này thì cũng được nhưng nghe hơi \"cộc lốc\" đó, nên chọn câu trên nghe cho nó lịch sự/tôn trọng sếp xíu nhe"
+        }
+      ]
+    },
+    {
+      "q": "Task chưa xong mà Sếp vừa hỏi tới. Bạn nhắn lại sao đây?",
+      "opts": [
+        {
+          "en": "Still working on it — I'll try to have it done this morning.",
+          "ok": true,
+          "why": "Đúng rồi đó"
+        },
+        {
+          "en": "Not done yet",
+          "ok": false,
+          "why": "Nói vậy sếp cũng hiểu, mà cụt ngủn quá với lại sếp đâu biết chừng nào xong. Thêm cái mốc thời gian vô cho sếp yên tâm nhe"
+        }
+      ]
+    },
+    {
+      "q": "Cũng câu tương tự, mà lần này là đứa bạn cùng phòng nhắn hỏi chừng nào bạn trả tiền điện.",
+      "opts": [
+        {
+          "en": "I'll send it tomorrow",
+          "ok": true,
+          "why": "Đúng rồi đó — với bạn bè thì nói thẳng vậy mới tự nhiên"
+        },
+        {
+          "en": "Would it be okay if I sent it over tomorrow morning?",
+          "ok": false,
+          "why": "Câu này không sai, mà lịch sự quá mức với đứa bạn thân — nghe như đang xin phép sếp á. Để dành nói với sếp thôi nhe"
+        }
+      ]
+    }
+  ]
+}
