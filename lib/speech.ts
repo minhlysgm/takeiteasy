@@ -1,9 +1,9 @@
 export function stripName(text: string): string {
-  return text
-    .replace(/\{name\}/g, "")
-    .replace(/^\s*[,—-]\s*/, "")   // drop leading comma/dash left by removed name
-    .replace(/\s{2,}/g, " ")
-    .trim();
+  const hadName = /\{name\}/.test(text);
+  let out = text.replace(/\{name\}/g, "");
+  if (hadName) out = out.replace(/^\s*[,—-]\s*/, ""); // drop punctuation left by removed name
+  out = out.replace(/\s{2,}/g, " ").trim();
+  return out;
 }
 
 function pickVoice(): SpeechSynthesisVoice | null {
