@@ -10,7 +10,9 @@ export const metadata: Metadata = { title: "Ghép Câu", description: "Học ti�
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="vi" className={`${display.variable} ${body.variable}`}>
-      <body className="font-body bg-page text-ink min-h-dvh">{children}</body>
+      <body className="font-body bg-page text-ink min-h-dvh">
+        <main className="min-h-dvh">{children}</main>
+      </body>
     </html>
   );
 }

@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Button from "../ui/Button";
 import { speak } from "@/lib/speech";
 import { sfx } from "@/lib/sfx";
@@ -11,6 +11,10 @@ export default function BossScreen({ scene, state, onAnswer, onNext }:
   const q = scene.boss[state.bossIndex];
   const opts = useMemo(() => [...q.opts].sort(() => Math.random() - 0.5), [state.bossIndex]); // shuffle once
   const [picked, setPicked] = useState<number | null>(null);
+  // The orchestrator reuses this component across all 3 questions, so reset the
+  // per-question pick when the question changes (otherwise later questions render
+  // pre-locked/revealed with the previous pick).
+  useEffect(() => { setPicked(null); }, [state.bossIndex]);
 
   function pick(i: number) {
     if (picked !== null) return;

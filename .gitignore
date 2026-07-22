@@ -5,3 +5,5 @@ out/
 .vercel
 *.tsbuildinfo
 next-env.d.ts
+_verify.mjs
+_verify2.mjs
