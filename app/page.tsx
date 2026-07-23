@@ -21,6 +21,22 @@ export default function Page() {
   );
   const resetChat = useCallback(() => setChat([]), []);
 
+  // Static shell during hydration — avoids the NameScreen flashing for a
+  // returning user before localStorage is read (see useGame.hydrated).
+  if (!g.hydrated) {
+    return (
+      <main className="min-h-screen bg-page flex items-center justify-center">
+        <h1 className="font-display font-extrabold text-3xl text-ink">Ghép Câu</h1>
+      </main>
+    );
+  }
+
+  const onExit = () => {
+    if (typeof window !== "undefined") window.speechSynthesis?.cancel();
+    resetChat();
+    g.exitToIntro();
+  };
+
   switch (g.state.screen) {
     case "name":
       return <NameScreen onSubmit={g.setName} />;
@@ -34,7 +50,7 @@ export default function Page() {
           onMatch={g.match}
           onMiss={g.miss}
           onAdvance={g.advanceLine}
-          onExit={() => { resetChat(); location.reload(); }}
+          onExit={onExit}
           chat={chat}
           pushChat={pushChat}
           ChatSlot={<ChatThread entries={chat} />}

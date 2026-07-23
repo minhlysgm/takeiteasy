@@ -18,10 +18,11 @@
 
 ## Decisions (chốt trong brainstorming 2026-07-21)
 
-- **D1 — Vàng ở BossScreen:** câu `ok:false` mà người chơi chọn dùng **viền `ink-soft`
-  đứt (trung tính)**, KHÔNG dùng vàng. `mastered` (vàng) chỉ xuất hiện ở **combo**. Điều
-  này override câu chữ mục 7.5 ("viền màu mastered") để giữ đúng tiêu chí 13 ("mastered
-  chỉ ở đã thuộc và combo"). Câu `ok:true` vẫn viền `ok` (xanh lá).
+- **D1 — Vàng ở BossScreen:** câu `ok:false` mà người chơi chọn dùng **viền `mastered`
+  (vàng) liền** — vàng mang nghĩa "cũng được nhưng chưa hay", đúng tinh thần phản hồi
+  động viên (theo đúng câu chữ mục 7.5). Câu `ok:true` vẫn viền `ok` (xanh lá).
+  _(Cập nhật audit đợt 1, FIXES.md B3: đảo lại quyết định cũ dùng viền `ink-soft` đứt;
+  tiêu chí 13 nới cho phép vàng xuất hiện ở câu Boss chọn-sai, không chỉ combo/đã thuộc.)_
 - **D2 — `n/3 đúng tông`** trên SummaryScreen = số câu BossScreen trả lời đúng (0–3).
 - **D3 — Trạng thái "đã thuộc" (mastered):** không có flow riêng trong MVP một-cảnh (không
   SRS — ngoài phạm vi). Vàng thực tế chỉ dùng cho combo.
@@ -90,10 +91,13 @@ nút/chip `20px`; gờ nút lún `4px` (tối hơn nền 20%), `:active` tụt `
   mặc định đóng, không tính điểm) + nút tiếp theo.
 - **Chat tích luỹ** qua các lượt, không xoá.
 - **Boss:** 2 lựa chọn xáo ngẫu nhiên. Chọn → hiện `why` cả hai; `ok:true` viền `ok`,
-  câu chọn-sai viền `ink-soft` đứt (D1). Đúng +50 + đọc câu đó; sai đọc câu đúng. Khoá
-  sau khi chọn.
-- **Summary:** 3 ô số (điểm, `n/3 đúng tông` = bossCorrect, combo cao nhất), transcript
-  chat, chạm bong bóng người chơi để nghe lại, nút Chơi lại.
+  câu chọn-sai viền `mastered` (vàng) liền (D1). Đúng +50 + đọc câu đó; sai đọc câu đúng.
+  Khoá sau khi chọn.
+- **Summary (mục 7.6):** 3 ô số (điểm, `n/3 đúng tông` = bossCorrect, combo cao nhất),
+  một dòng động viên ngay dưới tiêu đề "Xong buổi sáng 🎉" (`bossCorrect === 3` → "Ba câu,
+  đúng tông cả ba. Chiều nay gõ được liền." / ngược lại → "Hiểu nghĩa thì dễ, chọn đúng
+  tông mới khó. Chơi lại thử coi."), transcript chat (mỗi tin người chơi kèm dòng nghĩa
+  tiếng Việt), chạm bong bóng người chơi để nghe lại, nút Chơi lại.
 
 ## Hiệu ứng (mục 10) — nền sáng nên không dùng ánh sáng
 

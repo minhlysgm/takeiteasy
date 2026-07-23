@@ -7,7 +7,7 @@ import Button from "../ui/Button";
 import ComboBadge from "../effects/ComboBadge";
 import Particles from "../effects/Particles";
 import TypingIndicator from "../game/TypingIndicator";
-import { buildTiles, resolveTap, type TileModel } from "@/lib/matching";
+import { buildTiles, resolveTap, tileVisual, type TileModel } from "@/lib/matching";
 import { speak } from "@/lib/speech";
 import { sfx } from "@/lib/sfx";
 import { withName, type GameState } from "@/lib/useGame";
@@ -34,6 +34,9 @@ export default function PlayScreen({
   const [locked, setLocked] = useState(true);
   const [glowIndex, setGlowIndex] = useState<number | undefined>(undefined);
   const [burst, setBurst] = useState<{ x: number; y: number; color: string } | null>(null);
+  const [comboFlash, setComboFlash] = useState<number | null>(null);
+  const [bursting, setBursting] = useState<string[]>([]);
+  const [gone, setGone] = useState<string[]>([]);
   const [variantOpen, setVariantOpen] = useState(false);
   const comboRef = useRef(state.combo);
   comboRef.current = state.combo;
@@ -61,6 +64,9 @@ export default function PlayScreen({
     setVariantOpen(false);
     setGlowIndex(undefined);
     setBurst(null);
+    setComboFlash(null);
+    setBursting([]);
+    setGone([]);
     setShaking([]);
     setTiles(buildTiles(line.chunks));
 
@@ -118,7 +124,14 @@ export default function PlayScreen({
     if (r.kind === "match") {
       setLocked(true);
       onMatch();
-      sfx.matchOk(comboRef.current + 1);
+      const newCombo = comboRef.current + 1;
+      sfx.matchOk(newCombo);
+      // Combo badge is an instant pop, not a persistent banner: show it only
+      // when the fresh combo hits ≥2 and let it clear itself after 800ms.
+      if (newCombo >= 2) {
+        setComboFlash(newCombo);
+        schedule(() => setComboFlash(null), 800);
+      }
       // Correction 1: speak the ENGLISH chunk explicitly — the tapped tile
       // may be the vi-side tile, so resolve which of the pair is the en side.
       const enText = t.side === "en" ? t.text : selected!.text;
@@ -131,8 +144,16 @@ export default function PlayScreen({
         const r2 = el.getBoundingClientRect();
         setBurst({ x: r2.left + r2.width / 2, y: r2.top + r2.height / 2, color: burstColor });
       }
+      // Play the tile-burst animation on both tiles of the pair, THEN hide them
+      // with visibility (they keep their grid cell) so the remaining tiles never
+      // reflow under the player's finger.
+      const pair = [t.key, selected!.key];
+      setBursting(prev => [...prev, ...pair]);
+      schedule(() => {
+        setGone(prev => [...prev, ...pair]);
+        setBursting(prev => prev.filter(k => !pair.includes(k)));
+      }, 450);
       const id = t.chunkId;
-      setTiles(prev => prev.filter(x => x.chunkId !== id));
       setFilled(prev => prev.map((f, i) => (i === id ? true : f)));
       setSelected(null);
       schedule(() => {
@@ -174,6 +195,7 @@ export default function PlayScreen({
         id: `me-${state.lineIndex}`,
         kind: "me",
         en: line.en,
+        vi: line.vi,
         seen: true,
         onSpeak: () => speak(line.en, { rate: 0.9 }),
       });
@@ -182,7 +204,7 @@ export default function PlayScreen({
     }, acc + 200);
   }
 
-  const showBoard = phase === "play";
+  const showBoard = phase === "play" || phase === "sending";
   const showComposer = phase === "play" || phase === "sending";
 
   return (
@@ -207,33 +229,43 @@ export default function PlayScreen({
 
       {ChatSlot}
       {typing && <TypingIndicator />}
-      {phase === "think" && <Bubble kind="them" en={line.think} think />}
+      {["think", "play", "sending"].includes(phase) && <Bubble kind="them" en={line.think} think />}
 
       {showComposer && (
         <Composer
           chunks={line.chunks}
           filled={filled}
-          label={phase === "sending" ? "Đang gửi…" : "Soạn tin"}
+          label={phase === "sending" ? "Đang gửi…" : "Soạn tin — ghép cụm để gửi"}
           glowIndex={glowIndex}
         />
       )}
       {showBoard && (
         <div className="grid grid-cols-2 gap-2.5">
-          {remaining.map(t => (
-            <button
-              key={t.key}
-              data-key={t.key}
-              onClick={() => onTap(t)}
-              disabled={locked}
-              className={`relative ${t.side === "en" ? "bg-en" : "bg-vi"} text-white border-2 border-ink rounded-tile px-2.5 pt-4 pb-2 min-h-[56px] text-sm font-display font-bold leading-tight
-                focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink
-                ${selected?.key === t.key ? "scale-105 ring-2 ring-ink brightness-110" : ""}`}
-              style={shaking.includes(t.key) ? { animation: "shake .42s" } : undefined}
-            >
-              <span className="absolute top-1 left-2 text-[9px] uppercase opacity-80 tracking-wide">{t.side}</span>
-              {t.text}
-            </button>
-          ))}
+          {remaining.map(t => {
+            const visual = tileVisual(t.key, bursting, gone);
+            const style =
+              visual === "burst"
+                ? { animation: "tile-burst .45s ease forwards" }
+                : shaking.includes(t.key)
+                ? { animation: "shake .42s" }
+                : undefined;
+            return (
+              <button
+                key={t.key}
+                data-key={t.key}
+                onClick={() => onTap(t)}
+                disabled={locked}
+                className={`relative ${t.side === "en" ? "bg-en" : "bg-vi"} text-white border-2 border-ink rounded-tile px-2.5 pt-4 pb-2 min-h-[56px] text-sm font-display font-bold leading-tight
+                  focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink
+                  ${selected?.key === t.key ? "scale-105 ring-2 ring-ink brightness-110" : ""}
+                  ${visual === "gone" ? "invisible pointer-events-none" : ""}`}
+                style={style}
+              >
+                <span className="absolute top-1 left-2 text-[9px] uppercase opacity-80 tracking-wide">{t.side}</span>
+                {t.text}
+              </button>
+            );
+          })}
         </div>
       )}
 
@@ -279,7 +311,7 @@ export default function PlayScreen({
         </div>
       )}
 
-      {state.combo >= 2 && showBoard && <ComboBadge combo={state.combo} />}
+      {comboFlash !== null && <ComboBadge combo={comboFlash} />}
       {burst && <Particles x={burst.x} y={burst.y} color={burst.color} />}
     </div>
   );

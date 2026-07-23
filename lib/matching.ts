@@ -22,3 +22,13 @@ export function resolveTap(selected: TileModel | null, tapped: TileModel): TapRe
   if (selected.side === tapped.side) return { kind: "reselect" };
   return selected.chunkId === tapped.chunkId ? { kind: "match" } : { kind: "miss" };
 }
+
+// A matched tile's visual lifecycle: normal → burst (playing the tile-burst
+// animation) → gone (hidden but still occupying its grid cell). `gone` wins
+// over `bursting` so a key can be moved between the two lists without a flicker.
+export type TileVisual = "normal" | "burst" | "gone";
+export function tileVisual(key: string, bursting: string[], gone: string[]): TileVisual {
+  if (gone.includes(key)) return "gone";
+  if (bursting.includes(key)) return "burst";
+  return "normal";
+}

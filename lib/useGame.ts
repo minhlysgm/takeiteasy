@@ -59,11 +59,21 @@ export function withName(text: string, name: string): string {
 
 export function useGame(scene: Scene) {
   const [state, setState] = useState<GameState>(() => initState(scene, null, 0));
-  useEffect(() => { setState(initState(scene, storage.getName(), storage.getBestScore())); }, [scene]);
+  // Render a neutral shell until we've read localStorage on the client, so a
+  // returning user never sees the NameScreen flash. Reading storage during the
+  // first render would mismatch the server-rendered HTML (hydration error), so
+  // it stays in an effect and `hydrated` gates the UI.
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    setState(initState(scene, storage.getName(), storage.getBestScore()));
+    setHydrated(true);
+  }, [scene]);
 
   return {
     state,
+    hydrated,
     setName: useCallback((raw: string) => setState(s => applyName(s, raw)), []),
+    exitToIntro: useCallback(() => setState(s => initState(scene, s.name, s.bestScore)), [scene]),
     startScene: useCallback(() => setState(s => ({ ...s, screen: "play" as Screen })), []),
     match: useCallback(() => setState(applyMatch), []),
     miss: useCallback(() => setState(applyMiss), []),

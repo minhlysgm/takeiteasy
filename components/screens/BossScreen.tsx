@@ -35,7 +35,7 @@ export default function BossScreen({ scene, state, onAnswer, onNext }:
           const revealed = picked !== null;
           const border = !revealed ? "border-2 border-ink"
             : o.ok ? "border-2 border-ok"
-            : i === picked ? "border-2 border-dashed border-ink-soft"
+            : i === picked ? "border-2 border-mastered"
             : "border-2 border-ink opacity-60";
           return (
             <div key={i}>

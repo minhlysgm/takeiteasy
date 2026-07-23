@@ -25,6 +25,7 @@ export default function Bubble({ kind, en, vi, seen, think, onSpeak }: Props) {
     <div className="self-end max-w-[85%] flex flex-col items-end animate-spring">
       <button onClick={onSpeak} className="text-left border-2 border-ink rounded-card bg-en text-white px-3 py-2 font-display font-bold text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-ink">
         {en}
+        {vi && <span className="block text-2xs italic font-normal text-white/75 mt-0.5">{vi}</span>}
       </button>
       {seen && <span className="text-2xs text-ink-soft mt-0.5">Đã xem</span>}
     </div>
