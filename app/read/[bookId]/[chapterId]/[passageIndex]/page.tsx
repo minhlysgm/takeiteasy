@@ -20,9 +20,9 @@ export default async function ReadPage({ params }: Props) {
   }
   return (
     <PassageView
+      key={`${book.id}-${chapter.id}-${idx}`}
       book={book}
       chapterId={chapter.id}
-      chapterTitle={chapter.title}
       passage={passages[idx - 1]}
       passageIndex={idx}
       passageCount={passages.length}

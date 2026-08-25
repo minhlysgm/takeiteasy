@@ -15,7 +15,6 @@ function renderView() {
     <PassageView
       book={book}
       chapterId="ch01"
-      chapterTitle="Don't Try"
       passage={passages[0]}
       passageIndex={1}
       passageCount={passages.length}
@@ -54,5 +53,20 @@ describe("PassageView", () => {
     expect(push).not.toHaveBeenCalled();
     fireEvent.keyDown(window, { key: "ArrowLeft" });
     expect(push).not.toHaveBeenCalled(); // đang ở đoạn 1, không lùi được
+  });
+
+  it("enter điều hướng sang đoạn kế tiếp khi còn đoạn phía sau", () => {
+    render(
+      <PassageView
+        book={book}
+        chapterId="ch01"
+        passage={passages[0]}
+        passageIndex={1}
+        passageCount={3}
+      />,
+    );
+    fireEvent.keyDown(window, { key: "x" }); // skip typing
+    fireEvent.keyDown(window, { key: "Enter" });
+    expect(push).toHaveBeenCalledWith("/read/the-subtle-art/ch01/2");
   });
 });

@@ -11,7 +11,6 @@ import { OriginalText } from "./OriginalText";
 interface Props {
   book: Book;
   chapterId: string;
-  chapterTitle: string;
   passage: Passage;
   passageIndex: number; // 1-based
   passageCount: number;
