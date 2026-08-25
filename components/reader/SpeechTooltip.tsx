@@ -50,6 +50,7 @@ export function SpeechTooltip({ containerRef }: Props) {
     <div
       className="absolute z-10 flex -translate-x-1/2 -translate-y-full border border-line bg-surface text-[13.5px] shadow-xl"
       style={{ left: tip.x, top: tip.y - 10 }}
+      onMouseDown={(e) => e.preventDefault()}
     >
       <button
         type="button"

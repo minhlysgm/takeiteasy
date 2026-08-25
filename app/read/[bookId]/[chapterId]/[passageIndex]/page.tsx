@@ -15,8 +15,11 @@ export default async function ReadPage({ params }: Props) {
   const passages = getPassages(book.id, chapter.id) ?? [];
   if (passages.length === 0) redirect("/");
   const idx = Number(passageIndex);
-  if (!Number.isInteger(idx) || idx < 1 || idx > passages.length) {
+  if (!Number.isInteger(idx) || idx < 1) {
     redirect(`/read/${book.id}/${chapter.id}/1`);
+  }
+  if (idx > passages.length) {
+    redirect(`/read/${book.id}/${chapter.id}/${passages.length}`);
   }
   return (
     <PassageView

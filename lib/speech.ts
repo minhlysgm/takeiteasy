@@ -28,3 +28,12 @@ export function speak(text: string, opts: { rate?: number } = {}): void {
     /* ignore */
   }
 }
+
+export function stopSpeech(): void {
+  if (!isSpeechAvailable()) return;
+  try {
+    window.speechSynthesis.cancel();
+  } catch {
+    /* ignore */
+  }
+}

@@ -1,10 +1,10 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Book, Passage } from "@/content/types";
 import { prefersReducedMotion } from "@/lib/motion";
 import { saveProgress } from "@/lib/progress";
-import { speak } from "@/lib/speech";
+import { speak, stopSpeech } from "@/lib/speech";
 import { useTheme } from "@/lib/useTheme";
 import { useTypingText } from "@/lib/useTypingText";
 import { AnnotationLayer } from "./AnnotationLayer";
@@ -26,13 +26,18 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
   const [drawerIndex, setDrawerIndex] = useState<number | null>(null);
   const readerRef = useRef<HTMLDivElement>(null);
   const originalColRef = useRef<HTMLDivElement>(null);
-  const reduced = useMemo(() => prefersReducedMotion(), []);
-  const typing = useTypingText(passage.translation, { enabled: !reduced });
+  const typing = useTypingText(passage.translation);
+  // reduced-motion: skip sau mount để SSR và client render lần đầu khớp nhau
+  useEffect(() => {
+    if (prefersReducedMotion()) typing.skip();
+  }, []);
   const { toggle: toggleTheme } = useTheme();
 
   useEffect(() => {
     saveProgress({ bookId: book.id, chapterId, passageIndex });
   }, [book.id, chapterId, passageIndex]);
+
+  useEffect(() => () => stopSpeech(), []);
 
   useEffect(() => {
     const goTo = (i: number) => {
