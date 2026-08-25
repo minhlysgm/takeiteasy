@@ -6,6 +6,7 @@ import { prefersReducedMotion } from "@/lib/motion";
 import { saveProgress } from "@/lib/progress";
 import { speak } from "@/lib/speech";
 import { useTypingText } from "@/lib/useTypingText";
+import { AnnotationLayer } from "./AnnotationLayer";
 import { OriginalText } from "./OriginalText";
 
 interface Props {
@@ -118,7 +119,9 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
             </div>
           )}
         </div>
-        {/* AnnotationLayer (Task 8) */}
+        {explainOn && (
+          <AnnotationLayer containerRef={readerRef} chunks={passage.chunks} onChunkClick={openChunk} />
+        )}
         {/* ChunkDrawer (Task 9) */}
       </div>
 
