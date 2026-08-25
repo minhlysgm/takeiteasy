@@ -9,6 +9,7 @@ import { useTypingText } from "@/lib/useTypingText";
 import { AnnotationLayer } from "./AnnotationLayer";
 import { ChunkDrawer } from "./ChunkDrawer";
 import { OriginalText } from "./OriginalText";
+import { SpeechTooltip } from "./SpeechTooltip";
 
 interface Props {
   book: Book;
@@ -23,6 +24,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
   const [explainOn, setExplainOn] = useState(false);
   const [drawerIndex, setDrawerIndex] = useState<number | null>(null);
   const readerRef = useRef<HTMLDivElement>(null);
+  const originalColRef = useRef<HTMLDivElement>(null);
   const reduced = useMemo(() => prefersReducedMotion(), []);
   const typing = useTypingText(passage.translation, { enabled: !reduced });
 
@@ -91,13 +93,13 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
 
       <div ref={readerRef} data-testid="reader" className="relative grid grow grid-cols-[220px_1fr_1fr] px-8 py-12">
         <div aria-hidden="true" />
-        <div data-testid="original-col" className="relative border-r border-line pr-12">
+        <div ref={originalColRef} data-testid="original-col" className="relative border-r border-line pr-12">
           <div className="mb-6 text-[13px] text-muted">
             {"// nguyên văn"}
             {explainOn && <span className="ml-3 text-ink">{passage.chunks.length} chunks đáng học</span>}
           </div>
           <OriginalText passage={passage} explainOn={explainOn} onChunkClick={openChunk} />
-          {/* SpeechTooltip (Task 10) */}
+          <SpeechTooltip containerRef={originalColRef} />
         </div>
         <div
           data-testid="translation-col"
