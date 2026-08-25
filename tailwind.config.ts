@@ -4,20 +4,15 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        page: "#FFFCF2", surface: "#FFFFFF", sunken: "#F2ECE0",
-        ink: "#2B2118", "ink-soft": "#8A7F6E",
-        en: "#FF7A00", vi: "#00B2A9", mastered: "#FFD029",
-        ok: "#7ED957", no: "#FF4D3D",
+        bg: "var(--bg)", surface: "var(--surface)", text: "var(--text)",
+        bright: "var(--bright)", muted: "var(--muted)", line: "var(--line)",
+        accent: "var(--accent)", ink: "var(--ink)", "ink-strong": "var(--ink-strong)",
+        danger: "var(--danger)", sel: "var(--sel)",
       },
       fontFamily: {
-        display: ["var(--font-display)", "sans-serif"],
-        body: ["var(--font-body)", "sans-serif"],
+        mono: ["var(--font-mono)", "SF Mono", "Menlo", "monospace"],
+        hand: ["var(--font-hand)", "Comic Sans MS", "cursive"],
       },
-      fontSize: {
-        "2xs": "11px", xs: "12.5px", sm: "14px", base: "15.5px",
-        lg: "18px", xl: "22px", "3xl": "32px",
-      },
-      borderRadius: { tile: "14px", card: "14px", chip: "20px" },
     },
   },
   plugins: [],

@@ -1,0 +1,29 @@
+/* Design tokens — dark là mặc định, light qua data-theme. */
+:root,
+:root[data-theme="dark"] {
+  --bg: #0f1317;
+  --surface: #141a21;
+  --text: #d6dee6;
+  --bright: #e6edf3;
+  --muted: #7d8590;
+  --line: #1f262e;
+  --accent: #3fb950;
+  --ink: #e3b341;
+  --ink-strong: #f0c667;
+  --danger: #f85149;
+  --sel: #24415e;
+}
+
+:root[data-theme="light"] {
+  --bg: #f6f3ec;
+  --surface: #efeadf;
+  --text: #44403c;
+  --bright: #1c1917;
+  --muted: #a8a29e;
+  --line: #e2dccd;
+  --accent: #b45309;
+  --ink: #b45309;
+  --ink-strong: #92400e;
+  --danger: #b91c1c;
+  --sel: #d3e3f5;
+}
