@@ -14,7 +14,11 @@ function readTheme(): Theme {
 }
 
 export function useTheme() {
-  const [theme, setTheme] = useState<Theme>(readTheme);
+  const [theme, setTheme] = useState<Theme>("dark");
+
+  useEffect(() => {
+    setTheme(readTheme());
+  }, []);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;

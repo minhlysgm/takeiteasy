@@ -21,7 +21,14 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="vi" className={`${mono.variable} ${hand.variable}`}>
+    <html lang="vi" className={`${mono.variable} ${hand.variable}`} suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem("tie:theme");document.documentElement.dataset.theme=t==="light"?"light":"dark"}catch(e){document.documentElement.dataset.theme="dark"}`,
+          }}
+        />
+      </head>
       <body className="min-h-dvh bg-bg font-mono text-text">
         <main className="min-h-dvh">{children}</main>
       </body>
