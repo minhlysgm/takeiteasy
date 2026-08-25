@@ -5,6 +5,7 @@ import type { Book, Passage } from "@/content/types";
 import { prefersReducedMotion } from "@/lib/motion";
 import { saveProgress } from "@/lib/progress";
 import { speak } from "@/lib/speech";
+import { useTheme } from "@/lib/useTheme";
 import { useTypingText } from "@/lib/useTypingText";
 import { AnnotationLayer } from "./AnnotationLayer";
 import { ChunkDrawer } from "./ChunkDrawer";
@@ -27,6 +28,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
   const originalColRef = useRef<HTMLDivElement>(null);
   const reduced = useMemo(() => prefersReducedMotion(), []);
   const typing = useTypingText(passage.translation, { enabled: !reduced });
+  const { toggle: toggleTheme } = useTheme();
 
   useEffect(() => {
     saveProgress({ bookId: book.id, chapterId, passageIndex });
@@ -62,6 +64,9 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
         case "s":
           speak(passage.original);
           break;
+        case "t":
+          toggleTheme();
+          break;
         case "Escape":
           setExplainOn(false);
           break;
@@ -69,7 +74,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [typing, drawerIndex, passageIndex, passageCount, book.id, chapterId, passage, router]);
+  }, [typing, drawerIndex, passageIndex, passageCount, book.id, chapterId, passage, router, toggleTheme]);
 
   const openChunk = (chunkId: string) => {
     const i = passage.chunks.findIndex((c) => c.id === chunkId);
@@ -140,6 +145,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
         <div className="flex items-center gap-5">
           <span><kbd className="rounded border border-line px-1.5 py-0.5 text-xs">e</kbd> giải thích</span>
           <span><kbd className="rounded border border-line px-1.5 py-0.5 text-xs">s</kbd> đọc to</span>
+          <span><kbd className="rounded border border-line px-1.5 py-0.5 text-xs">t</kbd> theme</span>
           <span><kbd className="rounded border border-line px-1.5 py-0.5 text-xs">enter</kbd> đoạn tiếp</span>
         </div>
         <div className="h-1 w-44 rounded bg-line">

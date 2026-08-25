@@ -3,9 +3,11 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Book } from "@/content/types";
 import { getProgress, type Progress } from "@/lib/progress";
+import { useTheme } from "@/lib/useTheme";
 
 export function BookShelf({ books }: { books: Book[] }) {
   const [progress, setProgress] = useState<Progress | null>(null);
+  const { theme, toggle } = useTheme();
   useEffect(() => setProgress(getProgress()), []);
 
   return (
@@ -38,6 +40,9 @@ export function BookShelf({ books }: { books: Book[] }) {
           </section>
         );
       })}
+      <button type="button" onClick={toggle} className="mt-16 text-xs text-muted hover:text-bright">
+        theme: {theme} — bấm để đổi
+      </button>
     </div>
   );
 }
