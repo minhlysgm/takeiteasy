@@ -7,6 +7,7 @@ import { saveProgress } from "@/lib/progress";
 import { speak } from "@/lib/speech";
 import { useTypingText } from "@/lib/useTypingText";
 import { AnnotationLayer } from "./AnnotationLayer";
+import { ChunkDrawer } from "./ChunkDrawer";
 import { OriginalText } from "./OriginalText";
 
 interface Props {
@@ -40,8 +41,9 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
         return;
       }
       if (drawerIndex !== null) {
-        // Task 9 mở rộng: j/k/esc cho drawer
         if (e.key === "Escape") setDrawerIndex(null);
+        if (e.key === "j") setDrawerIndex(Math.min(passage.chunks.length - 1, drawerIndex + 1));
+        if (e.key === "k") setDrawerIndex(Math.max(0, drawerIndex - 1));
         return;
       }
       switch (e.key) {
@@ -65,7 +67,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [typing, drawerIndex, passageIndex, passageCount, book.id, chapterId, passage.original, router]);
+  }, [typing, drawerIndex, passageIndex, passageCount, book.id, chapterId, passage, router]);
 
   const openChunk = (chunkId: string) => {
     const i = passage.chunks.findIndex((c) => c.id === chunkId);
@@ -122,7 +124,14 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
         {explainOn && (
           <AnnotationLayer containerRef={readerRef} chunks={passage.chunks} onChunkClick={openChunk} />
         )}
-        {/* ChunkDrawer (Task 9) */}
+        {drawerIndex !== null && (
+          <ChunkDrawer
+            chunks={passage.chunks}
+            index={drawerIndex}
+            onNavigate={setDrawerIndex}
+            onClose={() => setDrawerIndex(null)}
+          />
+        )}
       </div>
 
       <footer className="flex h-14 shrink-0 items-center justify-between border-t border-line px-8 text-[13px] text-muted">
