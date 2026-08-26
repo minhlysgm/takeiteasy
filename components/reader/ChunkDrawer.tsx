@@ -20,6 +20,15 @@ export function ChunkDrawer({ chunks, index, onNavigate, onClose }: Props) {
     return () => prev?.focus();
   }, []);
 
+  // bấm ra ngoài drawer → đóng (esc đã được PassageView xử lý)
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [onClose]);
+
   if (!chunk) return null;
   const speechOk = isSpeechAvailable();
 
@@ -29,7 +38,7 @@ export function ChunkDrawer({ chunks, index, onNavigate, onClose }: Props) {
       tabIndex={-1}
       role="dialog"
       aria-label={chunk.headword}
-      className="absolute inset-y-0 right-0 flex w-[500px] flex-col gap-6 overflow-y-auto border-l border-line bg-surface p-10 shadow-2xl outline-none"
+      className="animate-drawer-in absolute inset-y-0 right-0 flex w-[500px] flex-col gap-6 overflow-y-auto border-l border-line bg-surface p-10 shadow-2xl outline-none"
     >
       <div className="flex items-center justify-between text-[13px] text-muted">
         <span>{`// chunk ${index + 1}/${chunks.length}`}</span>

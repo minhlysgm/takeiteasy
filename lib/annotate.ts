@@ -3,9 +3,10 @@ export interface Pt {
   y: number;
 }
 
-/** Đường cong "tay vẽ" từ ghi chú lề tới chunk. */
+/** Đường cong "tay vẽ" từ ghi chú lề tới chunk — hoạt động cả hai chiều (lề trái lẫn lề phải). */
 export function buildArrowPath(from: Pt, to: Pt): string {
-  const dx = Math.max(24, Math.abs(to.x - from.x) * 0.4);
+  const dir = to.x >= from.x ? 1 : -1;
+  const dx = Math.max(24, Math.abs(to.x - from.x) * 0.4) * dir;
   return `M ${from.x} ${from.y} C ${from.x + dx} ${from.y - 24}, ${to.x - dx} ${to.y + 28}, ${to.x} ${to.y}`;
 }
 

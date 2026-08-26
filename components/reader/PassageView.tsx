@@ -101,9 +101,13 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
         <div className="w-14 shrink-0" />
       </header>
 
-      <div ref={readerRef} data-testid="reader" className="relative grid grow grid-cols-[220px_1fr_1fr] px-8 py-12">
+      <div ref={readerRef} data-testid="reader" className="relative grid grow grid-cols-[200px_1fr_200px_1fr] px-8 py-12">
         <div aria-hidden="true" />
-        <div ref={originalColRef} data-testid="original-col" className="relative border-r border-line pr-12">
+        <div
+          ref={originalColRef}
+          data-testid="original-col"
+          className={`relative pr-6 transition-opacity ${drawerIndex !== null ? "opacity-40" : ""}`}
+        >
           <div className="mb-6 text-[13px] text-muted">
             {"// nguyên văn"}
             {explainOn && <span className="ml-3 text-ink">{passage.chunks.length} chunks đáng học</span>}
@@ -111,9 +115,10 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
           <OriginalText passage={passage} explainOn={explainOn} onChunkClick={openChunk} />
           <SpeechTooltip containerRef={originalColRef} />
         </div>
+        <div aria-hidden="true" className="border-r border-line" />
         <div
           data-testid="translation-col"
-          className={`pl-12 transition-opacity ${explainOn ? "opacity-30" : ""}`}
+          className={`pl-12 transition-opacity ${explainOn || drawerIndex !== null ? "opacity-30" : ""}`}
           onClick={() => typing.skip()}
         >
           <div className="mb-6 flex items-baseline gap-3 text-[13px]">

@@ -5,7 +5,6 @@ import type { Chunk } from "@/content/types";
 import { buildArrowPath, layoutNotes } from "@/lib/annotate";
 import { prefersReducedMotion } from "@/lib/motion";
 
-const MARGIN_W = 220; // khớp cột lề trong PassageView
 const NOTE_H = 56;
 
 interface Props {
@@ -16,6 +15,8 @@ interface Props {
 
 interface NotePos {
   chunk: Chunk;
+  side: "left" | "right";
+  noteX: number;
   noteY: number;
   arrow: string;
 }
@@ -57,23 +58,48 @@ export function AnnotationLayer({ containerRef, chunks, onChunkClick }: Props) {
     if (!container) return;
     const compute = () => {
       const cRect = container.getBoundingClientRect();
+      // Chia ghi chú hai bên theo vị trí thật của chunk trong cột nguyên văn:
+      // chunk ở nửa trái → ghi chú lề trái, nửa phải → ghi chú rãnh phải.
+      // Mũi tên chỉ với sang chunk cùng phía nên ngắn và không cắt qua chữ.
+      const colEl = container.querySelector<HTMLElement>('[data-testid="original-col"]');
+      const colRect = colEl ? colEl.getBoundingClientRect() : cRect;
+      const colLeft = colRect.left - cRect.left;
+      const colRight = colRect.right - cRect.left;
+      const colMid = (colLeft + colRight) / 2;
       const raw = chunks.flatMap((c) => {
         const el = container.querySelector<HTMLElement>(`[data-chunk-id="${c.id}"]`);
         if (!el) return [];
         const r = el.getBoundingClientRect();
-        return [{ chunk: c, y: r.top - cRect.top, x: r.left - cRect.left, bottom: r.bottom - cRect.top }];
+        return [{
+          chunk: c,
+          y: r.top - cRect.top,
+          bottom: r.bottom - cRect.top,
+          left: r.left - cRect.left,
+          right: r.right - cRect.left,
+        }];
       });
-      const ys = layoutNotes(raw.map((r) => ({ id: r.chunk.id, y: r.y, height: NOTE_H })));
-      setNotes(
-        raw.map((r) => ({
-          chunk: r.chunk,
-          noteY: ys[r.chunk.id],
-          arrow: buildArrowPath(
-            { x: MARGIN_W - 20, y: ys[r.chunk.id] + 14 },
-            { x: r.x, y: r.bottom + 6 },
-          ),
-        })),
-      );
+      const next: NotePos[] = [];
+      for (const side of ["left", "right"] as const) {
+        const items = raw.filter(
+          (r) => ((r.left + r.right) / 2 <= colMid) === (side === "left"),
+        );
+        const ys = layoutNotes(items.map((r) => ({ id: r.chunk.id, y: r.y, height: NOTE_H })));
+        for (const r of items) {
+          const noteY = ys[r.chunk.id];
+          next.push(
+            side === "left"
+              ? {
+                  chunk: r.chunk, side, noteX: 16, noteY,
+                  arrow: buildArrowPath({ x: colLeft - 16, y: noteY + 14 }, { x: r.left - 4, y: r.bottom + 6 }),
+                }
+              : {
+                  chunk: r.chunk, side, noteX: colRight + 16, noteY,
+                  arrow: buildArrowPath({ x: colRight + 12, y: noteY + 14 }, { x: r.right + 4, y: r.bottom + 6 }),
+                },
+          );
+        }
+      }
+      setNotes(next);
     };
     compute();
     window.addEventListener("resize", compute);
@@ -106,8 +132,12 @@ export function AnnotationLayer({ containerRef, chunks, onChunkClick }: Props) {
           key={n.chunk.id}
           type="button"
           onClick={() => onChunkClick(n.chunk.id)}
-          className="absolute left-4 w-[190px] whitespace-pre-line text-left font-hand text-[17px] leading-snug text-ink"
-          style={{ top: n.noteY, transform: "rotate(-1.5deg)" }}
+          className="absolute w-[170px] whitespace-pre-line text-left font-hand text-[16.5px] leading-snug text-ink"
+          style={{
+            top: n.noteY,
+            left: n.noteX,
+            transform: n.side === "left" ? "rotate(-1.5deg)" : "rotate(1.2deg)",
+          }}
         >
           {n.chunk.label}
         </button>

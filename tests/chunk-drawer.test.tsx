@@ -13,7 +13,7 @@ describe("ChunkDrawer", () => {
     expect(screen.getByText("stem from something")).toBeTruthy();
     expect(screen.getByText("= bắt nguồn từ / xuất phát từ")).toBeTruthy();
     expect(screen.getByText(/stems not from A, but from B/)).toBeTruthy();
-    expect(screen.getByText(/stems not from the frontend/)).toBeTruthy();
+    expect(screen.getByText(/stems not from a lack of money/)).toBeTruthy();
   });
   it("hiện mistake box khi có", () => {
     const despiteIdx = chunks.findIndex((c) => c.id === "despite");
@@ -32,5 +32,18 @@ describe("ChunkDrawer", () => {
   it("focus vào drawer khi mở", () => {
     render(<ChunkDrawer chunks={chunks} index={0} onNavigate={() => {}} onClose={() => {}} />);
     expect(document.activeElement).toBe(screen.getByRole("dialog"));
+  });
+  it("bấm ra ngoài drawer thì đóng, bấm bên trong thì không", () => {
+    const onClose = vi.fn();
+    render(
+      <div>
+        <button type="button" data-testid="outside">bên ngoài</button>
+        <ChunkDrawer chunks={chunks} index={0} onNavigate={() => {}} onClose={onClose} />
+      </div>,
+    );
+    fireEvent.mouseDown(screen.getByRole("dialog"));
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent.mouseDown(screen.getByTestId("outside"));
+    expect(onClose).toHaveBeenCalledOnce();
   });
 });

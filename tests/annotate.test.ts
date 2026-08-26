@@ -7,6 +7,14 @@ describe("buildArrowPath", () => {
     expect(d.startsWith("M 200 400 C ")).toBe(true);
     expect(d.endsWith("300 200")).toBe(true);
   });
+  it("đảo chiều khi ghi chú nằm bên phải chunk (from.x > to.x)", () => {
+    const d = buildArrowPath({ x: 900, y: 400 }, { x: 700, y: 200 });
+    expect(d.startsWith("M 900 400 C ")).toBe(true);
+    expect(d.endsWith("700 200")).toBe(true);
+    // control point đầu phải cong VỀ PHÍA chunk (x < 900), không cong ra ngoài
+    const firstControlX = Number(d.split("C ")[1].trim().split(" ")[0]);
+    expect(firstControlX).toBeLessThan(900);
+  });
 });
 
 describe("layoutNotes", () => {

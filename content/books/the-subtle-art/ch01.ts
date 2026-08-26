@@ -28,8 +28,8 @@ export const ch01Passages: Passage[] = [
         headword: "on one's best / worst days",
         meaning: "= vào những ngày sung nhất / tệ nhất của ai đó",
         examples: [
-          { en: "Even on my worst days, I try to show up for standup.", vi: "Kể cả những ngày tệ nhất, tôi vẫn cố có mặt ở standup." },
-          { en: "On his best days, he codes faster than anyone here.", vi: "Vào những ngày sung nhất, anh ấy code nhanh hơn bất kỳ ai ở đây." },
+          { en: "Even on my worst days, I still make time for breakfast with my family.", vi: "Kể cả những ngày tệ nhất, tôi vẫn dành thời gian ăn sáng cùng gia đình." },
+          { en: "On her best days, she can run ten kilometers without stopping.", vi: "Vào những ngày sung nhất, cô ấy chạy mười cây số không nghỉ." },
         ],
       },
       {
@@ -39,8 +39,8 @@ export const ch01Passages: Passage[] = [
         headword: "the last person (on earth) + mệnh đề quan hệ",
         meaning: "= người cuối cùng mà... — cách nhấn mạnh \"không đời nào là người này\"",
         examples: [
-          { en: "He's the last person I'd ask to review my code.", vi: "Anh ta là người cuối cùng tôi muốn nhờ review code." },
-          { en: "She's the last person on earth who would miss a deadline.", vi: "Cô ấy là người cuối cùng trên đời có thể trễ deadline." },
+          { en: "He's the last person I'd trust with a secret.", vi: "Anh ta là người cuối cùng tôi dám tin để kể bí mật." },
+          { en: "She's the last person on earth who would forget your birthday.", vi: "Cô ấy là người cuối cùng trên đời có thể quên sinh nhật bạn." },
         ],
       },
       {
@@ -50,7 +50,7 @@ export const ch01Passages: Passage[] = [
         headword: "look to somebody for something",
         meaning: "= tìm đến ai, trông cậy vào ai để xin lời khuyên / sự giúp đỡ",
         examples: [
-          { en: "The whole team looks to her for technical direction.", vi: "Cả team đều tìm đến cô ấy để xin định hướng kỹ thuật." },
+          { en: "Children often look to their parents for guidance.", vi: "Con cái thường tìm đến cha mẹ để được định hướng." },
           { en: "Don't look to me for sympathy — I warned you.", vi: "Đừng tìm đến tôi mong được thông cảm — tôi cảnh báo rồi mà." },
         ],
         note: "Trong câu này giới từ đứng cuối mệnh đề quan hệ: the last person you would ever look to (= mà bạn tìm đến).",
@@ -63,8 +63,8 @@ export const ch01Passages: Passage[] = [
         meaning: "= chính vì vậy mà... — nối thẳng vào cả ý của câu trước",
         pattern: { formula: "[sự việc], which is why [hệ quả]", note: "Manson còn tách hẳn thành câu riêng để nhấn mạnh — văn nói làm được y hệt." },
         examples: [
-          { en: "The tests kept flaking, which is why we rewrote the whole suite.", vi: "Đám test cứ chập chờn mãi, chính vì vậy mà bọn tôi viết lại toàn bộ." },
-          { en: "He never sugarcoats feedback, which is why people trust him.", vi: "Anh ấy không bao giờ nói giảm nói tránh khi feedback, chính vì thế mà mọi người tin anh ấy." },
+          { en: "The bus kept coming late, which is why I finally bought a motorbike.", vi: "Xe buýt cứ trễ suốt, chính vì vậy mà cuối cùng tôi mua hẳn xe máy." },
+          { en: "She always keeps her word, which is why everyone trusts her.", vi: "Cô ấy luôn giữ lời, chính vì thế mà ai cũng tin cô ấy." },
         ],
       },
     ],
@@ -86,7 +86,7 @@ export const ch01Passages: Passage[] = [
         meaning: "= nộp, gửi (bản thảo, hồ sơ, báo cáo) cho ai để xét duyệt",
         examples: [
           { en: "I submitted the proposal to three different publishers.", vi: "Tôi đã gửi bản đề xuất tới ba nhà xuất bản khác nhau." },
-          { en: "Submit your report to the manager by Friday.", vi: "Nộp báo cáo cho quản lý trước thứ Sáu." },
+          { en: "Submit your visa application to the embassy before it closes.", vi: "Nộp hồ sơ visa cho đại sứ quán trước khi họ đóng cửa." },
         ],
         note: "Để ý cấu trúc: every publisher he submitted to — giới từ đứng cuối mệnh đề quan hệ.",
       },
@@ -98,7 +98,7 @@ export const ch01Passages: Passage[] = [
         meaning: "= chất đống, dồn ứ lại ngày càng nhiều (việc, nợ, email, bug...)",
         examples: [
           { en: "My unread emails piled up while I was on leave.", vi: "Email chưa đọc dồn ứ lại trong lúc tôi nghỉ phép." },
-          { en: "The bugs piled up faster than we could fix them.", vi: "Bug chất đống nhanh hơn tốc độ bọn tôi sửa." },
+          { en: "The dirty dishes piled up after the party.", vi: "Chén đĩa bẩn chất đống sau bữa tiệc." },
         ],
       },
       {
@@ -108,7 +108,7 @@ export const ch01Passages: Passage[] = [
         headword: "the weight of something",
         meaning: "= sức nặng (nghĩa bóng) của kỳ vọng, thất bại, trách nhiệm...",
         examples: [
-          { en: "She carried the weight of the whole release on her shoulders.", vi: "Cô ấy gánh cả sức nặng của đợt release trên vai." },
+          { en: "He carried the weight of the whole family after his father passed away.", vi: "Anh ấy gánh cả sức nặng của gia đình sau khi cha qua đời." },
           { en: "The weight of expectations can crush young players.", vi: "Sức nặng của kỳ vọng có thể đè bẹp những cầu thủ trẻ." },
         ],
       },
@@ -119,7 +119,7 @@ export const ch01Passages: Passage[] = [
         headword: "push somebody (deep) into something",
         meaning: "= đẩy ai vào một trạng thái / hoàn cảnh (thường là xấu)",
         examples: [
-          { en: "The constant overtime pushed the team into burnout.", vi: "Tăng ca triền miên đẩy cả team vào kiệt sức." },
+          { en: "Months of pressure pushed her into a deep depression.", vi: "Nhiều tháng áp lực đẩy cô ấy vào một cơn trầm cảm nặng." },
           { en: "Don't let anyone push you into a decision you're not ready for.", vi: "Đừng để ai đẩy bạn vào một quyết định mà bạn chưa sẵn sàng." },
         ],
       },
@@ -130,7 +130,7 @@ export const ch01Passages: Passage[] = [
         headword: "X-fueled (tính từ ghép)",
         meaning: "= được \"đốt\" bằng X, ngập trong X — ghép danh từ + fueled thành tính từ",
         examples: [
-          { en: "It was a caffeine-fueled all-nighter before the demo.", vi: "Đó là một đêm trắng chạy bằng caffeine trước buổi demo." },
+          { en: "It was a caffeine-fueled all-nighter before the final exam.", vi: "Đó là một đêm trắng chạy bằng caffeine trước kỳ thi cuối." },
           { en: "The debate turned into an ego-fueled shouting match.", vi: "Cuộc tranh luận biến thành màn đấu khẩu bơm đầy cái tôi." },
         ],
       },
@@ -166,7 +166,7 @@ export const ch01Passages: Passage[] = [
         meaning: "= bắt nguồn từ / xuất phát từ",
         pattern: { formula: "stems not from A, but from B", note: "không bắt nguồn từ A, mà từ B" },
         examples: [
-          { en: "The issue stems not from the frontend, but from the backend.", vi: "Vấn đề không nằm ở frontend, mà ở backend." },
+          { en: "The problem stems not from a lack of money, but from a lack of trust.", vi: "Vấn đề không bắt nguồn từ chuyện thiếu tiền, mà từ chuyện thiếu niềm tin." },
           { en: "His confidence stems from years of experience.", vi: "Sự tự tin của anh ấy đến từ nhiều năm kinh nghiệm." },
         ],
       },
