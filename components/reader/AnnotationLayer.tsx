@@ -86,15 +86,17 @@ export function AnnotationLayer({ containerRef, chunks, onChunkClick }: Props) {
         const ys = layoutNotes(items.map((r) => ({ id: r.chunk.id, y: r.y, height: NOTE_H })));
         for (const r of items) {
           const noteY = ys[r.chunk.id];
+          // Mũi tên xuất phát sát mép ghi chú (không phải mép cột chữ) để
+          // nối liền ghi chú → chunk, user nhìn là thấy cặp nào đi với nhau.
           next.push(
             side === "left"
               ? {
                   chunk: r.chunk, side, noteX: 16, noteY,
-                  arrow: buildArrowPath({ x: colLeft - 16, y: noteY + 14 }, { x: r.left - 4, y: r.bottom + 6 }),
+                  arrow: buildArrowPath({ x: 16 + 172, y: noteY + 14 }, { x: r.left - 4, y: r.bottom + 6 }),
                 }
               : {
                   chunk: r.chunk, side, noteX: colRight + 16, noteY,
-                  arrow: buildArrowPath({ x: colRight + 12, y: noteY + 14 }, { x: r.right + 4, y: r.bottom + 6 }),
+                  arrow: buildArrowPath({ x: colRight + 10, y: noteY + 14 }, { x: r.right + 4, y: r.bottom + 6 }),
                 },
           );
         }
