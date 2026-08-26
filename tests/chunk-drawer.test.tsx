@@ -33,17 +33,12 @@ describe("ChunkDrawer", () => {
     render(<ChunkDrawer chunks={chunks} index={0} onNavigate={() => {}} onClose={() => {}} />);
     expect(document.activeElement).toBe(screen.getByRole("dialog"));
   });
-  it("bấm ra ngoài drawer thì đóng, bấm bên trong thì không", () => {
+  it("bấm nền mờ phía sau thì đóng, bấm trong drawer thì không", () => {
     const onClose = vi.fn();
-    render(
-      <div>
-        <button type="button" data-testid="outside">bên ngoài</button>
-        <ChunkDrawer chunks={chunks} index={0} onNavigate={() => {}} onClose={onClose} />
-      </div>,
-    );
-    fireEvent.mouseDown(screen.getByRole("dialog"));
+    render(<ChunkDrawer chunks={chunks} index={0} onNavigate={() => {}} onClose={onClose} />);
+    fireEvent.click(screen.getByRole("dialog"));
     expect(onClose).not.toHaveBeenCalled();
-    fireEvent.mouseDown(screen.getByTestId("outside"));
+    fireEvent.click(screen.getByTestId("drawer-backdrop"));
     expect(onClose).toHaveBeenCalledOnce();
   });
 });

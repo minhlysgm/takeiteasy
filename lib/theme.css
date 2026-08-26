@@ -12,6 +12,7 @@
   --ink-strong: #f0c667;
   --danger: #f85149;
   --sel: #24415e;
+  --scrim: rgba(2, 6, 10, 0.55);
 }
 
 :root[data-theme="light"] {
@@ -26,4 +27,5 @@
   --ink-strong: #92400e;
   --danger: #b91c1c;
   --sel: #d3e3f5;
+  --scrim: rgba(41, 37, 36, 0.35);
 }

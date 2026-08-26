@@ -1,16 +1,18 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Chunk } from "@/content/types";
 import { isSpeechAvailable, speak } from "@/lib/speech";
 
 interface Props {
   chunks: Chunk[];
   index: number;
+  /** true khi đang trượt ra để đóng — PassageView unmount sau khi transition xong */
+  closing?: boolean;
   onNavigate: (i: number) => void;
   onClose: () => void;
 }
 
-export function ChunkDrawer({ chunks, index, onNavigate, onClose }: Props) {
+export function ChunkDrawer({ chunks, index, closing = false, onNavigate, onClose }: Props) {
   const chunk = chunks[index];
   const ref = useRef<HTMLDivElement>(null);
 
@@ -20,25 +22,32 @@ export function ChunkDrawer({ chunks, index, onNavigate, onClose }: Props) {
     return () => prev?.focus();
   }, []);
 
-  // bấm ra ngoài drawer → đóng (esc đã được PassageView xử lý)
+  // Mount ở vị trí ngoài màn hình rồi flip sang frame kế tiếp để CSS transition
+  // chạy hiệu ứng trượt vào (kiểu drawer mobile).
+  const [entered, setEntered] = useState(false);
   useEffect(() => {
-    const onDown = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
-    };
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
-  }, [onClose]);
+    const id = requestAnimationFrame(() => setEntered(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   if (!chunk) return null;
   const speechOk = isSpeechAvailable();
+  const offscreen = closing || !entered;
 
   return (
+    <>
+      <div
+        aria-hidden="true"
+        data-testid="drawer-backdrop"
+        onClick={onClose}
+        className={`absolute inset-0 z-10 bg-scrim transition-opacity duration-300 motion-reduce:transition-none ${offscreen ? "opacity-0" : "opacity-100"}`}
+      />
     <div
       ref={ref}
       tabIndex={-1}
       role="dialog"
       aria-label={chunk.headword}
-      className="animate-drawer-in absolute inset-y-0 right-0 flex w-[500px] flex-col gap-6 overflow-y-auto border-l border-line bg-surface p-10 shadow-2xl outline-none"
+      className={`absolute inset-y-0 right-0 z-20 flex w-[500px] flex-col gap-6 overflow-y-auto border-l border-line bg-surface p-10 shadow-2xl outline-none transition-transform duration-300 ease-out motion-reduce:transition-none ${offscreen ? "translate-x-full" : "translate-x-0"}`}
     >
       <div className="flex items-center justify-between text-[13px] text-muted">
         <span>{`// chunk ${index + 1}/${chunks.length}`}</span>
@@ -118,5 +127,6 @@ export function ChunkDrawer({ chunks, index, onNavigate, onClose }: Props) {
         </button>
       </div>
     </div>
+    </>
   );
 }

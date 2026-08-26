@@ -24,6 +24,8 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
   const router = useRouter();
   const [explainOn, setExplainOn] = useState(false);
   const [drawerIndex, setDrawerIndex] = useState<number | null>(null);
+  const [drawerClosing, setDrawerClosing] = useState(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const readerRef = useRef<HTMLDivElement>(null);
   const originalColRef = useRef<HTMLDivElement>(null);
   const typing = useTypingText(passage.translation);
@@ -38,6 +40,17 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
   }, [book.id, chapterId, passageIndex]);
 
   useEffect(() => () => stopSpeech(), []);
+  useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current); }, []);
+
+  // Đóng drawer có animation trượt ra: đánh dấu closing, chờ transition xong mới unmount
+  const requestCloseDrawer = () => {
+    if (drawerIndex === null || drawerClosing) return;
+    setDrawerClosing(true);
+    closeTimer.current = setTimeout(() => {
+      setDrawerIndex(null);
+      setDrawerClosing(false);
+    }, prefersReducedMotion() ? 0 : 300);
+  };
 
   useEffect(() => {
     const goTo = (i: number) => {
@@ -50,7 +63,8 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
         return;
       }
       if (drawerIndex !== null) {
-        if (e.key === "Escape") setDrawerIndex(null);
+        if (drawerClosing) return;
+        if (e.key === "Escape") requestCloseDrawer();
         if (e.key === "j") setDrawerIndex(Math.min(passage.chunks.length - 1, drawerIndex + 1));
         if (e.key === "k") setDrawerIndex(Math.max(0, drawerIndex - 1));
         return;
@@ -79,7 +93,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [typing, drawerIndex, passageIndex, passageCount, book.id, chapterId, passage, router, toggleTheme]);
+  }, [typing, drawerIndex, drawerClosing, passageIndex, passageCount, book.id, chapterId, passage, router, toggleTheme]);
 
   const openChunk = (chunkId: string) => {
     const i = passage.chunks.findIndex((c) => c.id === chunkId);
@@ -101,13 +115,9 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
         <div className="w-14 shrink-0" />
       </header>
 
-      <div ref={readerRef} data-testid="reader" className="relative grid grow grid-cols-[200px_1fr_200px_1fr] px-8 py-12">
+      <div ref={readerRef} data-testid="reader" className="relative grid grow grid-cols-[200px_1fr_200px_1fr] overflow-x-clip px-8 py-12">
         <div aria-hidden="true" />
-        <div
-          ref={originalColRef}
-          data-testid="original-col"
-          className={`relative pr-6 transition-opacity ${drawerIndex !== null ? "opacity-40" : ""}`}
-        >
+        <div ref={originalColRef} data-testid="original-col" className="relative pr-6">
           <div className="mb-6 text-[13px] text-muted">
             {"// nguyên văn"}
             {explainOn && <span className="ml-3 text-ink">{passage.chunks.length} chunks đáng học</span>}
@@ -118,7 +128,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
         <div aria-hidden="true" className="border-r border-line" />
         <div
           data-testid="translation-col"
-          className={`pl-12 transition-opacity ${explainOn || drawerIndex !== null ? "opacity-30" : ""}`}
+          className={`pl-12 transition-opacity ${explainOn ? "opacity-30" : ""}`}
           onClick={() => typing.skip()}
         >
           <div className="mb-6 flex items-baseline gap-3 text-[13px]">
@@ -145,8 +155,9 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
           <ChunkDrawer
             chunks={passage.chunks}
             index={drawerIndex}
+            closing={drawerClosing}
             onNavigate={setDrawerIndex}
-            onClose={() => setDrawerIndex(null)}
+            onClose={requestCloseDrawer}
           />
         )}
       </div>
