@@ -30,8 +30,8 @@ describe("PassageView", () => {
 
   it("render nguyên văn và header đoạn", () => {
     renderView();
-    expect(screen.getByTestId("original-col").textContent).toContain("Bukowski was a loser");
-    expect(screen.getByText(/đoạn 1\/1/)).toBeTruthy();
+    expect(screen.getByTestId("original-col").textContent).toContain("Charles Bukowski was an alcoholic");
+    expect(screen.getByText(new RegExp(`đoạn 1/${passages.length}`))).toBeTruthy();
   });
 
   it("lưu tiến độ khi mở đoạn", () => {
@@ -42,17 +42,16 @@ describe("PassageView", () => {
   it("phím bất kỳ khi đang typing thì skip (hiện đủ bản dịch)", () => {
     renderView();
     fireEvent.keyDown(window, { key: "x" });
-    expect(screen.getByTestId("translation-col").textContent).toContain("chân thật");
+    expect(screen.getByTestId("translation-col").textContent).toContain("điểm khởi đầu hoàn hảo");
   });
 
-  it("enter chuyển đoạn khi typing đã xong", () => {
+  it("không lùi được khi đang ở đoạn 1, enter đi tới đoạn 2", () => {
     renderView();
     fireEvent.keyDown(window, { key: "x" }); // skip typing
-    fireEvent.keyDown(window, { key: "Enter" });
-    // passageCount = 1 nên không push (clamp) — đổi hành vi nếu có thêm đoạn
-    expect(push).not.toHaveBeenCalled();
     fireEvent.keyDown(window, { key: "ArrowLeft" });
     expect(push).not.toHaveBeenCalled(); // đang ở đoạn 1, không lùi được
+    fireEvent.keyDown(window, { key: "Enter" });
+    expect(push).toHaveBeenCalledWith("/read/the-subtle-art/ch01/2");
   });
 
   it("enter điều hướng sang đoạn kế tiếp khi còn đoạn phía sau", () => {

@@ -27,5 +27,5 @@ export function OriginalText({ passage, explainOn, onChunkClick }: Props) {
     cursor = r.end;
   }
   if (cursor < passage.original.length) parts.push(passage.original.slice(cursor));
-  return <div className="text-[17px] leading-[1.9] text-bright">{parts}</div>;
+  return <div className="whitespace-pre-line text-[17px] leading-[1.9] text-bright">{parts}</div>;
 }

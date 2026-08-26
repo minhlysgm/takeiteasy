@@ -120,7 +120,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
             <span className="text-muted">{"// bản dịch"}</span>
             {!typing.done && <span className="text-xs text-accent">đang gõ…</span>}
           </div>
-          <div className="text-[15.5px] leading-[2]">
+          <div className="whitespace-pre-line text-[15.5px] leading-[2]">
             {typing.display}
             {!typing.done && (
               <span className="animate-blink ml-0.5 inline-block h-[19px] w-[9px] translate-y-[3px] bg-accent" />

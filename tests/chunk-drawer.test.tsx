@@ -3,7 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 import { ChunkDrawer } from "@/components/reader/ChunkDrawer";
 import { books, getPassages } from "@/lib/content";
 
-const chunks = getPassages(books[0].id, "ch01")![0].chunks;
+// neo vào đoạn theo id (không theo vị trí) để thêm đoạn mới không làm test trôi fixture
+const chunks = getPassages(books[0].id, "ch01")!.find((p) => p.id === "ch01-p03")!.chunks;
 
 describe("ChunkDrawer", () => {
   it("hiện headword, meaning, pattern và ví dụ của chunk đang chọn", () => {
