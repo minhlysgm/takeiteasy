@@ -54,6 +54,14 @@ describe("PassageView", () => {
     expect(push).toHaveBeenCalledWith("/read/the-subtle-art/ch01/2");
   });
 
+  it("nút '← trước' disabled ở đoạn 1, nút 'tiếp →' điều hướng sang đoạn 2", () => {
+    renderView();
+    const prev = screen.getByRole("button", { name: /← trước/ });
+    expect(prev.hasAttribute("disabled")).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: /tiếp →/ }));
+    expect(push).toHaveBeenCalledWith("/read/the-subtle-art/ch01/2");
+  });
+
   it("enter điều hướng sang đoạn kế tiếp khi còn đoạn phía sau", () => {
     render(
       <PassageView

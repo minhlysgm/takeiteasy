@@ -7,6 +7,12 @@ const passagesByBook: Record<string, Record<string, Passage[]>> = {
   [theSubtleArt.id]: theSubtleArtPassages,
 };
 
+/** Nhãn hiển thị của chương: "ch01" → "chương 1". Id trong URL/data vẫn giữ nguyên. */
+export function chapterLabel(chapterId: string): string {
+  const n = chapterId.match(/\d+/);
+  return n ? `chương ${Number(n[0])}` : chapterId;
+}
+
 export function getBook(bookId: string): Book | undefined {
   return books.find((b) => b.id === bookId);
 }

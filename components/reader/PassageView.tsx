@@ -1,7 +1,8 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Book, Passage } from "@/content/types";
+import { chapterLabel } from "@/lib/content";
 import { prefersReducedMotion } from "@/lib/motion";
 import { saveProgress } from "@/lib/progress";
 import { speak, stopSpeech } from "@/lib/speech";
@@ -29,11 +30,19 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
   const readerRef = useRef<HTMLDivElement>(null);
   const originalColRef = useRef<HTMLDivElement>(null);
   const typing = useTypingText(passage.translation);
-  // reduced-motion: skip sau mount để SSR và client render lần đầu khớp nhau
-  useEffect(() => {
-    if (prefersReducedMotion()) typing.skip();
-  }, []);
   const { toggle: toggleTheme } = useTheme();
+
+  // Chuyển đoạn (không remount): reset state đọc, tắt speech, và với user
+  // reduced-motion thì hiện đủ bản dịch ngay (cũng giữ SSR/client khớp nhau).
+  useEffect(() => {
+    setExplainOn(false);
+    setDrawerIndex(null);
+    setDrawerClosing(false);
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    stopSpeech();
+    if (prefersReducedMotion()) typing.skip();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [passage.id]);
 
   useEffect(() => {
     saveProgress({ bookId: book.id, chapterId, passageIndex });
@@ -52,10 +61,14 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
     }, prefersReducedMotion() ? 0 : 300);
   };
 
-  useEffect(() => {
-    const goTo = (i: number) => {
+  const goTo = useCallback(
+    (i: number) => {
       if (i >= 1 && i <= passageCount) router.push(`/read/${book.id}/${chapterId}/${i}`);
-    };
+    },
+    [book.id, chapterId, passageCount, router],
+  );
+
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (!typing.done && e.key !== "Escape") {
@@ -93,7 +106,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [typing, drawerIndex, drawerClosing, passageIndex, passageCount, book.id, chapterId, passage, router, toggleTheme]);
+  }, [typing, drawerIndex, drawerClosing, passageIndex, goTo, passage, toggleTheme]);
 
   const openChunk = (chunkId: string) => {
     const i = passage.chunks.findIndex((c) => c.id === chunkId);
@@ -109,7 +122,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
           <span className="block h-3 w-3 rounded-full bg-accent opacity-70" />
         </div>
         <div className="grow text-center text-[13px] text-muted">
-          takeiteasy — {book.id} / {chapterId} · đoạn {passageIndex}/{passageCount}
+          takeiteasy — {book.id} / {chapterLabel(chapterId)} · đoạn {passageIndex}/{passageCount}
           {explainOn && <span className="text-ink"> · explain</span>}
         </div>
         <div className="w-14 shrink-0" />
@@ -117,7 +130,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
 
       <div ref={readerRef} data-testid="reader" className="relative grid grow grid-cols-[200px_1fr_200px_1fr] overflow-x-clip px-8 py-12">
         <div aria-hidden="true" />
-        <div ref={originalColRef} data-testid="original-col" className="relative pr-6">
+        <div key={passage.id} ref={originalColRef} data-testid="original-col" className="animate-passage-in relative pr-6">
           <div className="mb-6 text-[13px] text-muted">
             {"// nguyên văn"}
             {explainOn && <span className="ml-3 text-ink">{passage.chunks.length} chunks đáng học</span>}
@@ -127,8 +140,9 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
         </div>
         <div aria-hidden="true" className="border-r border-line" />
         <div
+          key={`${passage.id}-vi`}
           data-testid="translation-col"
-          className={`pl-12 transition-opacity ${explainOn ? "opacity-30" : ""}`}
+          className={`animate-passage-in pl-12 transition-opacity ${explainOn ? "opacity-30" : ""}`}
           onClick={() => typing.skip()}
         >
           <div className="mb-6 flex items-baseline gap-3 text-[13px]">
@@ -170,9 +184,32 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
           <span><kbd className="rounded border border-line px-1.5 py-0.5 text-xs">enter</kbd> đoạn tiếp</span>
         </div>
         <div className="h-1 w-44 rounded bg-line">
-          <div className="h-full rounded bg-accent" style={{ width: `${(passageIndex / passageCount) * 100}%` }} />
+          <div
+            className="h-full rounded bg-accent transition-[width] duration-500 ease-out motion-reduce:transition-none"
+            style={{ width: `${(passageIndex / passageCount) * 100}%` }}
+          />
         </div>
-        <div>{chapterId} · {passageIndex}/{passageCount}</div>
+        <div className="flex items-center gap-4">
+          <span>{chapterLabel(chapterId)} · {passageIndex}/{passageCount}</span>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => goTo(passageIndex - 1)}
+              disabled={passageIndex <= 1}
+              className="border border-line px-3 py-1.5 transition-colors hover:border-accent hover:text-bright disabled:opacity-40 disabled:hover:border-line disabled:hover:text-muted"
+            >
+              ← trước
+            </button>
+            <button
+              type="button"
+              onClick={() => goTo(passageIndex + 1)}
+              disabled={passageIndex >= passageCount}
+              className="border border-line px-3 py-1.5 transition-colors hover:border-accent hover:text-bright disabled:opacity-40 disabled:hover:border-line disabled:hover:text-muted"
+            >
+              tiếp →
+            </button>
+          </div>
+        </div>
       </footer>
     </div>
   );

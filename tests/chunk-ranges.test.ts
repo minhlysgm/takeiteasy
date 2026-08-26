@@ -1,6 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Chunk } from "@/content/types";
-import { findChunkRange, findChunkRanges } from "@/lib/content";
+import { chapterLabel, findChunkRange, findChunkRanges } from "@/lib/content";
+
+describe("chapterLabel", () => {
+  it("đổi ch01 thành 'chương 1'", () => {
+    expect(chapterLabel("ch01")).toBe("chương 1");
+    expect(chapterLabel("ch12")).toBe("chương 12");
+  });
+  it("giữ nguyên khi không có số", () => {
+    expect(chapterLabel("intro")).toBe("intro");
+  });
+});
 
 const chunk = (over: Partial<Chunk>): Chunk => ({
   id: "c", match: "x", label: "", headword: "", meaning: "", examples: [{ en: "e", vi: "v" }],

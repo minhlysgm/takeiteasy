@@ -12,7 +12,20 @@ body { background: var(--bg); color: var(--text); }
 @keyframes draw { to { stroke-dashoffset: 0; } }
 .arrow-draw { stroke-dasharray: 600; stroke-dashoffset: 600; animation: draw 0.6s ease forwards; }
 
+/* các dòng hiện tuần tự như terminal đang in — BookShelf dùng */
+@keyframes reveal { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.reveal { opacity: 0; animation: reveal 0.5s ease-out forwards; }
+.reveal-1 { animation-delay: 0.05s; }
+.reveal-2 { animation-delay: 0.18s; }
+.reveal-3 { animation-delay: 0.36s; }
+
+/* đoạn văn mới trượt nhẹ vào khi chuyển đoạn — PassageView dùng */
+@keyframes passage-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.animate-passage-in { animation: passage-in 0.35s ease-out; }
+
 @media (prefers-reduced-motion: reduce) {
   .animate-blink { animation: none; }
   .arrow-draw { animation: none; stroke-dashoffset: 0; }
+  .reveal, .reveal-1, .reveal-2, .reveal-3 { animation: none; opacity: 1; }
+  .animate-passage-in { animation: none; }
 }

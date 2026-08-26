@@ -21,9 +21,11 @@ export default async function ReadPage({ params }: Props) {
   if (idx > passages.length) {
     redirect(`/read/${book.id}/${chapter.id}/${passages.length}`);
   }
+  // Không key theo đoạn: PassageView sống xuyên các đoạn để footer/progress bar
+  // animate được khi chuyển; state được reset có chủ đích bên trong (theo passage.id).
   return (
     <PassageView
-      key={`${book.id}-${chapter.id}-${idx}`}
+      key={`${book.id}-${chapter.id}`}
       book={book}
       chapterId={chapter.id}
       passage={passages[idx - 1]}
