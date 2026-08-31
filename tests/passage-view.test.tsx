@@ -6,6 +6,11 @@ import { getProgress } from "@/lib/progress";
 
 const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
+// nút "giải thích" mount AnnotationLayer → cần mock rough-notation (jsdom không vẽ SVG được)
+vi.mock("rough-notation", () => ({
+  annotate: () => ({ remove: () => {} }),
+  annotationGroup: () => ({ show: () => {} }),
+}));
 
 const book = books[0];
 const passages = getPassages(book.id, "ch01")!;
@@ -60,6 +65,24 @@ describe("PassageView", () => {
     expect(prev.hasAttribute("disabled")).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: /tiếp →/ }));
     expect(push).toHaveBeenCalledWith("/read/the-subtle-art/ch01/2");
+  });
+
+  it("hiện mẹo lần đầu; bấm nút 'giải thích' bật explain và ẩn mẹo", () => {
+    renderView();
+    expect(screen.getByText(/mẹo: bấm nút "giải thích"/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /giải thích/ }));
+    expect(screen.getByText(/chunks đáng học/)).toBeTruthy();
+    expect(screen.queryByText(/mẹo: bấm nút/)).toBeNull();
+    expect(localStorage.getItem("tie:hint:reader")).toBe("1");
+  });
+
+  it("bấm 'đã hiểu' ẩn mẹo và lần sau không hiện lại", () => {
+    const first = renderView();
+    fireEvent.click(screen.getByRole("button", { name: "đã hiểu" }));
+    expect(screen.queryByText(/mẹo: bấm nút/)).toBeNull();
+    first.unmount();
+    renderView();
+    expect(screen.queryByText(/mẹo: bấm nút/)).toBeNull();
   });
 
   it("enter điều hướng sang đoạn kế tiếp khi còn đoạn phía sau", () => {

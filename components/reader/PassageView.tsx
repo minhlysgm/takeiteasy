@@ -5,11 +5,12 @@ import type { Book, Passage } from "@/content/types";
 import { chapterLabel } from "@/lib/content";
 import { prefersReducedMotion } from "@/lib/motion";
 import { saveProgress } from "@/lib/progress";
-import { speak, stopSpeech } from "@/lib/speech";
+import { isSpeechAvailable, speak, stopSpeech } from "@/lib/speech";
 import { useTheme } from "@/lib/useTheme";
 import { useTypingText } from "@/lib/useTypingText";
 import { AnnotationLayer } from "./AnnotationLayer";
 import { ChunkDrawer } from "./ChunkDrawer";
+import { FirstTimeHint } from "./FirstTimeHint";
 import { OriginalText } from "./OriginalText";
 import { SpeechTooltip } from "./SpeechTooltip";
 
@@ -31,6 +32,9 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
   const originalColRef = useRef<HTMLDivElement>(null);
   const typing = useTypingText(passage.translation);
   const { toggle: toggleTheme } = useTheme();
+  // Đọc khả năng speech sau mount để SSR và client render lần đầu khớp nhau.
+  const [speechOk, setSpeechOk] = useState(false);
+  useEffect(() => setSpeechOk(isSpeechAvailable()), []);
 
   // Chuyển đoạn (không remount): reset state đọc, tắt speech, và với user
   // reduced-motion thì hiện đủ bản dịch ngay (cũng giữ SSR/client khớp nhau).
@@ -176,12 +180,40 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
         )}
       </div>
 
+      <FirstTimeHint explainOn={explainOn} />
       <footer className="flex h-14 shrink-0 items-center justify-between border-t border-line px-8 text-[13px] text-muted">
-        <div className="flex items-center gap-5">
-          <span><kbd className="rounded border border-line px-1.5 py-0.5 text-xs">e</kbd> giải thích</span>
-          <span><kbd className="rounded border border-line px-1.5 py-0.5 text-xs">s</kbd> đọc to</span>
-          <span><kbd className="rounded border border-line px-1.5 py-0.5 text-xs">t</kbd> theme</span>
-          <span><kbd className="rounded border border-line px-1.5 py-0.5 text-xs">enter</kbd> đoạn tiếp</span>
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => setExplainOn((v) => !v)}
+            className={`flex items-center gap-2 border px-3 py-1.5 transition-colors ${explainOn ? "border-ink text-ink" : "border-line hover:border-accent hover:text-bright"}`}
+          >
+            <kbd className="rounded border border-line px-1.5 py-0.5 text-xs">e</kbd> giải thích
+          </button>
+          <button
+            type="button"
+            onClick={() => speak(passage.original)}
+            disabled={!speechOk}
+            title={speechOk ? undefined : "trình duyệt không hỗ trợ đọc"}
+            className="flex items-center gap-2 border border-line px-3 py-1.5 transition-colors hover:border-accent hover:text-bright disabled:opacity-40 disabled:hover:border-line disabled:hover:text-muted"
+          >
+            <kbd className="rounded border border-line px-1.5 py-0.5 text-xs">s</kbd> đọc to
+          </button>
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="flex items-center gap-2 border border-line px-3 py-1.5 transition-colors hover:border-accent hover:text-bright"
+          >
+            <kbd className="rounded border border-line px-1.5 py-0.5 text-xs">t</kbd> theme
+          </button>
+          <button
+            type="button"
+            onClick={() => goTo(passageIndex + 1)}
+            disabled={passageIndex >= passageCount}
+            className="flex items-center gap-2 border border-line px-3 py-1.5 transition-colors hover:border-accent hover:text-bright disabled:opacity-40 disabled:hover:border-line disabled:hover:text-muted"
+          >
+            <kbd className="rounded border border-line px-1.5 py-0.5 text-xs">enter</kbd> đoạn tiếp
+          </button>
         </div>
         <div className="h-1 w-44 rounded bg-line">
           <div
