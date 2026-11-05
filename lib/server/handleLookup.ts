@@ -26,7 +26,7 @@ const unavailable = (status: number, reason: "invalid" | "limited" | "paused" | 
 });
 
 export function cacheKey(text: string, sentence: string): string {
-  return "lookup:v1:cache:" + createHash("sha256").update(JSON.stringify([text, sentence])).digest("hex");
+  return "lookup:v1:cache:" + createHash("sha256").update(text + "\n" + sentence).digest("hex");
 }
 
 function parse(input: unknown): LookupRequest | null {
@@ -68,22 +68,26 @@ export async function handleLookup(input: unknown, deps: LookupDeps): Promise<Ou
   const { store, ask } = deps;
   if (!store || !ask) return unavailable(503, "paused");
 
-  if ((await store.hit(deps.ip, deps.now)) > MAX_HITS_PER_HOUR) return unavailable(429, "limited");
-
   const key = cacheKey(valid.text, valid.sentence);
-  const cached = await store.getCached(key);
-  if (cached) return { status: 200, body: { status: "ok", result: cached } };
-
-  if ((await store.getSpentUsd()) >= deps.budgetUsd) return unavailable(503, "paused");
-
   try {
-    const { result, costUsd } = await ask(valid.text, valid.sentence);
-    await store.addSpentUsd(costUsd);
-    await store.setCached(key, result, CACHE_TTL_SECONDS);
-    return { status: 200, body: { status: "ok", result } };
+    if ((await store.hit(deps.ip, deps.now)) > MAX_HITS_PER_HOUR) return unavailable(429, "limited");
+    const cached = await store.getCached(key);
+    if (cached) return { status: 200, body: { status: "ok", result: cached } };
+    if ((await store.getSpentUsd()) >= deps.budgetUsd) return unavailable(503, "paused");
+  } catch {
+    return unavailable(503, "error");
+  }
+
+  let asked: { result: LookupResult; costUsd: number };
+  try {
+    asked = await ask(valid.text, valid.sentence);
   } catch (err) {
     const cost = typeof err === "object" && err !== null ? (err as { costUsd?: unknown }).costUsd : undefined;
     if (typeof cost === "number") await store.addSpentUsd(cost).catch(() => {});
     return unavailable(503, isPaymentError(err) ? "paused" : "error");
   }
+  // Đã có kết quả: lỗi ghi sổ/cache không được làm mất kết quả của người dùng.
+  await store.addSpentUsd(asked.costUsd).catch(() => {});
+  await store.setCached(key, asked.result, CACHE_TTL_SECONDS).catch(() => {});
+  return { status: 200, body: { status: "ok", result: asked.result } };
 }

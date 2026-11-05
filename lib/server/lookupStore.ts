@@ -2,7 +2,7 @@ import { Redis } from "@upstash/redis";
 import type { LookupResult } from "@/lib/lookupTypes";
 
 const HOUR_MS = 3_600_000;
-const SPENT_KEY = "lookup:v1:spent";
+const SPENT_KEY = "lookup:v1:spent_usd";
 
 export interface LookupStore {
   getCached(key: string): Promise<LookupResult | null>;
@@ -65,7 +65,7 @@ export function upstashStore(url: string, token: string): LookupStore {
       await redis.incrbyfloat(SPENT_KEY, usd);
     },
     async hit(ip, now) {
-      const key = `lookup:v1:rate:${ip}:${hourOf(now)}`;
+      const key = `lookup:v1:rl:${ip}:${hourOf(now)}`;
       const n = await redis.incr(key);
       if (n === 1) await redis.expire(key, 3600);
       return n;
