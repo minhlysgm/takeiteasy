@@ -20,7 +20,7 @@ export function ChunkDrawer({ chunks, index, closing = false, onNavigate, onClos
 
   // Sang cụm khác thì vùng cuộn về đầu (không giữ vị trí cuộn của cụm trước)
   useEffect(() => {
-    scrollRef.current?.scrollTo(0, 0);
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
   }, [index]);
 
   useEffect(() => {

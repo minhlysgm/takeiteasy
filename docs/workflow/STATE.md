@@ -5,11 +5,11 @@
 
 ## Đang làm
 
-**Task:** Reader dùng được trên mobile · **Cỡ:** M · UI · **Trạm:** ⑤ Build — **chưa bắt đầu**. Plan đã duyệt 2026-11-05: `docs/superpowers/plans/2026-11-05-reader-mobile.md` (5 task con). Spec đã duyệt: `docs/superpowers/specs/2026-11-05-reader-mobile-design.md`, mockup https://claude.ai/artifact/XQ614Aeyj2q32gYgmhd84L
+**Task:** Reader dùng được trên mobile · **Cỡ:** M · UI · **Trạm:** ⑤ Build — **đang làm**. Plan đã duyệt 2026-11-05: `docs/superpowers/plans/2026-11-05-reader-mobile.md` (5 task con). Spec đã duyệt: `docs/superpowers/specs/2026-11-05-reader-mobile-design.md`, mockup https://claude.ai/artifact/XQ614Aeyj2q32gYgmhd84L
 
 Bước kế: tạo nhánh `task/reader-mobile` từ `main`, chạy plan bằng `superpowers:subagent-driven-development`, bắt đầu Task 1. Cập nhật dòng tiến độ dưới đây sau mỗi task con.
 
-Tiến độ build: Task 1 ☐ · Task 2 ☐ · Task 3 ☐ · Task 4 ☐ · Task 5 ☐
+Tiến độ build (nhánh `task/reader-mobile` đã tạo, ledger ở `.superpowers/sdd/2026-11-05-reader-mobile/progress.md`): Task 1 ✅ · Task 2 ✅ · Task 3 ✅ · Task 4 ✅ · Task 5 ✅ · review toàn nhánh: đang sửa 2 lỗi chính + 4 lỗi nhỏ
 
 Ghi chú trạm ① (đọc code):
 - Toàn bộ layout ở `components/reader/PassageView.tsx`: lưới `grid-cols-[200px_1fr_200px_1fr]` (dòng ~150) = lề trái (ghi chú) · nguyên văn (+ hình phác thảo) · lề phải (ghi chú, có viền chia) · bản dịch. Không có breakpoint nào trong reader.
