@@ -1,5 +1,8 @@
+import { findChunkRanges } from "@/lib/content";
+import type { Chunk, Passage } from "@/content/types";
+
 /** Số từ tối đa để còn tra nghĩa được (đếm theo khoảng trắng). */
-const MAX_LOOKUP_WORDS = 5;
+const MAX_LOOKUP_WORDS = 10;
 
 /** Gộp mọi khoảng trắng (kể cả xuống dòng) thành một dấu cách; không còn chữ/số nào thì trả "". */
 export function normalizeSelectionText(raw: string): string {
@@ -13,9 +16,55 @@ export function countWords(text: string): number {
   return t ? t.split(/\s+/).length : 0;
 }
 
-/** Chỉ tra nghĩa khi cụm đủ ngắn (≤ 5 từ). */
+/** Chỉ tra nghĩa khi cụm đủ ngắn (≤ 10 từ). */
 export function canLookUp(text: string): boolean {
   return countWords(text) <= MAX_LOOKUP_WORDS;
+}
+
+/**
+ * Câu chứa vùng chọn [start, end) trong `original`: lùi tới sau `[.?!]` + khoảng trắng gần nhất (hoặc sau `\n`,
+ * hoặc đầu chuỗi), tiến tới hết `[.?!]` đầu tiên (kèm `"`/`”` đóng liền sau) có khoảng trắng/hết chuỗi theo sau
+ * (hoặc trước `\n`, hoặc cuối chuỗi). Trả về đã `normalizeSelectionText`.
+ */
+export function sentenceAt(original: string, start: number, end: number): string {
+  let from = 0;
+  for (let i = start - 1; i >= 0; i--) {
+    const c = original[i];
+    if (c === "\n") {
+      from = i + 1;
+      break;
+    }
+    if (/\s/.test(c) && i > 0 && /[.?!]/.test(original[i - 1])) {
+      from = i + 1;
+      break;
+    }
+  }
+  let to = original.length;
+  for (let i = Math.max(end, from); i < original.length; i++) {
+    const c = original[i];
+    if (c === "\n") {
+      to = i;
+      break;
+    }
+    if (/[.?!]/.test(c)) {
+      let j = i + 1;
+      if (original[j] === '"' || original[j] === "”") j++;
+      if (j >= original.length || /\s/.test(original[j])) {
+        to = j;
+        break;
+      }
+    }
+  }
+  return normalizeSelectionText(original.slice(from, to));
+}
+
+/** Cụm soạn sẵn của đoạn mà vùng chọn [start, end) (bỏ khoảng trắng đầu/cuối) nằm trọn trong; không có thì null. */
+export function chunkAt(passage: Passage, start: number, end: number): Chunk | null {
+  const raw = passage.original.slice(start, end);
+  const s = start + (raw.length - raw.trimStart().length);
+  const e = end - (raw.length - raw.trimEnd().length);
+  const hit = findChunkRanges(passage.original, passage.chunks).find((r) => r.start <= s && e <= r.end);
+  return hit?.chunk ?? null;
 }
 
 /** Link tra từ điển Cambridge cho cụm đã chọn. */

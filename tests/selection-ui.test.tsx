@@ -9,7 +9,7 @@ import { speak } from "@/lib/speech";
 vi.mock("@/lib/speech", () => ({ speak: vi.fn() }));
 
 const rect = { left: 40, top: 200, width: 100, height: 20 };
-const sel = (text: string) => ({ text, rect });
+const sel = (text: string) => ({ text, rect, start: 0, end: text.length });
 
 afterEach(() => {
   vi.clearAllMocks();
@@ -27,8 +27,8 @@ describe("SelectionDock", () => {
     expect(speak).toHaveBeenCalledWith("chronic gambler");
   });
 
-  it("dock: 6 từ → không có nút 'tra nghĩa'", () => {
-    render(<SelectionDock selection={sel("one two three four five six")} speechOk />);
+  it("dock: 11 từ → không có nút 'tra nghĩa'", () => {
+    render(<SelectionDock selection={sel("one two three four five six seven eight nine ten eleven")} speechOk />);
     expect(screen.getByRole("button", { name: /nghe/ })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /tra nghĩa/ })).toBeNull();
   });
@@ -92,11 +92,11 @@ describe("SelectionPopup", () => {
     expect(popup.getAttribute("aria-label")).toBe("chữ đang chọn");
   });
 
-  it("popup: có 'tra nghĩa' thì 'nghe' có đường kẻ ngăn; 6 từ (không 'tra nghĩa') thì không", () => {
+  it("popup: có 'tra nghĩa' thì 'nghe' có đường kẻ ngăn; 11 từ (không 'tra nghĩa') thì không", () => {
     renderPopup("chronic gambler");
     expect(screen.getByRole("button", { name: /nghe/ }).className).toContain("border-r");
     cleanup();
-    renderPopup("one two three four five six");
+    renderPopup("one two three four five six seven eight nine ten eleven");
     expect(screen.queryByRole("button", { name: /tra nghĩa/ })).toBeNull();
     expect(screen.getByRole("button", { name: /nghe/ }).className).not.toContain("border-r");
   });

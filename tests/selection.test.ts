@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { canLookUp, lookupUrl, normalizeSelectionText, placePopup } from "@/lib/selection";
+import { getPassages } from "@/lib/content";
+import { canLookUp, chunkAt, lookupUrl, normalizeSelectionText, placePopup, sentenceAt } from "@/lib/selection";
 
 describe("normalizeSelectionText", () => {
   it("gộp khoảng trắng và xuống dòng", () => expect(normalizeSelectionText("  chronic\n  gambler ")).toBe("chronic gambler"));
@@ -7,8 +8,34 @@ describe("normalizeSelectionText", () => {
 });
 
 describe("canLookUp", () => {
-  it("5 từ thì tra được", () => expect(canLookUp("look to sb for sth")).toBe(true)); // 5 từ
-  it("6 từ thì không", () => expect(canLookUp("Charles Bukowski was an alcoholic, a")).toBe(false));
+  it("10 từ thì tra được", () =>
+    expect(canLookUp("Charles Bukowski was an alcoholic, a womanizer, a chronic gambler,")).toBe(true));
+  it("11 từ thì không", () =>
+    expect(canLookUp("Charles Bukowski was an alcoholic, a womanizer, a chronic gambler, a")).toBe(false));
+});
+
+const p1 = getPassages("the-subtle-art", "ch01")![0];
+const at = (s: string) => {
+  const i = p1.original.indexOf(s);
+  return [i, i + s.length] as const;
+};
+
+describe("sentenceAt", () => {
+  it("câu chứa 'lout'", () =>
+    expect(sentenceAt(p1.original, ...at("lout"))).toBe(
+      "Charles Bukowski was an alcoholic, a womanizer, a chronic gambler, a lout, a cheapskate, a deadbeat, and on his worst days, a poet.",
+    ));
+  it("câu đứng riêng sau dòng trống", () =>
+    expect(sentenceAt(p1.original, ...at("perfect place"))).toBe("Which is why he's the perfect place to start."));
+});
+
+describe("chunkAt", () => {
+  it("nằm trọn trong cụm → cụm đó; lấn ra ngoài → null", () => {
+    expect(chunkAt(p1, ...at("chronic"))?.id).toBe("chronic");
+    expect(chunkAt(p1, ...at("worst days"))?.id).toBe("on-his-worst-days");
+    expect(chunkAt(p1, ...at("chronic gambler"))).toBeNull();
+    expect(chunkAt(p1, ...at("lout"))).toBeNull();
+  });
 });
 
 it("lookupUrl encode cụm", () =>
