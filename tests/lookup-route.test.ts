@@ -9,7 +9,11 @@ vi.mock("@anthropic-ai/sdk", () => ({
 
 const SENTENCE =
   "Charles Bukowski was an alcoholic, a womanizer, a chronic gambler, a lout, a cheapskate, a deadbeat, and on his worst days, a poet.";
-const VALID = { bookId: "the-subtle-art", chapterId: "ch01", passageIndex: 1, text: "lout", sentence: SENTENCE };
+const at = (text: string) => {
+  const start = SENTENCE.indexOf(text); // câu này mở đầu đoạn 1 → vị trí trong câu = vị trí trong đoạn
+  return { text, start, end: start + text.length };
+};
+const VALID = { bookId: "the-subtle-art", chapterId: "ch01", passageIndex: 1, ...at("lout") };
 const RESULT = {
   headword: "lout",
   ipa: "/laʊt/",
@@ -102,13 +106,13 @@ describe("POST /api/lookup", () => {
     const words = SENTENCE.split(" ");
     const texts = [...new Set(words.flatMap((_, i) => [words[i], words.slice(i, i + 2).join(" ")]))].slice(0, 31);
     expect(texts).toHaveLength(31);
-    for (const text of texts.slice(0, 30)) expect((await POST(post({ ...VALID, text }, forwarded))).status).toBe(200);
-    const res = await POST(post({ ...VALID, text: texts[30] }, forwarded));
+    for (const text of texts.slice(0, 30)) expect((await POST(post({ ...VALID, ...at(text) }, forwarded))).status).toBe(200);
+    const res = await POST(post({ ...VALID, ...at(texts[30]) }, forwarded));
     expect(res.status).toBe(429);
     expect(await res.json()).toEqual({ status: "unavailable", reason: "limited" });
     // cùng IP đầu, proxy khác phía sau vẫn bị tính chung
-    expect((await POST(post({ ...VALID, text: texts[30] }, "1.2.3.4, 10.9.9.9"))).status).toBe(429);
+    expect((await POST(post({ ...VALID, ...at(texts[30]) }, "1.2.3.4, 10.9.9.9"))).status).toBe(429);
     // IP khác thì không bị ảnh hưởng
-    expect((await POST(post({ ...VALID, text: texts[30] }, "5.6.7.8"))).status).toBe(200);
+    expect((await POST(post({ ...VALID, ...at(texts[30]) }, "5.6.7.8"))).status).toBe(200);
   });
 });

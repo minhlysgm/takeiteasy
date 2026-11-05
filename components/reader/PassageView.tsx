@@ -8,7 +8,7 @@ import { fetchLookup } from "@/lib/lookupClient";
 import { prefersReducedMotion } from "@/lib/motion";
 import { saveProgress } from "@/lib/progress";
 import { getReadPassages, markPassageRead } from "@/lib/readPassages";
-import { chunkAt, sentenceAt } from "@/lib/selection";
+import { chunkAt } from "@/lib/selection";
 import { isSpeechAvailable, speak, stopSpeech } from "@/lib/speech";
 import { useMediaQuery } from "@/lib/useMediaQuery";
 import { useTextSelection } from "@/lib/useTextSelection";
@@ -287,7 +287,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
     lookupAbort.current = ctrl;
     setLookup({ key, state: { phase: "loading" } });
     fetchLookup(
-      { bookId: book.id, chapterId, passageIndex, text, sentence: sentenceAt(passage.original, start, end) },
+      { bookId: book.id, chapterId, passageIndex, text, start, end },
       ctrl.signal,
     ).then(
       (res) => {

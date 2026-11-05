@@ -1,7 +1,7 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import { getPassage } from "@/lib/content";
-import { canLookUp, MAX_LOOKUP_CHARS, MAX_SENTENCE_CHARS, normalizeSelectionText, sentenceAt } from "@/lib/selection";
+import { canLookUp, MAX_LOOKUP_CHARS, normalizeSelectionText, sentenceAt } from "@/lib/selection";
 import type { LookupRequest, LookupResponse, LookupResult } from "@/lib/lookupTypes";
 import type { LookupStore } from "@/lib/server/lookupStore";
 
@@ -37,42 +37,29 @@ function parse(input: unknown): LookupRequest | null {
     typeof r.passageIndex !== "number" ||
     !Number.isInteger(r.passageIndex) ||
     typeof r.text !== "string" ||
-    typeof r.sentence !== "string"
+    !Number.isInteger(r.start) ||
+    !Number.isInteger(r.end)
   )
     return null;
   return r as unknown as LookupRequest;
 }
 
-const escapeRegExp = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
 /**
- * Câu chuẩn do server tự tính: tìm `text` (trọn từ, khoảng trắng linh hoạt) trong nguyên văn rồi `sentenceAt`.
- * Có nhiều chỗ → lấy chỗ có câu trùng `hint` (câu trình duyệt gửi), không trùng thì lấy chỗ đầu tiên.
- * Nhờ vậy khoá cache chỉ gồm các cặp (cụm trọn từ, câu) có thật trong sách → số lượt tốn tiền có giới hạn.
+ * Trả { text, sentence } nếu hợp lệ, ngược lại null. Câu ngữ cảnh do server tự cắt từ nguyên văn theo vị trí
+ * (không tin câu trình duyệt gửi) → khoá cache chỉ gồm các cặp (mẩu nguyên văn ≤ 120 ký tự, câu chứa nó) có thật trong sách.
  */
-function canonicalSentence(original: string, text: string, hint: string): string | null {
-  const pattern = text.split(" ").map(escapeRegExp).join("\\s+");
-  const re = new RegExp(`(?<![\\p{L}\\p{N}])${pattern}(?![\\p{L}\\p{N}])`, "gu");
-  let first: string | null = null;
-  for (const m of original.matchAll(re)) {
-    const sentence = sentenceAt(original, m.index, m.index + m[0].length);
-    if (sentence === hint) return sentence;
-    first ??= sentence;
-  }
-  return first;
-}
-
-/** Trả { text, sentence } chuẩn (chữ tra bỏ dấu câu hai đầu, câu do server tự tính) nếu hợp lệ, ngược lại null. */
 function validate(input: unknown): { text: string; sentence: string } | null {
   const req = parse(input);
   if (!req) return null;
-  if (req.text.length > MAX_LOOKUP_CHARS || req.sentence.length > MAX_SENTENCE_CHARS) return null;
-  const text = normalizeSelectionText(req.text).replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
+  if (req.text.length > MAX_LOOKUP_CHARS) return null;
+  const text = normalizeSelectionText(req.text);
   if (!text || !canLookUp(text)) return null;
   const passage = getPassage(req.bookId, req.chapterId, req.passageIndex);
   if (!passage) return null;
-  const sentence = canonicalSentence(passage.original, text, normalizeSelectionText(req.sentence));
-  return sentence ? { text, sentence } : null;
+  const { start, end } = req;
+  if (start < 0 || end <= start || end > passage.original.length) return null;
+  if (normalizeSelectionText(passage.original.slice(start, end)) !== text) return null;
+  return { text, sentence: sentenceAt(passage.original, start, end) };
 }
 
 const isPaymentError = (err: unknown) =>

@@ -7,7 +7,8 @@ const REQ: LookupRequest = {
   chapterId: "ch01",
   passageIndex: 1,
   text: "lout",
-  sentence: "Charles Bukowski was an alcoholic, a womanizer, a chronic gambler, a lout, a cheapskate, a deadbeat, and on his worst days, a poet.",
+  start: 70,
+  end: 74,
 };
 const OK: LookupResponse = {
   status: "ok",

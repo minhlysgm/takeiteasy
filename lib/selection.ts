@@ -3,9 +3,10 @@ import type { Chunk, Passage } from "@/content/types";
 
 /** Số từ tối đa để còn tra nghĩa được (đếm theo khoảng trắng). */
 const MAX_LOOKUP_WORDS = 10;
-/** Số ký tự tối đa của chữ tra / câu ngữ cảnh — server cũng chặn đúng hai số này. */
+/** Số ký tự tối đa của chữ tra — server cũng chặn đúng số này. */
 export const MAX_LOOKUP_CHARS = 120;
-export const MAX_SENTENCE_CHARS = 600;
+/** Câu ngữ cảnh gửi AI dài tối đa chừng này ký tự (`sentenceAt` cắt khung quanh vùng chọn). */
+const MAX_SENTENCE_CHARS = 600;
 
 /** Gộp mọi khoảng trắng (kể cả xuống dòng) thành một dấu cách; không còn chữ/số nào thì trả "". */
 export function normalizeSelectionText(raw: string): string {

@@ -19,7 +19,15 @@ const LOUT: LookupResult = {
 };
 const SENTENCE =
   "Charles Bukowski was an alcoholic, a womanizer, a chronic gambler, a lout, a cheapskate, a deadbeat, and on his worst days, a poet.";
-const req = { bookId: "the-subtle-art", chapterId: "ch01", passageIndex: 1, text: "lout", sentence: SENTENCE };
+const P1 = getPassage("the-subtle-art", "ch01", 1)!.original;
+/** Chữ tra + vị trí của nó trong nguyên văn (lần xuất hiện đầu, hoặc cuối nếu `last`). */
+const at = (text: string, original = P1, last = false) => {
+  const start = last ? original.lastIndexOf(text) : original.indexOf(text);
+  return { text, start, end: start + text.length };
+};
+const req = { bookId: "the-subtle-art", chapterId: "ch01", passageIndex: 1, ...at("lout") };
+const mockOriginal = (original: string) =>
+  vi.mocked(getPassage).mockReturnValue({ original } as ReturnType<typeof getPassage>);
 const HOUR = 3_600_000;
 
 let store: LookupStore;
@@ -49,54 +57,60 @@ describe("handleLookup", () => {
   });
 
   it("hình dạng sai → 400 invalid", async () => {
-    for (const bad of [null, "x", {}, { ...req, passageIndex: "1" }, { ...req, text: 5 }, { ...req, text: "" }]) {
+    for (const bad of [
+      null,
+      "x",
+      {},
+      { ...req, passageIndex: "1" },
+      { ...req, text: 5 },
+      { ...req, text: "" },
+      { ...req, start: "1" },
+      { ...req, start: 1.5 },
+      { ...req, end: undefined },
+    ]) {
       const res = await handleLookup(bad, deps());
       expect(res).toEqual({ status: 400, body: { status: "unavailable", reason: "invalid" } });
     }
     expect(ask).not.toHaveBeenCalled();
   });
 
-  it("câu gửi lên không có trong đoạn → vẫn tra, nhưng dùng câu chuẩn server tự tính", async () => {
-    const res = await handleLookup({ ...req, sentence: "A lout is not here." }, deps());
-    expect(res.status).toBe(200);
-    expect(ask).toHaveBeenCalledWith("lout", SENTENCE);
-  });
-
-  it("câu gửi lên là một mẩu bất kỳ của đoạn → ask và cache dùng câu chuẩn (không đẻ thêm khoá cache)", async () => {
-    await handleLookup({ ...req, sentence: "a lout, a cheapskate" }, deps());
-    await handleLookup({ ...req, sentence: "gambler, a lout" }, deps());
-    await handleLookup(req, deps());
-    expect(ask).toHaveBeenCalledTimes(1);
-    expect(ask).toHaveBeenCalledWith("lout", SENTENCE);
-    expect(await store.getCached(cacheKey("lout", SENTENCE))).toEqual(LOUT);
-  });
-
-  it("chữ có ở 2 câu → chọn câu khớp với câu gửi lên; không khớp thì lấy chỗ đầu tiên", async () => {
+  it("server tự cắt câu theo vị trí; chữ có ở 2 câu thì lấy đúng câu của vị trí đó", async () => {
     const original = "I met a lout at the bar.\nLater he was a lout again.";
-    vi.mocked(getPassage).mockReturnValue({ original } as ReturnType<typeof getPassage>);
-    await handleLookup({ ...req, sentence: "Later he was a lout again." }, deps());
+    mockOriginal(original);
+    await handleLookup({ ...req, ...at("lout", original, true) }, deps());
     expect(ask).toHaveBeenLastCalledWith("lout", "Later he was a lout again.");
-    await handleLookup({ ...req, sentence: "something else" }, deps());
+    await handleLookup({ ...req, ...at("lout", original) }, deps());
     expect(ask).toHaveBeenLastCalledWith("lout", "I met a lout at the bar.");
   });
 
-  it("chữ tra không trọn từ (một mẩu giữa từ) → 400", async () => {
-    for (const text of ["ou", "ucho", "out, a che"]) {
-      expect((await handleLookup({ ...req, text }, deps())).status).toBe(400);
+  it("vị trí không khớp chữ tra hoặc ra ngoài đoạn → 400, không gọi ask", async () => {
+    const cheap = at("a cheapskate");
+    for (const bad of [
+      { ...req, start: cheap.start, end: cheap.end },
+      { ...req, start: -1, end: 3 },
+      { ...req, start: P1.length - 2, end: P1.length + 2 },
+      { ...req, start: req.end, end: req.start },
+    ]) {
+      expect((await handleLookup(bad, deps())).status).toBe(400);
     }
     expect(ask).not.toHaveBeenCalled();
   });
 
-  it("dấu câu ở đầu/cuối chữ tra được bỏ → 'lout,' dùng chung kết quả với 'lout'", async () => {
-    await handleLookup({ ...req, text: "lout," }, deps());
-    await handleLookup({ ...req, text: ", lout" }, deps());
-    await handleLookup(req, deps());
-    expect(ask).toHaveBeenCalledTimes(1);
+  it("bôi đen giữa từ hoặc kèm dấu câu vẫn tra được, giữ nguyên chữ đã chọn", async () => {
+    expect((await handleLookup({ ...req, ...at("gamble") }, deps())).status).toBe(200);
+    expect(ask).toHaveBeenLastCalledWith("gamble", SENTENCE);
+    expect((await handleLookup({ ...req, ...at("lout,") }, deps())).status).toBe(200);
+    expect(ask).toHaveBeenLastCalledWith("lout,", SENTENCE);
+  });
+
+  it("chữ gửi lên có xuống dòng/khoảng trắng thừa vẫn khớp vị trí", async () => {
+    const res = await handleLookup({ ...req, text: " lout\n" }, deps());
+    expect(res.status).toBe(200);
     expect(ask).toHaveBeenCalledWith("lout", SENTENCE);
   });
 
   it("chữ tra chỉ toàn dấu câu → 400", async () => {
-    expect((await handleLookup({ ...req, text: ", ," }, deps())).status).toBe(400);
+    expect((await handleLookup({ ...req, ...at(", ") }, deps())).status).toBe(400);
   });
 
   it("không tìm thấy đoạn → 400", async () => {
@@ -104,44 +118,36 @@ describe("handleLookup", () => {
     expect((await handleLookup({ ...req, bookId: "nope" }, deps())).status).toBe(400);
   });
 
-  it("chữ tra không nằm trong câu → 400", async () => {
+  it("chữ tra khác chữ ở vị trí gửi lên → 400", async () => {
     const res = await handleLookup({ ...req, text: "banana" }, deps());
     expect(res.status).toBe(400);
     expect(ask).not.toHaveBeenCalled();
   });
 
-  it("11 từ (có trong câu) → 400; 10 từ thì được", async () => {
+  it("11 từ → 400; 10 từ thì được", async () => {
     const eleven = "Charles Bukowski was an alcoholic, a womanizer, a chronic gambler, a";
     expect(eleven.split(" ")).toHaveLength(11);
-    expect((await handleLookup({ ...req, text: eleven }, deps())).status).toBe(400);
+    expect((await handleLookup({ ...req, ...at(eleven) }, deps())).status).toBe(400);
     const ten = "Charles Bukowski was an alcoholic, a womanizer, a chronic gambler,";
-    expect((await handleLookup({ ...req, text: ten }, deps())).status).toBe(200);
+    expect((await handleLookup({ ...req, ...at(ten) }, deps())).status).toBe(200);
   });
 
-  it("text > 120 ký tự → 400 (dù nằm trong câu và ≤ 10 từ)", async () => {
-    const text = "x".repeat(121);
-    const sentence = `a ${text} b`;
-    vi.mocked(getPassage).mockReturnValue({ original: sentence } as ReturnType<typeof getPassage>);
-    expect((await handleLookup({ ...req, text, sentence }, deps())).status).toBe(400);
+  it("text > 120 ký tự → 400 (dù ≤ 10 từ); đúng 120 thì được", async () => {
+    const long = "x".repeat(121);
+    mockOriginal(`a ${long} b`);
+    expect((await handleLookup({ ...req, ...at(long, `a ${long} b`) }, deps())).status).toBe(400);
     const ok = "x".repeat(120);
-    vi.mocked(getPassage).mockReturnValue({ original: `a ${ok} b` } as ReturnType<typeof getPassage>);
-    expect((await handleLookup({ ...req, text: ok, sentence: `a ${ok} b` }, deps())).status).toBe(200);
+    mockOriginal(`a ${ok} b`);
+    expect((await handleLookup({ ...req, ...at(ok, `a ${ok} b`) }, deps())).status).toBe(200);
   });
 
-  it("sentence > 600 ký tự → 400 (dù nằm trong đoạn)", async () => {
-    const long = "lout " + "y".repeat(600);
-    vi.mocked(getPassage).mockReturnValue({ original: long } as ReturnType<typeof getPassage>);
-    expect((await handleLookup({ ...req, sentence: long }, deps())).status).toBe(400);
-    const ok = "lout " + "y".repeat(595);
-    expect(ok).toHaveLength(600);
-    vi.mocked(getPassage).mockReturnValue({ original: ok } as ReturnType<typeof getPassage>);
-    expect((await handleLookup({ ...req, sentence: ok }, deps())).status).toBe(200);
-  });
-
-  it("câu gửi lên có xuống dòng/khoảng trắng thừa vẫn hợp lệ", async () => {
-    const messy = "  " + SENTENCE.replace(/, /g, ",\n  ") + "  ";
-    const res = await handleLookup({ ...req, sentence: messy, text: " lout\n" }, deps());
-    expect(res.status).toBe(200);
+  it("câu dài quá 600 ký tự → server gửi AI khung ≤ 600 ký tự quanh chữ tra", async () => {
+    const original = "word ".repeat(150) + "lout " + "word ".repeat(150);
+    mockOriginal(original);
+    expect((await handleLookup({ ...req, ...at("lout", original) }, deps())).status).toBe(200);
+    const sentence = ask.mock.calls[0][1] as string;
+    expect(sentence.length).toBeLessThanOrEqual(600);
+    expect(sentence).toContain("lout");
   });
 
   it("đã tiêu ≥ 9 → 503 paused, không gọi ask", async () => {
