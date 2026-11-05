@@ -100,8 +100,7 @@ test.describe("mẹo lần đầu đã tắt (thanh nằm ngay trên footer)", (
     await expect(dock(page)).toBeVisible();
     // Ghi lại mọi lần DOM đổi: đoạn 2 đã hiện mà thanh (của đoạn 1) vẫn còn → lỗi.
     // Không dựa vào auto-wait: vùng chọn tự xẹp khi cột cũ unmount, hook sẽ tự ẩn thanh sau 250ms.
-    // Ghi chú: hiện Next remount cả PassageView khi đổi đoạn nên test này xanh cả khi bỏ clear();
-    // clear() trong goTo / effect [passage.id] được khoá bằng unit test ở tests/passage-view.test.tsx.
+    // PassageView sống xuyên các đoạn (layout của chương) nên test này khoá luôn clear() trong goTo.
     await page.evaluate((p2) => {
       const w = window as unknown as { __stale: string[] };
       w.__stale = [];

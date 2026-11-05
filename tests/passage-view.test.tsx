@@ -191,8 +191,7 @@ describe("PassageView", () => {
 });
 
 // RF4: chuyển đoạn thì thanh/popup chọn chữ biến mất ngay, không mang chữ của đoạn cũ sang đoạn mới.
-// (Trên app thật Next remount PassageView khi đổi đoạn nên e2e không bắt được nếu bỏ clear();
-// ở đây PassageView sống tiếp qua rerender — đúng ý đồ "không remount" của page.tsx.)
+// PassageView sống tiếp qua rerender, như trên app thật (nằm ở layout của chương).
 describe("PassageView — chọn chữ khi chuyển đoạn", () => {
   const original = Range.prototype.getBoundingClientRect;
   beforeAll(() => {

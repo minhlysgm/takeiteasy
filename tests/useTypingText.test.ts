@@ -35,4 +35,19 @@ describe("useTypingText", () => {
     act(() => vi.runAllTimers());
     expect(result.current.display).toBe("two");
   });
+  it("đổi text: không lần vẽ nào vừa mang text mới vừa giữ số chữ đã gõ của text cũ", () => {
+    const seen: string[] = [];
+    const { rerender } = renderHook(
+      ({ t }) => {
+        const r = useTypingText(t, { charMs: 10 });
+        seen.push(`${t}|${r.display}|${r.done}`);
+        return r;
+      },
+      { initialProps: { t: "một đoạn dài đã gõ xong" } },
+    );
+    act(() => vi.runAllTimers());
+    seen.length = 0;
+    rerender({ t: "ngắn" });
+    expect(seen[0]).toBe("ngắn||false");
+  });
 });

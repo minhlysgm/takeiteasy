@@ -31,3 +31,7 @@ Object.defineProperty(globalThis, "localStorage", {
   configurable: true,
   writable: true,
 });
+
+// jsdom không có scrollTo/scrollBy (in "Not implemented" ra log): thay bằng hàm rỗng.
+window.scrollTo = () => {};
+window.scrollBy = () => {};
