@@ -12,7 +12,7 @@ export function BookShelf({ books }: { books: Book[] }) {
   useEffect(() => setProgress(getProgress()), []);
 
   return (
-    <div className="mx-auto max-w-3xl px-8 py-16">
+    <div className="mx-auto max-w-3xl px-4 py-16 sm:px-8">
       <div className="reveal reveal-1 mb-8 text-sm text-muted">{"// kệ sách"}</div>
 
       {books.map((book) => {
@@ -26,7 +26,7 @@ export function BookShelf({ books }: { books: Book[] }) {
               <span className="ml-2 text-xs text-muted">{book.id}</span>
             </div>
 
-            <div className="p-8">
+            <div className="p-5 sm:p-8">
               <h1 className="text-[26px] leading-snug text-bright">{book.title}</h1>
               <div className="mt-1 text-sm text-muted">{book.author}</div>
 
@@ -49,13 +49,13 @@ export function BookShelf({ books }: { books: Book[] }) {
                     <li key={ch.id}>
                       <Link
                         href={`/read/${book.id}/${ch.id}/1`}
-                        className="group flex items-center gap-3 px-3 py-3 transition-all hover:translate-x-1 hover:bg-surface"
+                        className="group flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-3 transition-[transform,background-color] hover:translate-x-1 hover:bg-surface motion-reduce:transition-none"
                       >
-                        <span className="text-muted">{chapterLabel(ch.id)}</span>
+                        <span className="whitespace-nowrap text-muted">{chapterLabel(ch.id)}</span>
                         <span className="text-text transition-colors group-hover:text-bright">{ch.title}</span>
-                        <span className="text-xs text-muted">· {ch.passageCount} đoạn</span>
+                        <span className="whitespace-nowrap text-xs text-muted">· {ch.passageCount} đoạn</span>
                         <span className="ml-auto flex items-center gap-3">
-                          <span className="h-1 w-28 rounded bg-line">
+                          <span className="h-1 w-20 rounded bg-line sm:w-28">
                             <span
                               className="block h-full rounded bg-accent transition-[width] duration-500 ease-out motion-reduce:transition-none"
                               style={{ width: `${pct}%` }}

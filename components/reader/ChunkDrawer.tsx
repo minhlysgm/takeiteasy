@@ -107,7 +107,7 @@ export function ChunkDrawer({ chunks, index, closing = false, onNavigate, onClos
               type="button"
               onClick={onClose}
               aria-label="đóng"
-              className="-mr-3 flex min-h-11 min-w-11 items-center justify-center hover:text-bright lg:mr-0 lg:block lg:min-h-0 lg:min-w-0"
+              className="-mr-3 flex min-h-11 min-w-11 items-center justify-center hover:text-bright max-lg:focus-visible:outline-offset-[-8px] lg:mr-0 lg:block lg:min-h-0 lg:min-w-0"
             >
               <span className="lg:hidden">✕</span>
               <span className="hidden lg:inline">
@@ -140,7 +140,7 @@ export function ChunkDrawer({ chunks, index, closing = false, onNavigate, onClos
                       onClick={() => speak(ex.en)}
                       disabled={!speechOk}
                       aria-label={`nghe: ${ex.en}`}
-                      className="-mb-4 -mt-3 -mx-4 shrink-0 p-4 text-accent disabled:opacity-40 lg:m-0 lg:mt-1 lg:p-0"
+                      className="-mb-4 -mt-3 -mx-4 shrink-0 p-4 text-accent disabled:opacity-40 max-lg:focus-visible:outline-offset-[-12px] lg:m-0 lg:mt-1 lg:p-0"
                     >
                       <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true">
                         <path d="M4 2.5v11l9-5.5z" fill="currentColor" />

@@ -37,3 +37,16 @@ describe("độ tương phản chữ phụ (--muted)", () => {
     });
   }
 });
+
+describe("viền focus bàn phím (--focus)", () => {
+  for (const [name, t] of Object.entries(themes)) {
+    for (const bg of ["bg", "surface"]) {
+      it(`${name}: --focus trên --${bg} tương phản ≥ 3:1 (WCAG non-text)`, () => {
+        expect(contrast(t.focus, t[bg])).toBeGreaterThanOrEqual(3);
+      });
+    }
+    it(`${name}: --focus khác màu --ink để nút đang bật vẫn thấy viền focus`, () => {
+      expect(t.focus.toLowerCase()).not.toBe(t.ink.toLowerCase());
+    });
+  }
+});
