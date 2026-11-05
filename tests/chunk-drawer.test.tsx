@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ChunkDrawer } from "@/components/reader/ChunkDrawer";
+import { MOBILE_QUERY } from "@/lib/breakpoints";
 import { books, getPassages } from "@/lib/content";
 
 // neo vào đoạn theo id (không theo vị trí) để thêm đoạn mới không làm test trôi fixture
@@ -51,7 +52,7 @@ describe("ChunkDrawer", () => {
       vi.stubGlobal(
         "matchMedia",
         vi.fn((q: string) => ({
-          matches: matches && q === "(max-width: 1023.98px)",
+          matches: matches && q === MOBILE_QUERY,
           media: q,
           addEventListener: () => {},
           removeEventListener: () => {},

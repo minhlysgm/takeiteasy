@@ -11,6 +11,7 @@ import { useTypingText } from "@/lib/useTypingText";
 import { AnnotationLayer } from "./AnnotationLayer";
 import { ChunkDrawer } from "./ChunkDrawer";
 import { FirstTimeHint } from "./FirstTimeHint";
+import { FooterButton } from "./FooterButton";
 import { Kbd } from "./Kbd";
 import { MobileNoteList } from "./MobileNoteList";
 import { OriginalText } from "./OriginalText";
@@ -228,37 +229,22 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
             style={{ transform: `scaleX(${passageIndex / passageCount})` }}
           />
           <div className="flex items-center gap-1.5 lg:gap-2.5">
-            <button
-              type="button"
-              onClick={() => setExplainOn((v) => !v)}
-              className={`flex h-[38px] items-center gap-2 whitespace-nowrap border px-2 transition-colors motion-reduce:transition-none lg:h-auto lg:px-3 lg:py-1.5 ${explainOn ? "border-ink text-ink" : "border-line hover:border-accent hover:text-bright"}`}
-            >
+            <FooterButton active={explainOn} onClick={() => setExplainOn((v) => !v)}>
               <Kbd className="max-lg:hidden">e</Kbd> giải thích
-            </button>
-            <button
-              type="button"
+            </FooterButton>
+            <FooterButton
               onClick={() => speak(passage.original)}
               disabled={!speechOk}
               title={speechOk ? undefined : "trình duyệt không hỗ trợ đọc"}
-              className="flex h-[38px] items-center gap-2 whitespace-nowrap border border-line px-2 transition-colors motion-reduce:transition-none hover:border-accent hover:text-bright disabled:opacity-40 disabled:hover:border-line disabled:hover:text-muted lg:h-auto lg:px-3 lg:py-1.5"
             >
               <Kbd className="max-lg:hidden">s</Kbd> đọc to
-            </button>
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className="hidden items-center gap-2 whitespace-nowrap border border-line px-3 py-1.5 transition-colors motion-reduce:transition-none hover:border-accent hover:text-bright lg:flex"
-            >
+            </FooterButton>
+            <FooterButton desktopOnly onClick={toggleTheme}>
               <Kbd>t</Kbd> theme
-            </button>
-            <button
-              type="button"
-              onClick={() => goTo(passageIndex + 1)}
-              disabled={passageIndex >= passageCount}
-              className="hidden items-center gap-2 border border-line px-3 py-1.5 transition-colors motion-reduce:transition-none hover:border-accent hover:text-bright disabled:opacity-40 disabled:hover:border-line disabled:hover:text-muted lg:flex"
-            >
+            </FooterButton>
+            <FooterButton desktopOnly onClick={() => goTo(passageIndex + 1)} disabled={passageIndex >= passageCount}>
               <Kbd>enter</Kbd> đoạn tiếp
-            </button>
+            </FooterButton>
           </div>
           <div className="hidden h-1 w-44 rounded bg-line lg:block">
             <div
@@ -269,22 +255,12 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
           <div className="flex items-center gap-4">
             <span className="hidden lg:inline">{chapterLabel(chapterId)} · {passageIndex}/{passageCount}</span>
             <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => goTo(passageIndex - 1)}
-                disabled={passageIndex <= 1}
-                className="h-[38px] min-w-11 whitespace-nowrap border border-line px-2 transition-colors motion-reduce:transition-none hover:border-accent hover:text-bright disabled:opacity-40 disabled:hover:border-line disabled:hover:text-muted lg:h-auto lg:min-w-0 lg:px-3 lg:py-1.5"
-              >
+              <FooterButton className="min-w-11 lg:min-w-0" onClick={() => goTo(passageIndex - 1)} disabled={passageIndex <= 1}>
                 ← <span className="sr-only lg:not-sr-only">trước</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => goTo(passageIndex + 1)}
-                disabled={passageIndex >= passageCount}
-                className="h-[38px] whitespace-nowrap border border-line px-2 transition-colors motion-reduce:transition-none hover:border-accent hover:text-bright disabled:opacity-40 disabled:hover:border-line disabled:hover:text-muted lg:h-auto lg:px-3 lg:py-1.5"
-              >
+              </FooterButton>
+              <FooterButton onClick={() => goTo(passageIndex + 1)} disabled={passageIndex >= passageCount}>
                 tiếp →
-              </button>
+              </FooterButton>
             </div>
           </div>
         </footer>

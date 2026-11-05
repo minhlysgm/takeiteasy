@@ -1,11 +1,9 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import type { Chunk } from "@/content/types";
+import { MOBILE_QUERY } from "@/lib/breakpoints";
 import { isSpeechAvailable, speak } from "@/lib/speech";
 import { Kbd } from "./Kbd";
-
-/** Khớp breakpoint `lg` của Tailwind: dưới mức này giải thích là tấm trượt từ dưới lên. */
-const MOBILE_QUERY = "(max-width: 1023.98px)";
 
 interface Props {
   chunks: Chunk[];
