@@ -16,6 +16,12 @@ interface Props {
 export function ChunkDrawer({ chunks, index, closing = false, onNavigate, onClose }: Props) {
   const chunk = chunks[index];
   const ref = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Sang cụm khác thì vùng cuộn về đầu (không giữ vị trí cuộn của cụm trước)
+  useEffect(() => {
+    scrollRef.current?.scrollTo(0, 0);
+  }, [index]);
 
   useEffect(() => {
     const prev = document.activeElement as HTMLElement | null;
@@ -65,7 +71,7 @@ export function ChunkDrawer({ chunks, index, closing = false, onNavigate, onClos
       >
         <div aria-hidden="true" className="mx-auto mt-2 h-1 w-9 shrink-0 rounded-full bg-line lg:hidden" />
 
-        <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-5 pb-5 lg:px-10 lg:pb-0 lg:pt-10">
+        <div ref={scrollRef} data-testid="sheet-scroll" className="flex flex-1 flex-col gap-6 overflow-y-auto overscroll-contain px-5 pb-5 lg:px-10 lg:pb-0 lg:pt-10">
           <div className="flex items-center justify-between text-[13px] text-muted">
             <span>{`// chunk ${index + 1}/${chunks.length}`}</span>
             <button
@@ -105,7 +111,7 @@ export function ChunkDrawer({ chunks, index, closing = false, onNavigate, onClos
                       onClick={() => speak(ex.en)}
                       disabled={!speechOk}
                       aria-label={`nghe: ${ex.en}`}
-                      className="mt-1 shrink-0 text-accent disabled:opacity-40"
+                      className="-mb-4 -mt-3 -mx-4 shrink-0 p-4 text-accent disabled:opacity-40 lg:m-0 lg:mt-1 lg:p-0"
                     >
                       <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true">
                         <path d="M4 2.5v11l9-5.5z" fill="currentColor" />

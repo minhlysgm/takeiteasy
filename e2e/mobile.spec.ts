@@ -42,6 +42,15 @@ test("header gọn: chỉ chương và số đoạn", async ({ page }) => {
   await expect(header.getByText("takeiteasy —")).toBeHidden();
 });
 
+test("header không cắt chữ \"· explain\" khi bật giải thích", async ({ page }) => {
+  await page.goto(P1);
+  await finishTyping(page);
+  await page.getByRole("button", { name: /giải thích/ }).tap();
+  const title = page.locator("header > div.truncate");
+  await expect(title).toContainText("· explain");
+  expect(await title.evaluate((e) => e.scrollWidth <= e.clientWidth)).toBe(true);
+});
+
 test("không có lỗi hydration", async ({ page }) => {
   const errors: string[] = [];
   page.on("console", (m) => {
@@ -105,7 +114,37 @@ test.describe("360px", () => {
     expect(ys.length).toBeGreaterThanOrEqual(4);
     for (const y of ys) expect(Math.abs(y - ys[0])).toBeLessThanOrEqual(1);
     expect((await footer.boundingBox())!.height).toBeLessThanOrEqual(61);
+    // mỗi nút chỉ một dòng chữ (không bị gãy dòng trong nút 38px)
+    const wrapped = await footer.getByRole("button").evaluateAll((els) =>
+      els
+        .filter((e) => (e as HTMLElement).offsetParent !== null)
+        .filter((e) => e.scrollHeight > e.clientHeight)
+        .map((e) => e.textContent),
+    );
+    expect(wrapped).toEqual([]);
   });
+});
+
+test.describe("chuột ở bề ngang hẹp (có gợi ý phím)", () => {
+  for (const w of [360, 390]) {
+    test.describe(`${w}px`, () => {
+      test.use({ viewport: { width: w, height: 780 }, hasTouch: false, isMobile: false });
+      test("footer không cuộn ngang, nút một dòng", async ({ page }) => {
+        await page.goto(P1);
+        const footer = page.locator("footer");
+        await expect(footer).toBeVisible();
+        expect(await page.evaluate(() => matchMedia("(pointer: coarse)").matches)).toBe(false);
+        expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(w);
+        const wrapped = await footer.getByRole("button").evaluateAll((els) =>
+          els
+            .filter((e) => (e as HTMLElement).offsetParent !== null)
+            .filter((e) => e.scrollHeight > e.clientHeight)
+            .map((e) => e.textContent),
+        );
+        expect(wrapped).toEqual([]);
+      });
+    });
+  }
 });
 
 test("bật giải thích: 5 số cạnh cụm + 5 ghi chú tay giữa nguyên văn và bản dịch", async ({ page }) => {
@@ -197,13 +236,47 @@ test("chunk sau → sang cụm 5; ✕ đóng; chạm vùng mờ đóng", async (
   await expect(page.getByRole("dialog")).toBeHidden();
 });
 
-test("cụm 5 nhiều nội dung: nút chuyển cụm luôn thấy được", async ({ page }) => {
+test.describe("màn hình thấp 390×600", () => {
+  test.use({ viewport: { width: 390, height: 600 } });
+
+  test("cụm 5 nhiều nội dung: vùng cuộn tràn, nút chuyển cụm luôn thấy được", async ({ page }) => {
+    await page.goto(P1);
+    const dialog = await openNote(page, 5);
+    const scroller = dialog.getByTestId("sheet-scroll");
+    const { sh, ch } = await scroller.evaluate((e) => ({ sh: e.scrollHeight, ch: e.clientHeight }));
+    expect(sh).toBeGreaterThan(ch);
+    const prev = dialog.getByRole("button", { name: /chunk trước/ });
+    await expect(prev).toBeVisible();
+    const b = (await prev.boundingBox())!;
+    expect(b.y + b.height).toBeLessThanOrEqual(600);
+  });
+
+  test("chuyển cụm thì vùng cuộn về đầu", async ({ page }) => {
+    await page.goto(P1);
+    const dialog = await openNote(page, 5);
+    const scroller = dialog.getByTestId("sheet-scroll");
+    await scroller.evaluate((e) => (e.scrollTop = e.scrollHeight));
+    expect(await scroller.evaluate((e) => e.scrollTop)).toBeGreaterThan(0);
+    await dialog.getByRole("button", { name: /chunk trước/ }).tap();
+    await expect(dialog).toContainText("// chunk 4/5");
+    expect(await scroller.evaluate((e) => e.scrollTop)).toBe(0);
+  });
+});
+
+test("mọi nút trong tấm có vùng chạm ≥ 44×44", async ({ page }) => {
   await page.goto(P1);
-  const dialog = await openNote(page, 5);
-  const prev = dialog.getByRole("button", { name: /chunk trước/ });
-  await expect(prev).toBeVisible();
-  const b = (await prev.boundingBox())!;
-  expect(b.y + b.height).toBeLessThanOrEqual(844);
+  const dialog = await openNote(page, 1);
+  const buttons = dialog.getByRole("button");
+  const n = await buttons.count();
+  expect(n).toBeGreaterThan(3);
+  for (let i = 0; i < n; i++) {
+    const b = buttons.nth(i);
+    if (!(await b.isVisible())) continue;
+    const box = (await b.boundingBox())!;
+    const label = (await b.getAttribute("aria-label")) ?? (await b.textContent());
+    expect(box.width, `${label} rộng`).toBeGreaterThanOrEqual(44);
+    expect(box.height, `${label} cao`).toBeGreaterThanOrEqual(44);
+  }
 });
 
 test("không thấy gợi ý phím trong tấm", async ({ page }) => {

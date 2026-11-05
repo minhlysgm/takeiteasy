@@ -137,7 +137,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="flex h-11 shrink-0 items-center gap-4 border-b border-line bg-surface px-4 lg:px-5">
-        <div className="flex gap-2" aria-hidden="true">
+        <div className="hidden gap-2 lg:flex" aria-hidden="true">
           <span className="block h-3 w-3 rounded-full bg-danger opacity-70" />
           <span className="block h-3 w-3 rounded-full bg-ink opacity-70" />
           <span className="block h-3 w-3 rounded-full bg-accent opacity-70" />
@@ -146,7 +146,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
           <span className="hidden lg:inline">takeiteasy — {book.id} / </span>{chapterLabel(chapterId)} · đoạn {passageIndex}/{passageCount}
           {explainOn && <span className="text-ink"> · explain</span>}
         </div>
-        <div className="w-14 shrink-0" />
+        <div className="hidden w-14 shrink-0 lg:block" />
       </header>
 
       <div ref={readerRef} data-testid="reader" className="relative flex grow flex-col overflow-x-clip px-4 py-6 lg:grid lg:grid-cols-[200px_1fr_200px_1fr] lg:px-8 lg:py-12">
@@ -215,29 +215,29 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
             <button
               type="button"
               onClick={() => setExplainOn((v) => !v)}
-              className={`flex h-[38px] items-center gap-2 border px-2.5 transition-colors motion-reduce:transition-none lg:h-auto lg:px-3 lg:py-1.5 ${explainOn ? "border-ink text-ink" : "border-line hover:border-accent hover:text-bright"}`}
+              className={`flex h-[38px] items-center gap-2 whitespace-nowrap border px-2 transition-colors motion-reduce:transition-none lg:h-auto lg:px-3 lg:py-1.5 ${explainOn ? "border-ink text-ink" : "border-line hover:border-accent hover:text-bright"}`}
             >
-              <Kbd>e</Kbd> giải thích
+              <Kbd className="max-lg:hidden">e</Kbd> giải thích
             </button>
             <button
               type="button"
               onClick={() => speak(passage.original)}
               disabled={!speechOk}
               title={speechOk ? undefined : "trình duyệt không hỗ trợ đọc"}
-              className="flex h-[38px] items-center gap-2 border border-line px-2.5 transition-colors motion-reduce:transition-none hover:border-accent hover:text-bright disabled:opacity-40 disabled:hover:border-line disabled:hover:text-muted lg:h-auto lg:px-3 lg:py-1.5"
+              className="flex h-[38px] items-center gap-2 whitespace-nowrap border border-line px-2 transition-colors motion-reduce:transition-none hover:border-accent hover:text-bright disabled:opacity-40 disabled:hover:border-line disabled:hover:text-muted lg:h-auto lg:px-3 lg:py-1.5"
             >
-              <Kbd>s</Kbd> đọc to
+              <Kbd className="max-lg:hidden">s</Kbd> đọc to
             </button>
             <button
               type="button"
               onClick={toggleTheme}
-              className="flex h-[38px] items-center gap-2 border border-line px-2.5 transition-colors motion-reduce:transition-none hover:border-accent hover:text-bright lg:h-auto lg:px-3 lg:py-1.5"
+              className="flex h-[38px] items-center gap-2 whitespace-nowrap border border-line px-2 transition-colors motion-reduce:transition-none hover:border-accent hover:text-bright lg:h-auto lg:px-3 lg:py-1.5"
             >
               <svg aria-hidden viewBox="0 0 16 16" width="16" height="16" className="lg:hidden">
                 <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" strokeWidth="1.5" />
                 <path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor" />
               </svg>
-              <Kbd>t</Kbd> <span className="sr-only lg:not-sr-only">theme</span>
+              <Kbd className="max-lg:hidden">t</Kbd> <span className="sr-only lg:not-sr-only">theme</span>
             </button>
             <button
               type="button"
@@ -261,7 +261,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
                 type="button"
                 onClick={() => goTo(passageIndex - 1)}
                 disabled={passageIndex <= 1}
-                className="h-[38px] border border-line px-2.5 transition-colors motion-reduce:transition-none hover:border-accent hover:text-bright disabled:opacity-40 disabled:hover:border-line disabled:hover:text-muted lg:h-auto lg:px-3 lg:py-1.5"
+                className="h-[38px] whitespace-nowrap border border-line px-2 transition-colors motion-reduce:transition-none hover:border-accent hover:text-bright disabled:opacity-40 disabled:hover:border-line disabled:hover:text-muted lg:h-auto lg:px-3 lg:py-1.5"
               >
                 ← <span className="sr-only lg:not-sr-only">trước</span>
               </button>
@@ -269,7 +269,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
                 type="button"
                 onClick={() => goTo(passageIndex + 1)}
                 disabled={passageIndex >= passageCount}
-                className="h-[38px] border border-line px-2.5 transition-colors motion-reduce:transition-none hover:border-accent hover:text-bright disabled:opacity-40 disabled:hover:border-line disabled:hover:text-muted lg:h-auto lg:px-3 lg:py-1.5"
+                className="h-[38px] whitespace-nowrap border border-line px-2 transition-colors motion-reduce:transition-none hover:border-accent hover:text-bright disabled:opacity-40 disabled:hover:border-line disabled:hover:text-muted lg:h-auto lg:px-3 lg:py-1.5"
               >
                 tiếp →
               </button>
