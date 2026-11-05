@@ -93,7 +93,7 @@ export function LookupCard({ state, text, speechOk, id }: Props) {
             {state.phase === "ok" && (
               <div className="grid gap-2.5 px-4 pb-3 pt-3.5">
                 <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                  <b className="text-[18px] font-medium text-bright">{state.result.headword}</b>
+                  <b className="min-w-0 text-[18px] font-medium text-bright [overflow-wrap:anywhere]">{state.result.headword}</b>
                   <span className="text-text">{state.result.ipa}</span>
                   <span className="border border-line px-1.5 text-[11px] text-muted">{state.result.pos}</span>
                   <button

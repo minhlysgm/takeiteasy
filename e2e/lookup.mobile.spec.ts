@@ -94,4 +94,23 @@ test.describe("320×640", () => {
     // Chân thẻ "AI soạn · Cambridge ↗" một dòng (ô link 44px + viền)
     expect((await d.getByTestId("lookup-footer").boundingBox())!.height, "chân thẻ một dòng").toBeLessThanOrEqual(46);
   });
+  test("Khi dạng gốc là một chữ rất dài không có dấu cách thì thẻ xuống dòng, không tràn ngang", async ({ page }) => {
+    await mockLookup(page, { status: "ok", result: { ...LOUT, headword: "cheapskate-extraordinairewithoutspaces" } });
+    await installSpies(page);
+    await dismissFirstTimeHint(page);
+    await page.goto(P(1));
+    await finishTyping(page, "tap");
+    await selectText(page, "original-text", "lout");
+    await dock(page).getByRole("button", { name: "tra nghĩa" }).tap();
+    await expect(dock(page).getByTestId("lookup-card")).toContainText("extraordinaire");
+    const { sw, cw, doc } = await dock(page).evaluate((el) => ({
+      sw: el.scrollWidth,
+      cw: el.clientWidth,
+      doc: document.documentElement.scrollWidth,
+    }));
+    expect(sw, "scrollWidth thanh").toBeLessThanOrEqual(cw);
+    expect(doc, "trang không cuộn ngang").toBeLessThanOrEqual(320);
+    const body = dock(page).getByTestId("lookup-body");
+    expect(await body.evaluate((el) => el.scrollWidth <= el.clientWidth), "thân thẻ không cuộn ngang").toBe(true);
+  });
 });

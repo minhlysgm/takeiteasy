@@ -60,7 +60,7 @@ export function SelectionDock({ selection, speechOk, lookup, onLookUp, onCloseLo
       </div>
       {/* Thẻ mở lên phía trên footer, cao tối đa nửa màn hình; thân thẻ cuộn bên trong, dòng chân luôn hiện */}
       {lookup && (
-        <div className="-mx-2 -mb-2 flex max-h-[50dvh] min-h-0 flex-col border-t border-line">
+        <div className="-mx-2 -mb-2 flex max-h-[50dvh] min-h-0 min-w-0 flex-col border-t border-line">
           <LookupCard id={cardId} state={lookup} text={selection.text} speechOk={speechOk} />
         </div>
       )}
