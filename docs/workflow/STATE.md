@@ -5,7 +5,17 @@
 
 ## Đang làm
 
-_(trống)_ — 2026-11-05 Minh bảo **tạm để backlog đó, chưa cần làm**. "tiếp" lần sau: hỏi Minh muốn làm gì, đừng tự đề xuất task backlog.
+Minh mở **2 task cùng lúc** (2026-11-05): làm ①–③ song song (hỏi chung một lượt, spec + mockup riêng), build lần lượt **A trước rồi B**. Mockup chung: `docs/superpowers/specs/2026-11-05-jump-lookup-mockup.html` (artifact https://claude.ai/artifact/6gSVNRTKtsfG2j9WH6gi1Z) (B cần API key, Minh lo trong lúc build A).
+
+- **Task A — Nhảy nhanh tới đoạn bất kỳ** · cỡ **M · UI** · trạm **③ Chốt spec — chờ Minh duyệt** spec `docs/superpowers/specs/2026-11-05-passage-jump-design.md`
+  - Ý: bấm bộ đếm "chương 1 · 2/3" (footer desktop, PassageView.tsx:298, đang là `<span>` không bấm được) / tiêu đề header mobile (:186) → danh sách đoạn của chương (số, câu mở đầu, ✓ đã đọc, nổi đoạn hiện tại). Phím `g` mở danh sách, `Home`/`End` về đầu/cuối chương.
+  - Code: ChapterReader chỉ đưa `passage` hiện tại → cần thêm prop danh sách đoạn. `goTo` (PassageView:101) dùng lại được. Phím tắt ở PassageView:123-166 (g/Home/End chưa dùng). `tie:progress` chỉ lưu vị trí cuối → "đã đọc" cần key mới. ChunkDrawer: mẫu overlay (sheet mobile, focus trap, scroll lock) — chưa có component dialog chung.
+- **Task B — Tra nghĩa ngay trong app (thay Cambridge)** · cỡ **M · UI** · trạm **③ Chốt spec — chờ Minh duyệt** spec `docs/superpowers/specs/2026-11-05-in-app-lookup-design.md`
+  - Ý: vùng chọn trùng chunk → mở ChunkDrawer; không trùng → API route gọi AI với cụm + câu chứa nó → IPA, nghĩa trong câu, 1 ví dụ đời thường + dịch, 🔊; link "xem thêm ở Cambridge" làm lối thoát.
+  - Code: hiện `window.open(lookupUrl)` (SelectionActions.tsx:47, lib/selection.ts). `useTextSelection` chỉ trả `{text, rect}`, bỏ Range → cần giữ offset để lấy câu. Giới hạn ≤5 từ (quá thì ẩn nút). **Chưa có server code nào** (không api route, env, SDK, KV). Test phải sửa: e2e/selection.mobile.spec.ts:59-63, tests/selection-ui.test.tsx:36-40, tests/selection.test.ts:14-15. Giọng đọc en-US → IPA giọng Mỹ.
+  - ② Minh chốt: Claude Haiku 5.5 (Minh có key, nạp $10 → khoá tính năng ở $9 để chống spam/hack); ≤10 từ. Minh muốn Claude mở trình duyệt để Minh đăng nhập rồi Claude thao tác (Vercel env, Anthropic Console) — Minh tự dán key.
+  - Chờ Minh duyệt thêm: dùng Upstash Redis (free, Vercel Marketplace) cho bộ đếm $, rate limit, cache.
+  - Trước khi plan/build B: load skill `claude-api`.
 
 - **Ghi chú:** push `main` thất bại — máy chưa đăng nhập GitHub cho git (không có `gh`). Minh tự push hoặc đăng nhập rồi bảo Claude push.
 
