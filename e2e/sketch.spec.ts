@@ -23,6 +23,39 @@ async function startDrawing(page: Page) {
   await revealSketch(page);
 }
 
+const SKETCH_1 = getPassage(BOOK, CH, 1)!.sketch!;
+
+/** Nét và clip đang ra sao trên màn hình, đọc từ DOM thật. Chạy trong trang. */
+function readArt() {
+  const root = document.querySelector('[data-testid="sketch"]')!;
+  return {
+    strokes: Array.from(root.querySelectorAll<SVGPathElement>("svg path")).map((el) => {
+      const cs = getComputedStyle(el);
+      return { dasharray: cs.strokeDasharray, offset: parseFloat(cs.strokeDashoffset), dash: parseFloat(cs.strokeDasharray) };
+    }),
+    clips: Array.from(root.querySelectorAll("svg clipPath rect")).map((r) => ({
+      x: Number(r.getAttribute("x")),
+      y: Number(r.getAttribute("y")),
+      width: Number(r.getAttribute("width")),
+      height: Number(r.getAttribute("height")),
+    })),
+  };
+}
+
+/** Hình đầy đủ: không còn nét đứt nào, mọi clip chữ mở hết cỡ */
+async function expectFullArt(page: Page) {
+  await expect(page.getByTestId("sketch-art")).toHaveCSS("opacity", "1");
+  const { strokes, clips } = await page.evaluate(readArt);
+  expect(strokes.length).toBeGreaterThan(0);
+  for (const s of strokes) {
+    expect(s.dasharray).toBe("none");
+    expect(s.offset).toBe(0);
+  }
+  const [x, y, w, h] = SKETCH_1.viewBox.split(/[\s,]+/).map(Number);
+  expect(clips.length).toBe(SKETCH_1.steps.filter((s) => s.kind === "text").length);
+  for (const c of clips) expect(c).toEqual({ x: x - w, y: y - h, width: w * 3, height: h * 3 });
+}
+
 // Mỗi test dùng context mới của Playwright nên localStorage `tie:sketch-seen:*` không rò giữa các test.
 test.describe("phác thảo đoạn 1", () => {
   test("1. chờ bản dịch gõ xong thì mới vẽ", async ({ page }) => {
@@ -31,6 +64,10 @@ test.describe("phác thảo đoạn 1", () => {
     await expect(sketch).toHaveAttribute("data-state", "waiting");
     await expect(sketch).toContainText("chờ bản dịch gõ xong…");
     await expect(page.getByText("đang gõ…")).toBeVisible();
+    // Khung có mặt nhưng chưa thấy nét nào
+    await expect(sketch).toBeVisible();
+    await expect(page.getByTestId("sketch-art")).toHaveCSS("opacity", "0");
+    await expect(page.getByTestId("sketch-pencil")).toHaveCount(0);
   });
 
   test("2. gõ xong và hình trên màn hình thì bút chì vẽ rồi dừng ở done", async ({ page }) => {
@@ -44,14 +81,22 @@ test.describe("phác thảo đoạn 1", () => {
     await expect(page.getByRole("button", { name: "↻ vẽ lại" })).toBeVisible();
   });
 
-  test("3. bấm vào hình khi đang vẽ thì hiện hết ngay", async ({ page }) => {
-    await page.goto(P1);
-    await startDrawing(page);
-    const sketch = page.getByTestId("sketch");
-    await expect(sketch).toHaveAttribute("data-state", "drawing");
-    await page.getByRole("img", { name: /Charles Bukowski/ }).click();
-    await expect(sketch).toHaveAttribute("data-state", "done", { timeout: 500 });
-  });
+  const skips: [string, (page: Page) => Promise<void>][] = [
+    ["bấm vào hình", (page) => page.getByRole("img", { name: /Charles Bukowski/ }).click()],
+    ["bấm xem ngay", (page) => page.getByRole("button", { name: "xem ngay ⏭" }).click()],
+  ];
+  for (const [how, skip] of skips) {
+    test(`3. ${how} khi đang vẽ thì hiện hết ngay`, async ({ page }) => {
+      await page.goto(P1);
+      await startDrawing(page);
+      const sketch = page.getByTestId("sketch");
+      await expect(sketch).toHaveAttribute("data-state", "drawing");
+      await skip(page);
+      await expect(sketch).toHaveAttribute("data-state", "done", { timeout: 500 });
+      await expectFullArt(page);
+      await expect(page.getByTestId("sketch-pencil")).toHaveCount(0);
+    });
+  }
 
   test("4. nút ↻ vẽ lại vẽ lại từ đầu", async ({ page }) => {
     await page.goto(P1);
@@ -59,8 +104,32 @@ test.describe("phác thảo đoạn 1", () => {
     const sketch = page.getByTestId("sketch");
     await page.getByRole("button", { name: "xem ngay ⏭" }).click();
     await expect(sketch).toHaveAttribute("data-state", "done");
-    await page.getByRole("button", { name: "↻ vẽ lại" }).click();
+    await expectFullArt(page);
+    await expect(page.getByRole("button", { name: "↻ vẽ lại" })).toBeVisible();
+
+    // Bấm và đọc trong cùng một lượt chạy của trang: rAF chưa kịp vẽ gì, nên đây đúng là lúc vừa xoá trắng
+    const right = await page.evaluate((read) => {
+      const btn = Array.from(document.querySelectorAll("button")).find((b) => b.textContent?.includes("vẽ lại"))!;
+      btn.click();
+      return new Function(`return (${read})()`)() as ReturnType<typeof readArt>;
+    }, readArt.toString());
+    expect(right.strokes.length).toBeGreaterThan(0);
+    for (const s of right.strokes) {
+      expect(s.offset).toBeGreaterThan(0);
+      expect(s.offset).toBeCloseTo(s.dash, 2);
+    }
+    expect(right.clips.length).toBeGreaterThan(0);
+    for (const c of right.clips) expect(c.width).toBe(0);
+
     await expect(sketch).toHaveAttribute("data-state", "drawing");
+    await expect(page.getByTestId("sketch-art")).toHaveCSS("opacity", "1");
+    await expect(page.getByTestId("sketch-pencil")).toBeVisible();
+    // Rồi nét lại mọc dần từ đầu
+    await expect
+      .poll(async () => (await page.evaluate(readArt)).strokes.filter((s) => s.offset < s.dash - 0.01).length)
+      .toBeGreaterThan(0);
+    await expect(sketch).toHaveAttribute("data-state", "done", { timeout: 8000 });
+    await expectFullArt(page);
   });
 
   test("5. quay lại đoạn đã xem thì hình hiện sẵn, không vẽ lại", async ({ page }) => {

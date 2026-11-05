@@ -292,7 +292,7 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
             ) : null,
           )}
         </defs>
-        <g style={hidden ? { opacity: 0 } : undefined}>
+        <g data-testid="sketch-art" style={hidden ? { opacity: 0 } : undefined}>
           {items.map((it, i) => {
             if (it.kind === "pause") return null;
             if (it.kind === "text") {
