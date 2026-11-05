@@ -1,0 +1,411 @@
+<title>Phác thảo tự vẽ</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Patrick+Hand&display=swap">
+<style>
+/* Layout: bản sao màn đọc takeiteasy (lưới 4 cột, theme tối mặc định) + dải điều khiển mockup ở trên, ghi chú ở dưới */
+:root {
+  --bg: #0f1317; --surface: #141a21; --text: #d6dee6; --bright: #e6edf3; --muted: #7d8590;
+  --line: #1f262e; --accent: #3fb950; --ink: #e3b341; --danger: #f85149; --wood: #c99a5b;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --hand: "Patrick Hand", "Comic Sans MS", "Chalkboard SE", cursive;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f6f3ec; --surface: #efeadf; --text: #44403c; --bright: #1c1917; --muted: #a8a29e;
+    --line: #e2dccd; --accent: #b45309; --ink: #b45309; --danger: #b91c1c; --wood: #e2b47a;
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #f6f3ec; --surface: #efeadf; --text: #44403c; --bright: #1c1917; --muted: #a8a29e;
+  --line: #e2dccd; --accent: #b45309; --ink: #b45309; --danger: #b91c1c; --wood: #e2b47a;
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  --bg: #0f1317; --surface: #141a21; --text: #d6dee6; --bright: #e6edf3; --muted: #7d8590;
+  --line: #1f262e; --accent: #3fb950; --ink: #e3b341; --danger: #f85149; --wood: #c99a5b;
+  color-scheme: dark;
+}
+
+body { background: var(--bg); color: var(--text); font-family: var(--mono); }
+.page {
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 40px;
+  max-width: 1440px; margin: 0 auto;
+}
+button { font: inherit; color: inherit; background: none; cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* dải điều khiển mockup */
+.mock-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; font-size: 13px; }
+.mock-title { color: var(--muted); }
+.mock-title b { color: var(--ink); font-weight: 500; }
+.mock-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.mock-actions button { border: 1px solid var(--line); padding: 6px 12px; transition: border-color .15s, color .15s; }
+.mock-actions button:hover { border-color: var(--accent); color: var(--bright); }
+.mock-actions label { display: flex; align-items: center; gap: 6px; color: var(--muted); padding: 6px 4px; cursor: pointer; }
+
+/* khung app */
+.app { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--bg); }
+.app-head { height: 44px; display: flex; align-items: center; gap: 16px; padding: 0 20px; background: var(--surface); border-bottom: 1px solid var(--line); }
+.dots { display: flex; gap: 8px; }
+.dots span { width: 12px; height: 12px; border-radius: 50%; opacity: .7; }
+.app-head .where { flex: 1; text-align: center; font-size: 13px; color: var(--muted); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.app-head .spacer { width: 56px; }
+
+.reader { display: grid; grid-template-columns: 200px minmax(0,1fr) 200px minmax(0,1fr); padding: 48px 32px; }
+.col-label { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+.orig { padding-right: 24px; min-width: 0; }
+.orig-text { white-space: pre-line; font-size: 17px; line-height: 1.9; color: var(--bright); }
+.gutter { border-right: 1px solid var(--line); }
+.trans { padding-left: 48px; min-width: 0; cursor: default; }
+.trans-head { display: flex; align-items: baseline; gap: 12px; font-size: 13px; margin-bottom: 24px; }
+.trans-head .typing { font-size: 12px; color: var(--accent); }
+.trans-text { white-space: pre-line; font-size: 15.5px; line-height: 2; }
+.caret { display: inline-block; width: 9px; height: 19px; margin-left: 2px; transform: translateY(3px); background: var(--accent); animation: blink 1.1s steps(1) infinite; }
+@keyframes blink { 0%, 55% { opacity: 1; } 56%, 100% { opacity: 0; } }
+.main-idea { margin-top: 32px; border-top: 1px solid var(--line); padding-top: 20px; font-size: 13.5px; line-height: 1.65; color: var(--muted); }
+.main-idea .k { color: var(--accent); }
+.main-idea p { margin: 8px 0 0; }
+
+/* khối phác thảo — điểm mới */
+.sketch { margin-top: 36px; }
+.sketch-head { display: flex; align-items: baseline; gap: 12px; min-height: 22px; }
+.sketch-head .col-label { margin-bottom: 0; }
+.sketch-status { font-size: 12px; color: var(--accent); }
+.sketch-btn { font-size: 12px; color: var(--muted); border: 0; padding: 2px 4px; margin-left: auto; transition: color .15s; }
+.sketch-btn:hover { color: var(--ink); }
+.sketch svg { display: block; width: 100%; max-width: 520px; height: auto; margin-top: 8px; overflow: visible; }
+.sketch.is-drawing svg { cursor: pointer; }
+.s-line { stroke: var(--text); }
+.s-ink { stroke: var(--ink); }
+.sketch path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.sketch text { font-family: var(--hand); }
+.t-ink { fill: var(--ink); }
+.t-name { fill: var(--bright); }
+.t-muted { fill: var(--muted); }
+#pencil { transition: opacity .25s; }
+
+.app-foot { min-height: 56px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px solid var(--line); padding: 10px 32px; font-size: 13px; color: var(--muted); }
+.app-foot .grp { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.chip { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); padding: 6px 12px; }
+kbd { font: inherit; font-size: 12px; border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px; }
+
+.notes { max-width: 72ch; margin-top: 28px; font-size: 13.5px; line-height: 1.75; }
+.notes h2 { font-size: 13px; font-weight: 500; color: var(--ink); margin: 0 0 8px; }
+.notes ul { margin: 0; padding-left: 18px; }
+.notes li { margin: 4px 0; }
+.notes .dim { color: var(--muted); }
+
+@media (max-width: 1180px) {
+  .reader { grid-template-columns: 0 minmax(0,1fr) 40px minmax(0,1fr); padding: 40px 24px; }
+  .trans { padding-left: 32px; }
+}
+@media (max-width: 760px) {
+  .reader { grid-template-columns: minmax(0,1fr); padding: 28px 16px; }
+  .reader > .blank, .gutter { display: none; }
+  .orig { padding-right: 0; }
+  .trans { padding-left: 0; margin-top: 36px; padding-top: 24px; border-top: 1px solid var(--line); }
+  .app-foot { padding: 10px 16px; }
+  .app-head .spacer { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .caret { animation: none; } }
+</style>
+
+<div class="page">
+  <div class="mock-bar">
+    <div class="mock-title"><b>Mockup</b> · hình phác thảo tự vẽ · the-subtle-art, đoạn 1</div>
+    <div class="mock-actions">
+      <button type="button" id="replay-all">↻ phát lại từ đầu</button>
+      <button type="button" id="theme-btn">đổi sáng / tối</button>
+      <label for="rm"><input type="checkbox" id="rm"> giả lập "giảm chuyển động"</label>
+    </div>
+  </div>
+
+  <div class="app">
+    <header class="app-head">
+      <div class="dots" aria-hidden="true"><span style="background:var(--danger)"></span><span style="background:var(--ink)"></span><span style="background:var(--accent)"></span></div>
+      <div class="where">takeiteasy — the-subtle-art / chương 1 · đoạn 1/3</div>
+      <div class="spacer"></div>
+    </header>
+
+    <div class="reader">
+      <div class="blank" aria-hidden="true"></div>
+
+      <div class="orig">
+        <div class="col-label">// nguyên văn</div>
+        <div class="orig-text">Charles Bukowski was an alcoholic, a womanizer, a chronic gambler, a lout, a cheapskate, a deadbeat, and on his worst days, a poet. He's probably the last person on earth you would ever look to for life advice or expect to see in any sort of self-help book.
+
+Which is why he's the perfect place to start.</div>
+
+        <section class="sketch" id="sketch" aria-label="Phác thảo minh hoạ">
+          <div class="sketch-head">
+            <span class="col-label">// phác thảo</span>
+            <span class="sketch-status" id="sketch-status"></span>
+            <button type="button" class="sketch-btn" id="sketch-btn" hidden></button>
+          </div>
+          <svg id="svg" viewBox="0 0 480 330" role="img"
+               aria-label="Phác thảo: Charles Bukowski cầm chai rượu (alcoholic), trái tim (womanizer), xúc xắc (chronic gambler), tờ thơ (a poet, on his worst days); vòng tròn khoanh ông lại kèm chữ the perfect place to start.">
+            <defs id="defs"></defs>
+            <g id="art"></g>
+            <g id="pencil" opacity="0" aria-hidden="true">
+              <g id="pencil-body" transform="rotate(-52)">
+                <polygon points="0,0 6,-2.2 6,2.2" style="fill:var(--text)"></polygon>
+                <polygon points="6,-2.2 17,-6 17,6 6,2.2" style="fill:var(--wood)"></polygon>
+                <rect x="17" y="-6" width="46" height="12" style="fill:var(--ink)"></rect>
+                <line x1="17" y1="0" x2="63" y2="0" style="stroke:var(--bg);stroke-width:.8;opacity:.35"></line>
+                <rect x="63" y="-6.4" width="7" height="12.8" style="fill:var(--muted)"></rect>
+                <rect x="70" y="-6" width="9" height="12" rx="3" style="fill:var(--danger);opacity:.85"></rect>
+              </g>
+            </g>
+          </svg>
+        </section>
+      </div>
+
+      <div class="gutter" aria-hidden="true"></div>
+
+      <div class="trans" id="trans" title="bấm để hiện hết bản dịch">
+        <div class="trans-head"><span style="color:var(--muted)">// bản dịch</span><span class="typing" id="typing-flag">đang gõ…</span></div>
+        <div class="trans-text"><span id="trans-text"></span><span class="caret" id="caret"></span></div>
+        <div class="main-idea" id="main-idea" hidden>
+          <span class="k">// ý chính</span>
+          <p>Manson mở chương bằng một chân dung tệ hại đúng nghĩa: Bukowski có đủ mọi thói xấu, là người cuối cùng ai đó tìm đến xin lời khuyên. Rồi ông lật ngược trong đúng một câu đứng riêng: chính vì thế Bukowski là điểm khởi đầu hoàn hảo — kiểu mở bài twist đặc trưng của cả cuốn sách.</p>
+        </div>
+      </div>
+    </div>
+
+    <footer class="app-foot">
+      <div class="grp"><span class="chip"><kbd>e</kbd> giải thích</span><span class="chip"><kbd>s</kbd> đọc to</span></div>
+      <div class="grp"><span>← đoạn trước</span><span>1 / 3</span><span>đoạn sau →</span></div>
+    </footer>
+  </div>
+
+  <section class="notes">
+    <h2>// đang xem gì</h2>
+    <ul>
+      <li>Bản dịch gõ xong thì hình bắt đầu vẽ, khoảng 5–6 giây. Cây bút chì chạy theo đầu nét.</li>
+      <li>Người và đồ vật vẽ bằng màu chữ. Nhãn tiếng Anh và mũi tên dùng màu mực, giống ghi chú khi bật "giải thích".</li>
+      <li>Nét cuối khoanh tròn ông Bukowski và ghi "the perfect place to start". Đó là cú lật của đoạn văn.</li>
+      <li>Bấm vào hình hoặc "xem ngay" để hiện hết. Vẽ xong có nút "vẽ lại".</li>
+      <li class="dim">Trong app thật, lần sau quay lại đoạn này thì hình hiện sẵn, không vẽ lại. Mockup gõ bản dịch nhanh hơn app thật để đỡ phải chờ.</li>
+    </ul>
+  </section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/roughjs@4.6.6/bundled/rough.js"></script>
+<script>
+(() => {
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.getElementById("svg");
+  const art = document.getElementById("art");
+  const defs = document.getElementById("defs");
+  const pencil = document.getElementById("pencil");
+  const pencilBody = document.getElementById("pencil-body");
+  const sketchEl = document.getElementById("sketch");
+  const statusEl = document.getElementById("sketch-status");
+  const btn = document.getElementById("sketch-btn");
+  const rmBox = document.getElementById("rm");
+  const reduced = () => rmBox.checked || matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---------- nội dung hình: các nét theo đúng thứ tự vẽ ---------- */
+  const heart = (cx, cy, s) =>
+    `M${cx},${cy + s} C${cx - s * 1.4},${cy} ${cx - s},${cy - s * 1.1} ${cx},${cy - s * 0.35} C${cx + s},${cy - s * 1.1} ${cx + s * 1.4},${cy} ${cx},${cy + s} Z`;
+  const L = "line", I = "ink";
+  const STEPS = [
+    // Bukowski
+    { e: { cx: 240, cy: 92, w: 52, h: 56 }, r: L, seed: 3 },
+    { d: "M216,80 L221,66 L227,76 L232,62 L238,74 L244,61 L249,73 L255,63 L259,76 L264,70", r: L, seed: 5, rough: 0.6 },
+    { d: "M226,88 L238,89 M244,89 L256,88 M228,91 Q232,94 236,91 M246,91 Q250,94 254,91", r: L, plain: true, w: 1.8 },
+    { d: "M241,94 Q237,101 243,102 M231,110 Q236,107 241,110 Q246,113 251,109", r: L, plain: true, w: 1.8 },
+    { d: "M229,115 l.5,.5 M234,118 l.5,.5 M240,119 l.5,.5 M246,118 l.5,.5 M251,115 l.5,.5", r: L, plain: true, w: 2.6 },
+    { d: "M240,120 C237,145 235,172 238,200", r: L, seed: 7 },
+    { d: "M239,138 C226,148 214,158 201,170", r: L, seed: 8 },
+    { d: "M239,138 C254,148 266,156 282,164", r: L, seed: 9 },
+    { d: "M238,200 L221,254 L210,257", r: L, seed: 10 },
+    { d: "M238,200 L259,254 L271,256", r: L, seed: 11 },
+    { t: "Charles Bukowski", x: 240, y: 290, size: 21, anchor: "middle", cls: "t-name" },
+    { d: "M170,298 C205,302 278,301 310,296", r: I, seed: 12 },
+    // alcoholic
+    { d: "M189,146 L194,146 L194,158 L200,166 L200,198 L183,198 L183,166 L189,158 Z", r: L, seed: 13, rough: 0.6 },
+    { d: "M186,178 L197,178 M186,186 L197,186", r: L, plain: true, w: 1.6 },
+    { t: "alcoholic", x: 56, y: 138, size: 20, cls: "t-ink" },
+    { arrow: [136, 134, 156, 134, 170, 144, 179, 158], r: I },
+    // womanizer
+    { d: heart(284, 64, 9), r: L, seed: 14, rough: 0.5 },
+    { d: heart(302, 45, 6), r: L, seed: 15, rough: 0.4 },
+    { t: "womanizer", x: 322, y: 66, size: 20, cls: "t-ink" },
+    // chronic gambler
+    { d: "M286,170 L302,166 L306,182 L290,186 Z", r: L, seed: 16, rough: 0.6 },
+    { d: "M292.7,174 l.5,.5 M299.3,178 l.5,.5", r: L, plain: true, w: 2.8 },
+    { d: "M304,192 L320,195 L317,211 L301,208 Z", r: L, seed: 17, rough: 0.6 },
+    { d: "M307.2,196.8 l.5,.5 M310.5,201.5 l.5,.5 M313.8,206.2 l.5,.5", r: L, plain: true, w: 2.8 },
+    { t: "chronic gambler", x: 318, y: 150, size: 20, cls: "t-ink" },
+    { arrow: [336, 156, 332, 163, 322, 166, 309, 169], r: I },
+    // poet
+    { d: "M68,214 L108,208 L114,250 L74,256 Z", r: L, seed: 18, rough: 0.7 },
+    { d: "M76,223 L101,219 M77,231 L102,227 M78,239 L95,236", r: L, plain: true, w: 1.5 },
+    { d: "M114,262 L138,231 M138,231 L144,225", r: L, seed: 19, rough: 0.5 },
+    { t: "a poet", x: 44, y: 282, size: 20, cls: "t-ink" },
+    { t: "(on his worst days)", x: 30, y: 302, size: 16, cls: "t-ink" },
+    // các thói còn lại
+    { t: "+ lout · cheapskate · deadbeat", x: 14, y: 30, size: 17, cls: "t-muted" },
+    { pause: 380 },
+    // cú lật: khoanh tròn + "perfect place to start"
+    { e: { cx: 240, cy: 156, w: 138, h: 206 }, r: I, seed: 21, rough: 1.2, multi: true, w: 2.2 },
+    { arrow: [392, 296, 394, 262, 344, 240, 296, 236], r: I },
+    { t: "the perfect place to start", x: 450, y: 320, size: 20, anchor: "end", cls: "t-ink" },
+    { d: "M456,311 L462,318 L475,300", r: I, seed: 22, rough: 0.5, w: 2.4 },
+  ];
+  const TOTAL_MS = 5600;
+
+  /* ---------- dựng các phần tử SVG ---------- */
+  const gen = window.rough ? window.rough.generator() : null;
+  const ellipseD = ({ cx, cy, w, h }) => `M${cx - w / 2},${cy} a${w / 2},${h / 2} 0 1,0 ${w},0 a${w / 2},${h / 2} 0 1,0 ${-w},0`;
+  const arrowD = ([x1, y1, c1x, c1y, c2x, c2y, x2, y2]) => {
+    const n = Math.hypot(x2 - c2x, y2 - c2y) || 1, bx = -(x2 - c2x) / n * 8, by = -(y2 - c2y) / n * 8;
+    const rot = (a) => [bx * Math.cos(a) - by * Math.sin(a), bx * Math.sin(a) + by * Math.cos(a)];
+    const [ax, ay] = rot(0.5), [cx, cy] = rot(-0.5);
+    return `M${x1},${y1} C${c1x},${c1y} ${c2x},${c2y} ${x2},${y2} M${x2 + ax},${y2 + ay} L${x2},${y2} L${x2 + cx},${y2 + cy}`;
+  };
+  const strokeDs = (s) => {
+    if (s.arrow) return [arrowD(s.arrow)];
+    if (s.plain || !gen) return [s.e ? ellipseD(s.e) : s.d];
+    const o = { roughness: s.rough ?? 0.9, bowing: 0.8, seed: s.seed, strokeWidth: s.w ?? 2, disableMultiStroke: !s.multi };
+    const dr = s.e ? gen.ellipse(s.e.cx, s.e.cy, s.e.w, s.e.h, o) : gen.path(s.d, o);
+    return gen.toPaths(dr).map((p) => p.d);
+  };
+
+  let items = [];
+  function build() {
+    art.textContent = ""; defs.textContent = ""; items = [];
+    STEPS.forEach((s, si) => {
+      if (s.pause) { items.push({ kind: "pause", raw: s.pause }); return; }
+      if (s.t) {
+        const id = `clip-${si}`;
+        const cp = document.createElementNS(NS, "clipPath"); cp.id = id;
+        const rect = document.createElementNS(NS, "rect"); cp.appendChild(rect); defs.appendChild(cp);
+        const tx = document.createElementNS(NS, "text");
+        tx.textContent = s.t; tx.setAttribute("x", s.x); tx.setAttribute("y", s.y);
+        tx.setAttribute("font-size", s.size); tx.setAttribute("class", s.cls);
+        if (s.anchor) tx.setAttribute("text-anchor", s.anchor);
+        tx.setAttribute("clip-path", `url(#${id})`);
+        art.appendChild(tx);
+        const b = tx.getBBox();
+        rect.setAttribute("x", b.x - 3); rect.setAttribute("y", b.y - 4); rect.setAttribute("height", b.height + 8);
+        const by = b.y + b.height * 0.78;
+        items.push({ kind: "text", rect, w: b.width + 6, start: [b.x, by], end: [b.x + b.width, by], bx: b.x,
+                     raw: Math.min(800, Math.max(260, s.t.length * 38)) });
+        return;
+      }
+      strokeDs(s).forEach((d) => {
+        const p = document.createElementNS(NS, "path");
+        p.setAttribute("d", d); p.setAttribute("class", s.r === I ? "s-ink" : "s-line");
+        p.setAttribute("stroke-width", s.w ?? 2);
+        art.appendChild(p);
+        const len = p.getTotalLength() + 2;
+        p.style.strokeDasharray = `${len} ${len}`;
+        const a = p.getPointAtLength(0), z = p.getPointAtLength(len - 2);
+        items.push({ kind: "path", el: p, len, start: [a.x, a.y], end: [z.x, z.y],
+                     raw: Math.min(800, Math.max(s.plain ? 140 : 110, len * 2.3)) });
+      });
+    });
+    // dòng thời gian: mỗi nét có đoạn "nhấc bút di chuyển" rồi đoạn vẽ; co giãn cho tổng ≈ TOTAL_MS
+    let prev = [470, 8];
+    items.forEach((it) => {
+      if (it.kind === "pause") { it.start = it.end = prev; it.travel = 0; }
+      else it.travel = Math.min(200, Math.max(50, Math.hypot(it.start[0] - prev[0], it.start[1] - prev[1]) * 1.3));
+      it.from = prev; prev = it.end;
+    });
+    const sum = items.reduce((a, it) => a + it.raw + it.travel, 0), k = TOTAL_MS / sum;
+    let t = 0;
+    items.forEach((it) => { it.t0 = t; it.t1 = t + it.travel * k; it.t2 = it.t1 + it.raw * k; t = it.t2; });
+  }
+
+  const setP = (it, p) => {
+    if (it.kind === "path") it.el.style.strokeDashoffset = it.len * (1 - p);
+    else if (it.kind === "text") it.rect.setAttribute("width", it.w * p);
+  };
+  const pointAt = (it, p) => {
+    if (it.kind === "path") { const q = it.el.getPointAtLength((it.len - 2) * p); return [q.x, q.y]; }
+    if (it.kind === "text") return [it.start[0] + (it.end[0] - it.start[0]) * p, it.start[1]];
+    return it.end;
+  };
+  const ease = (x) => 0.5 - Math.cos(Math.PI * x) / 2;
+  const placePencil = ([x, y], now) => {
+    pencil.setAttribute("transform", `translate(${x.toFixed(1)},${y.toFixed(1)})`);
+    pencilBody.setAttribute("transform", `rotate(${(-52 + Math.sin(now / 95) * 2.5).toFixed(2)})`);
+  };
+
+  /* ---------- trạng thái vẽ ---------- */
+  let raf = 0, t0 = 0, cur = 0, state = "idle";
+  function ui() {
+    sketchEl.classList.toggle("is-drawing", state === "drawing");
+    if (state === "waiting") { statusEl.textContent = "chờ bản dịch gõ xong…"; btn.hidden = true; }
+    if (state === "drawing") { statusEl.textContent = "đang vẽ…"; btn.hidden = false; btn.textContent = "xem ngay ⏭"; }
+    if (state === "done") { statusEl.textContent = reduced() ? "hình tĩnh (giảm chuyển động)" : ""; btn.hidden = false; btn.textContent = "↻ vẽ lại"; }
+  }
+  function clear() { cancelAnimationFrame(raf); items.forEach((it) => setP(it, 0)); pencil.setAttribute("opacity", 0); }
+  function wait() { clear(); state = "waiting"; ui(); }
+  function finish() {
+    cancelAnimationFrame(raf); items.forEach((it) => setP(it, 1));
+    pencil.setAttribute("opacity", 0); state = "done"; ui();
+  }
+  function play() {
+    if (reduced()) { finish(); return; }
+    clear(); cur = 0; state = "drawing"; ui();
+    pencil.setAttribute("opacity", 1);
+    t0 = performance.now(); raf = requestAnimationFrame(tick);
+  }
+  function tick(now) {
+    const t = now - t0;
+    while (cur < items.length && t >= items[cur].t2) { setP(items[cur], 1); cur++; }
+    if (cur >= items.length) { finish(); return; }
+    const it = items[cur];
+    if (t < it.t1) {
+      const q = ease((t - it.t0) / Math.max(1, it.t1 - it.t0));
+      placePencil([it.from[0] + (it.start[0] - it.from[0]) * q, it.from[1] + (it.start[1] - it.from[1]) * q - Math.sin(q * Math.PI) * 6], now);
+    } else {
+      const p = ease((t - it.t1) / Math.max(1, it.t2 - it.t1));
+      setP(it, p); placePencil(pointAt(it, p), now);
+    }
+    raf = requestAnimationFrame(tick);
+  }
+  btn.addEventListener("click", () => (state === "drawing" ? finish() : play()));
+  svg.addEventListener("click", () => { if (state === "drawing") finish(); });
+
+  /* ---------- bản dịch gõ chữ (giống app, nhanh hơn) ---------- */
+  const TR = "Charles Bukowski là một gã nghiện rượu, một tay sát gái, một con bạc kinh niên, một kẻ thô lỗ, một đứa keo kiệt, một tên chây lười, và vào những ngày tồi tệ nhất của mình — một nhà thơ. Ông có lẽ là người cuối cùng trên đời mà bạn tìm đến để xin lời khuyên về cuộc sống, hay ngờ rằng sẽ xuất hiện trong bất kỳ cuốn sách self-help nào.\n\nVà chính vì thế, ông là điểm khởi đầu hoàn hảo.";
+  const trText = document.getElementById("trans-text"), caret = document.getElementById("caret");
+  const flag = document.getElementById("typing-flag"), idea = document.getElementById("main-idea");
+  let typer = 0, startTimer = 0, typingDone = false;
+  function doneTyping() {
+    clearInterval(typer); typingDone = true;
+    trText.textContent = TR; caret.hidden = true; flag.hidden = true; idea.hidden = false;
+    clearTimeout(startTimer); startTimer = setTimeout(play, reduced() ? 0 : 450);
+  }
+  function startAll() {
+    clearInterval(typer); clearTimeout(startTimer); wait();
+    typingDone = false; trText.textContent = ""; caret.hidden = false; flag.hidden = false; idea.hidden = true;
+    if (reduced()) { doneTyping(); return; }
+    let i = 0;
+    typer = setInterval(() => { i += 3; trText.textContent = TR.slice(0, i); if (i >= TR.length) doneTyping(); }, 22);
+  }
+  document.getElementById("trans").addEventListener("click", () => { if (!typingDone) doneTyping(); });
+  document.getElementById("replay-all").addEventListener("click", startAll);
+  rmBox.addEventListener("change", startAll);
+  document.getElementById("theme-btn").addEventListener("click", () => {
+    const root = document.documentElement, cur = root.getAttribute("data-theme");
+    const isDark = cur ? cur === "dark" : !matchMedia("(prefers-color-scheme: light)").matches;
+    root.setAttribute("data-theme", isDark ? "light" : "dark");
+  });
+
+  const fontsReady = document.fonts && document.fonts.load
+    ? Promise.race([document.fonts.load('20px "Patrick Hand"'), new Promise((r) => setTimeout(r, 1500))])
+    : Promise.resolve();
+  fontsReady.then(() => { build(); startAll(); });
+})();
+</script>
