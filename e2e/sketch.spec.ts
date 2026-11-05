@@ -9,6 +9,8 @@ const PASSAGE_2 = getPassage(BOOK, CH, 2)!;
 
 /** Bỏ qua hiệu ứng gõ chữ của bản dịch (click vào cột dịch = skip). */
 async function finishTyping(page: Page) {
+  // Hết "idle" tức là đã hydrate; bấm sớm hơn thì trang chưa kịp nghe
+  await expect(page.getByTestId("sketch")).not.toHaveAttribute("data-state", "idle");
   await page.getByTestId("translation-col").click();
   await expect(page.getByText("đang gõ…")).toBeHidden();
 }
@@ -241,8 +243,12 @@ test.describe("12. chỉ vẽ khi hình đã lọt vào màn hình", () => {
   test("chưa lọt màn hình: chưa vẽ, báo cuộn xuống, chưa tính đã xem; cuộn tới thì vẽ", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 480 });
     await page.goto(P1);
-    await finishTyping(page);
     const sketch = page.getByTestId("sketch");
+    // Bỏ qua gõ chữ bằng phím, không bấm chuột. Playwright cuộn trước khi bấm, và khi phải thử lại thì căn cột dịch
+    // theo mép dưới: ở viewport thấp thế là đưa luôn hình vào màn hình (đo được 99,9%), test không còn kiểm gì nữa.
+    await expect(sketch).toHaveAttribute("data-state", "waiting"); // đã hydrate, phím không bị rơi
+    await page.keyboard.press("Shift");
+    await expect(page.getByText("đang gõ…")).toBeHidden();
     await expect(sketch.locator("svg")).not.toBeInViewport({ ratio: 0.9 });
     await expect(sketch).toContainText("cuộn xuống để xem vẽ…");
     await page.waitForTimeout(SKETCH_START_DELAY_MS + 300);
