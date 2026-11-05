@@ -1,10 +1,12 @@
 import { test, expect, type Page } from "@playwright/test";
+import { getPassage } from "@/lib/content";
 import { lookupUrl } from "@/lib/selection";
 import { P, dismissFirstTimeHint, finishTyping, installSpies, selectText, type Spy } from "./selection-helpers";
 
 // Tiêu chí nghiệm thu 1–9 + RF4 — spec docs/superpowers/specs/2026-11-05-touch-selection-design.md.
 // Máy giả lập Pixel 7 (390×844, cảm ứng, pointer: coarse). Vùng chọn tạo bằng script.
 
+const PASSAGE_2 = getPassage("the-subtle-art", "ch01", 2)!;
 const dock = (page: Page) => page.getByTestId("selection-dock");
 const spy = <K extends keyof Spy>(page: Page, key: K) =>
   page.evaluate((k) => (window as unknown as Spy)[k], key);
@@ -82,14 +84,35 @@ test.describe("mẹo lần đầu đã tắt (thanh nằm ngay trên footer)", (
     await expect(dock(page)).toHaveCount(0);
   });
 
-  test("Khi thanh đang hiện mà chạm tiếp → thì sang đoạn 2 và thanh ẩn", async ({ page }) => {
+  test("Khi thanh đang hiện mà chạm tiếp → thì sang đoạn 2 và thanh ẩn ngay, không đọc chữ của đoạn cũ", async ({ page }) => {
     await selectText(page, "original-text", "chronic gambler");
     await expect(dock(page)).toBeVisible();
+    // Ghi lại mọi lần DOM đổi: đoạn 2 đã hiện mà thanh (của đoạn 1) vẫn còn → lỗi.
+    // Không dựa vào auto-wait: vùng chọn tự xẹp khi cột cũ unmount, hook sẽ tự ẩn thanh sau 250ms.
+    // Ghi chú: hiện Next remount cả PassageView khi đổi đoạn nên test này xanh cả khi bỏ clear();
+    // clear() trong goTo / effect [passage.id] được khoá bằng unit test ở tests/passage-view.test.tsx.
+    await page.evaluate((p2) => {
+      const w = window as unknown as { __stale: string[] };
+      w.__stale = [];
+      const check = () => {
+        const text = document.querySelector('[data-testid="original-text"]')?.textContent ?? "";
+        const d = document.querySelector('[data-testid="selection-dock"]');
+        if (text.startsWith(p2) && d) w.__stale.push(d.textContent ?? "");
+      };
+      new MutationObserver(check).observe(document.body, { childList: true, subtree: true, characterData: true });
+    }, PASSAGE_2.original.slice(0, 40));
     await page.getByRole("button", { name: "tiếp →" }).tap();
     await expect(page).toHaveURL(/\/ch01\/2$/);
-    await expect(dock(page)).toBeHidden();
+    const dockWhenP2Shows = await page.waitForFunction((p2) => {
+      const text = document.querySelector('[data-testid="original-text"]')?.textContent ?? "";
+      if (!text.startsWith(p2)) return false;
+      return document.querySelector('[data-testid="selection-dock"]') ? "còn thanh" : "không thanh";
+    }, PASSAGE_2.original.slice(0, 40));
+    expect(await dockWhenP2Shows.jsonValue(), "lúc đoạn 2 vừa hiện").toBe("không thanh");
     await page.waitForTimeout(600);
+    expect(await page.evaluate(() => (window as unknown as { __stale: string[] }).__stale), "thanh cũ trên đoạn 2").toEqual([]);
     await expect(dock(page)).toHaveCount(0);
+    expect(await spy(page, "__spoken")).toEqual([]);
   });
 });
 
