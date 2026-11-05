@@ -5,9 +5,7 @@
 
 ## Đang làm
 
-- **Task:** Next dựng lại cả màn đọc khi chuyển đoạn (cỡ S) — nhánh `task/passage-remount`. ② Minh chọn "giữ màn đọc thật".
-- **Trạm:** ⑦ chờ Minh nghiệm thu. Màn đọc dời lên `app/read/[bookId]/[chapterId]/layout.tsx` (`ChapterReader` đọc số đoạn bằng `useParams`), page chỉ kiểm số đoạn (`lib/passageIndex.ts`). Sau `/code-review`: state của đoạn reset ngay lúc vẽ (PassageView, useTypingText, useTextSelection `resetKey`), cuộn lên đầu chỉ khi chuyển bằng nút/phím của app. `npm run verify` xanh: 221 unit, 137 e2e.
-- **Claude tự chọn:** layout gửi cả chương (3 đoạn) xuống trình duyệt — đổi lại sang đoạn tức thì; sách dài thì xem lại. Số đoạn sai mà chưa kịp chuyển hướng → màn trống tạm thời.
+_(trống — chờ chọn task từ backlog)_
 
 - **Ghi chú:** push `main` thất bại — máy chưa đăng nhập GitHub cho git (không có `gh`). Minh tự push hoặc đăng nhập rồi bảo Claude push.
 
@@ -19,6 +17,7 @@
 
 ## Đã xong
 
+- 2026-11-05 · Màn đọc sống xuyên các đoạn: dời lên layout của chương, vạch tiến độ trượt, state đoạn reset lúc vẽ, cuộn lên đầu khi chuyển bằng nút/phím (cỡ S) — test `e2e/passage-persist*.spec.ts`, `tests/passage-switch.test.tsx`. Merge vào main (chưa push)
 - 2026-11-05 · Bôi đen để nghe / tra nghĩa trên cảm ứng (cỡ M · UI) — spec `2026-11-05-touch-selection-design.md`; desktop popup, mobile thanh dính đáy; ⑥ sửa 11 mục (mẹo nhường chỗ thanh, tự cuộn vùng chọn, bỏ chọn khi mở tấm…). **Chưa thử máy thật** iPhone Safari / Android Chrome — test `e2e/selection*.spec.ts`. Merge vào main (chưa push)
 - 2026-11-05 · Dọn code reader: `FooterButton`, `lib/breakpoints.ts` (`MOBILE_QUERY`), AnnotationLayer bỏ đo ghi chú lề trên mobile, test chốt số thứ tự cụm khớp 3 nơi (cỡ S) — test `e2e/chunk-numbers.mobile.spec.ts`. Merge vào main (chưa push)
 - 2026-11-05 · Footer mobile vừa 320px (nút theme lên header mobile) + tấm giải thích mobile: bỏ thanh kéo, ✕ to rõ, gọn khoảng hở, dải mờ đáy, vạch tiến độ scaleX 300ms, vùng mờ ease-out; nút N của Next sang top-left (cỡ S · UI) — test `e2e/footer-sheet.mobile.spec.ts`. Merge vào main (chưa push)
