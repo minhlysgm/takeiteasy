@@ -630,6 +630,54 @@ describe("PassageView — tra nghĩa", () => {
     expect(screen.queryByTestId("lookup-card")).toBeNull();
   });
 
+  it("bấm 'tra nghĩa' lần nữa khi thẻ đang mở → đóng thẻ (không tra lại); lần thứ ba → tra lại", async () => {
+    const { calls } = deferredFetch();
+    renderView();
+    fireEvent.keyDown(window, { key: "x" });
+    selectWord("lout");
+    const btn = () => screen.getByRole("button", { name: /tra nghĩa/ });
+    fireEvent.click(btn());
+    await act(async () => calls[0].resolve(result("lout")));
+    expect(btn().getAttribute("aria-expanded")).toBe("true");
+    fireEvent.click(btn());
+    expect(screen.queryByTestId("lookup-card")).toBeNull();
+    expect(btn().getAttribute("aria-expanded")).toBe("false");
+    expect(calls).toHaveLength(1);
+    expect(screen.getByTestId("selection-popup")).toBeTruthy(); // vùng chọn vẫn còn
+    fireEvent.click(btn());
+    expect(calls).toHaveLength(2);
+    await act(async () => calls[1].resolve(result("lout")));
+    expect(screen.getByTestId("lookup-card").textContent).toContain("nghĩa của lout");
+  });
+
+  it("bấm 'tra nghĩa' lần nữa khi đang chờ → đóng thẻ, huỷ request, phản hồi về muộn bị bỏ qua", async () => {
+    const { calls, spy } = deferredFetch();
+    renderView();
+    fireEvent.keyDown(window, { key: "x" });
+    selectWord("lout");
+    fireEvent.click(screen.getByRole("button", { name: /tra nghĩa/ }));
+    expect(screen.getByTestId("lookup-skeleton")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /tra nghĩa/ }));
+    expect(screen.queryByTestId("lookup-card")).toBeNull();
+    expect(spy.mock.calls[0][1]!.signal!.aborted).toBe(true);
+    await act(async () => calls[0].resolve(result("lout")));
+    expect(screen.queryByTestId("lookup-card")).toBeNull();
+  });
+
+  it("popup: ✕ 'đóng thẻ' khi đang chờ → thẻ đóng, huỷ request, popup vẫn còn", async () => {
+    const { calls, spy } = deferredFetch();
+    renderView();
+    fireEvent.keyDown(window, { key: "x" });
+    selectWord("lout");
+    fireEvent.click(screen.getByRole("button", { name: /tra nghĩa/ }));
+    fireEvent.click(screen.getByRole("button", { name: "đóng thẻ" }));
+    expect(screen.queryByTestId("lookup-card")).toBeNull();
+    expect(spy.mock.calls[0][1]!.signal!.aborted).toBe(true);
+    await act(async () => calls[0].resolve(result("lout")));
+    expect(screen.queryByTestId("lookup-card")).toBeNull();
+    expect(screen.getByTestId("selection-popup")).toBeTruthy();
+  });
+
   it("thanh đáy: ✕ 'đóng thẻ' khi đang chờ → thẻ đóng, phản hồi về sau không mở lại", async () => {
     vi.stubGlobal("matchMedia", (q: string) => ({ matches: q === DOCK_QUERY, addEventListener() {}, removeEventListener() {} }));
     const { calls, spy } = deferredFetch();

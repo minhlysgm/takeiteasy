@@ -33,6 +33,51 @@ test("Khi chạm đóng thẻ thì thẻ ẩn", async ({ page }) => {
   await expect(page.getByTestId("lookup-card")).toHaveCount(0);
 });
 
+test("Khi chạm \"tra nghĩa\" lần nữa lúc thẻ đang mở thì thẻ đóng, thanh vẫn còn; ✕ nằm cùng hàng nút", async ({ page }) => {
+  await openCard(page);
+  const bar = dock(page).getByRole("toolbar", { name: "chữ đang chọn" });
+  await expect(bar.getByRole("button", { name: "đóng thẻ" })).toBeVisible();
+  const btn = bar.getByRole("button", { name: "tra nghĩa" });
+  await btn.tap();
+  await expect(page.getByTestId("lookup-card")).toHaveCount(0);
+  await expect(btn).toHaveAttribute("aria-expanded", "false");
+  await expect(dock(page)).toBeVisible();
+});
+
+test.describe("390×560 (màn thấp)", () => {
+  test.use({ viewport: { width: 390, height: 560 } });
+
+  test("Khi thẻ dài hơn chỗ trống thì có vệt mờ báo còn chữ; cuộn tới cuối thì vệt mờ ẩn", async ({ page }) => {
+    await mockLookup(page, {
+      status: "ok",
+      result: {
+        ...LOUT,
+        meaning: "kẻ thô lỗ, cục cằn, cư xử khó coi; người ồn ào, chen ngang, không biết nói cảm ơn hay xin lỗi",
+        example: {
+          en: "My cousin acted like a lout at the wedding: he talked loudly during the vows and never thanked the hosts.",
+          vi: "Ông anh họ tui cư xử như kẻ thô lỗ ở đám cưới: nói to lúc đọc lời thề, chẳng cảm ơn chủ nhà câu nào.",
+        },
+      },
+    });
+    await installSpies(page);
+    await dismissFirstTimeHint(page);
+    await page.goto(P(1));
+    await finishTyping(page, "tap");
+    await selectText(page, "original-text", "lout");
+    await dock(page).getByRole("button", { name: "tra nghĩa" }).tap();
+    const c = dock(page).getByTestId("lookup-card");
+    await expect(c).toContainText("đám cưới");
+    const body = c.getByTestId("lookup-body");
+    expect(await body.evaluate((el) => el.scrollHeight > el.clientHeight), "thân thẻ phải cuộn").toBe(true);
+    await expect(c.getByTestId("lookup-fade")).toBeVisible();
+    await body.evaluate((el) => el.scrollTo(0, el.scrollHeight));
+    await expect(c.getByTestId("lookup-fade")).toHaveCount(0);
+    // Dòng chân luôn hiện, một dòng
+    const footer = (await c.getByTestId("lookup-footer").boundingBox())!;
+    expect(footer.height).toBeLessThanOrEqual(46);
+  });
+});
+
 test.describe("320×640", () => {
   test.use({ viewport: { width: 320, height: 640 } });
 
@@ -46,5 +91,7 @@ test.describe("320×640", () => {
       expect((await b.boundingBox())!.height, name).toBeGreaterThanOrEqual(44);
     }
     expect((await d.getByRole("button", { name: "nghe: lout" }).boundingBox())!.height, "nghe: lout").toBeGreaterThanOrEqual(44);
+    // Chân thẻ "AI soạn · Cambridge ↗" một dòng (ô link 44px + viền)
+    expect((await d.getByTestId("lookup-footer").boundingBox())!.height, "chân thẻ một dòng").toBeLessThanOrEqual(46);
   });
 });

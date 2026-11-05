@@ -41,6 +41,12 @@ test('Khi bôi đen "lout" rồi bấm "tra nghĩa" thì thẻ hiện khung xư�
   await mockLookup(page2, { status: "ok", result: LOUT }, calls);
   await page2.goto(P(1));
   await finishTyping(page2, "click");
+  // Không mở tab / cửa sổ mới: ngoài spy window.open, đếm cả trang của context và sự kiện popup
+  const context = page2.context();
+  const pagesBefore = context.pages().length;
+  let newPages = 0;
+  context.on("page", () => newPages++);
+  page2.on("popup", () => newPages++);
   await openCard(page2, "lout");
 
   const c = card(page2);
@@ -54,6 +60,8 @@ test('Khi bôi đen "lout" rồi bấm "tra nghĩa" thì thẻ hiện khung xư�
   await expect(c).toContainText("AI soạn · có thể chưa chuẩn");
   await expect(c.getByRole("link", { name: /xem thêm ở Cambridge/ })).toHaveAttribute("href", /cambridge\.org/);
   expect(await page2.evaluate(() => (window as unknown as Spy).__opened)).toEqual([]);
+  expect(context.pages()).toHaveLength(pagesBefore);
+  expect(newPages, "không có trang / popup mới").toBe(0);
 
   expect(calls).toHaveLength(1);
   const body = calls[0] as LookupRequest;
@@ -180,3 +188,32 @@ for (const word of ["lout", "perfect"]) {
     expect(link.y + link.height).toBeLessThanOrEqual(footer.y);
   });
 }
+
+test('Khi bấm "tra nghĩa" lần nữa lúc thẻ đang mở thì thẻ đóng (không tra lại); bấm lần ba thì mở lại bằng một lượt tra mới', async ({ page }) => {
+  const calls: unknown[] = [];
+  await mockLookup(page, { status: "ok", result: LOUT }, calls);
+  await openReader(page);
+  await openCard(page, "lout");
+  const btn = popup(page).getByRole("button", { name: "tra nghĩa" });
+  await expect(card(page)).toContainText("kẻ thô lỗ");
+  await expect(btn).toHaveAttribute("aria-expanded", "true");
+  await btn.click();
+  await expect(card(page)).toHaveCount(0);
+  await expect(btn).toHaveAttribute("aria-expanded", "false");
+  await expect(popup(page)).toBeVisible(); // vùng chọn vẫn còn
+  expect(calls).toHaveLength(1);
+  await btn.click();
+  await expect(card(page)).toContainText("kẻ thô lỗ");
+  await expect(btn).toHaveAttribute("aria-expanded", "true");
+  expect(calls).toHaveLength(2);
+});
+
+test("Khi bấm ✕ ở hàng nút của popup thì thẻ đóng, popup còn", async ({ page }) => {
+  await mockLookup(page, { status: "ok", result: LOUT });
+  await openReader(page);
+  await openCard(page, "lout");
+  await expect(card(page)).toContainText("kẻ thô lỗ");
+  await popup(page).getByRole("toolbar").getByRole("button", { name: "đóng thẻ" }).click();
+  await expect(card(page)).toHaveCount(0);
+  await expect(popup(page)).toBeVisible();
+});

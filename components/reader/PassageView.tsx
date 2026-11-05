@@ -71,8 +71,6 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
   // Thẻ tra nghĩa gắn với đúng vùng chọn đã bấm "tra nghĩa" (kể cả đoạn): vùng chọn đổi / mất → thẻ thôi hiện.
   const [lookup, setLookup] = useState<{ key: string; state: LookupState } | null>(null);
   const lookupAbort = useRef<AbortController | null>(null);
-  // Khoá của lượt tra gần nhất (cả khi đã có kết quả); null = không có.
-  const lookupKey = useRef<string | null>(null);
   // Mỗi lần huỷ tăng một số: phản hồi về muộn của lượt cũ bị bỏ qua kể cả khi abort chưa kịp có tác dụng.
   const lookupSeq = useRef(0);
   const selectionKey = selection ? `${passage.id}:${selection.start}-${selection.end}` : null;
@@ -81,16 +79,16 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
     lookupSeq.current++;
     lookupAbort.current?.abort();
     lookupAbort.current = null;
-    lookupKey.current = null;
   }, []);
   const closeLookup = useCallback(() => {
     cancelLookup();
     setLookup(null);
   }, [cancelLookup]);
   // Vùng chọn rời khỏi chữ đang tra (bôi chữ khác, bỏ chọn, Esc, bấm ra ngoài) → huỷ request, bỏ thẻ.
+  const lookupKey = lookup?.key ?? null;
   useEffect(() => {
-    if (lookupKey.current !== null && lookupKey.current !== selectionKey) closeLookup();
-  }, [selectionKey, closeLookup]);
+    if (lookupKey !== null && lookupKey !== selectionKey) closeLookup();
+  }, [lookupKey, selectionKey, closeLookup]);
 
   // Chuyển đoạn: PassageView nằm ở layout của chương nên KHÔNG remount. State của đoạn được đặt lại
   // ngay trong lúc vẽ (không đợi effect) để đoạn mới không vẽ lần nào với tấm giải thích / chế độ
@@ -277,12 +275,16 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
       openChunk(chunk.id); // cụm soạn sẵn: dữ liệu biên tập có rồi, không gọi AI
       return;
     }
+    // Thẻ của chính vùng chọn này đang mở (chờ hoặc đã có kết quả) → bấm lần nữa là đóng.
+    if (shownLookup !== null) {
+      closeLookup();
+      return;
+    }
     cancelLookup();
     const ctrl = new AbortController();
     const seq = lookupSeq.current;
     const key = `${passage.id}:${start}-${end}`;
     lookupAbort.current = ctrl;
-    lookupKey.current = key;
     setLookup({ key, state: { phase: "loading" } });
     fetchLookup(
       { bookId: book.id, chapterId, passageIndex, text, sentence: sentenceAt(passage.original, start, end) },
