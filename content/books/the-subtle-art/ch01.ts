@@ -1,4 +1,5 @@
 import type { Passage } from "@/content/types";
+import { ch01Sketches } from "./ch01-sketches";
 
 export const ch01Passages: Passage[] = [
   {
@@ -68,6 +69,7 @@ export const ch01Passages: Passage[] = [
         ],
       },
     ],
+    sketch: ch01Sketches.p01,
   },
   {
     id: "ch01-p02",

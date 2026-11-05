@@ -39,6 +39,11 @@ describe("stepPaths", () => {
     expect(out.length).toBeGreaterThanOrEqual(1);
   });
 
+  it("làm tròn toạ độ (tránh lệch chữ số cuối giữa Node và trình duyệt gây hydration mismatch)", () => {
+    const out = stepPaths({ kind: "ellipse", cx: 240, cy: 156, w: 138, h: 206, tone: "ink", seed: 21, rough: 1.2, multi: true });
+    for (const d of out) expect(d).not.toMatch(/\d\.\d{3,}/);
+  });
+
   it("arrow: trả đúng một đường", () => {
     const out = stepPaths({ kind: "arrow", points: [0, 0, 10, 0, 20, 0, 30, 0], tone: "ink" });
     expect(out).toHaveLength(1);

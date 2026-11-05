@@ -99,4 +99,23 @@ describe("PassageView", () => {
     fireEvent.keyDown(window, { key: "Enter" });
     expect(push).toHaveBeenCalledWith("/read/the-subtle-art/ch01/2");
   });
+
+  it("đoạn 1 có hình phác thảo", () => {
+    renderView();
+    expect(screen.getByTestId("sketch")).toBeTruthy();
+  });
+
+  it("đoạn không có sketch thì không render khung phác thảo", () => {
+    const { sketch: _sketch, ...noSketch } = passages[0];
+    render(
+      <PassageView
+        book={book}
+        chapterId="ch01"
+        passage={noSketch}
+        passageIndex={1}
+        passageCount={passages.length}
+      />,
+    );
+    expect(screen.queryByTestId("sketch")).toBeNull();
+  });
 });

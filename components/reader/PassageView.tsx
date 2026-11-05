@@ -12,6 +12,7 @@ import { AnnotationLayer } from "./AnnotationLayer";
 import { ChunkDrawer } from "./ChunkDrawer";
 import { FirstTimeHint } from "./FirstTimeHint";
 import { OriginalText } from "./OriginalText";
+import { PassageSketch } from "./PassageSketch";
 import { SpeechTooltip } from "./SpeechTooltip";
 
 interface Props {
@@ -141,6 +142,9 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
           </div>
           <OriginalText passage={passage} explainOn={explainOn} onChunkClick={openChunk} />
           <SpeechTooltip containerRef={originalColRef} />
+          {passage.sketch && (
+            <PassageSketch key={passage.id} sketch={passage.sketch} passageId={passage.id} start={typing.done} dimmed={explainOn} />
+          )}
         </div>
         <div aria-hidden="true" className="border-r border-line" />
         <div

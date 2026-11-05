@@ -24,6 +24,9 @@ export function arrowPath([x1, y1, c1x, c1y, c2x, c2y, x2, y2]: ArrowPoints): st
   return `M${x1},${y1} C${c1x},${c1y} ${c2x},${c2y} ${x2},${y2} M${x2 + ax},${y2 + ay} L${x2},${y2} L${x2 + cx},${y2 + cy}`;
 }
 
+/** Làm tròn 2 chữ số thập phân: sin/cos của Node và trình duyệt lệch ở chữ số cuối, sẽ gây hydration mismatch. */
+const roundNums = (d: string) => d.replace(/-?\d+\.\d+/g, (n) => String(Number(Number(n).toFixed(2))));
+
 export function stepPaths(step: Extract<SketchStep, { kind: "path" | "ellipse" | "arrow" }>): string[] {
   if (step.kind === "arrow") return [arrowPath(step.points)];
   if (step.kind === "path" && step.plain) return [step.d];
@@ -39,5 +42,5 @@ export function stepPaths(step: Extract<SketchStep, { kind: "path" | "ellipse" |
     step.kind === "ellipse"
       ? generator.ellipse(step.cx, step.cy, step.w, step.h, opts)
       : generator.path(step.d, opts);
-  return generator.toPaths(drawable).map((p) => p.d);
+  return generator.toPaths(drawable).map((p) => roundNums(p.d));
 }
