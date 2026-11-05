@@ -268,7 +268,7 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
     <section
       data-testid="sketch"
       data-state={state}
-      className={`mt-9 transition-opacity motion-reduce:transition-none ${dimmed ? "opacity-30" : ""}`}
+      className={`mt-9 transition-opacity motion-reduce:transition-none ${dimmed ? "opacity-30 focus-within:opacity-100" : ""}`}
     >
       {/* flex-wrap: cột hẹp thì xuống dòng, đừng nong cột ra theo tổng chiều dài các nhãn */}
       <div className="flex min-h-[22px] flex-wrap items-baseline gap-x-3 gap-y-1 text-[13px]">

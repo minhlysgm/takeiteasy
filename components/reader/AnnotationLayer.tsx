@@ -134,7 +134,7 @@ export function AnnotationLayer({ containerRef, chunks, onChunkClick }: Props) {
           key={n.chunk.id}
           type="button"
           onClick={() => onChunkClick(n.chunk.id)}
-          className="absolute w-[170px] whitespace-pre-line text-left font-hand text-[16.5px] leading-snug text-ink"
+          className="absolute w-[170px] whitespace-pre-line focus-visible:outline-offset-0 text-left font-hand text-[16.5px] leading-snug text-ink"
           style={{
             top: n.noteY,
             left: n.noteX,

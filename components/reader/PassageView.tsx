@@ -206,7 +206,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
       {/* Footer dính đáy màn hình ở mọi cỡ; desktop nằm trên vùng mờ của ngăn giải thích nên vẫn bấm được */}
       <div className="sticky bottom-0 z-[5] lg:z-[15]">
         <FirstTimeHint explainOn={explainOn} />
-        <footer className="relative flex h-[60px] shrink-0 items-center justify-between gap-1.5 border-t border-line bg-bg px-2 text-[13px] text-muted lg:h-14 lg:gap-0 lg:px-8">
+        <footer className="relative flex [&_button:focus-visible]:outline-offset-1 h-[60px] shrink-0 items-center justify-between gap-1.5 border-t border-line bg-bg px-2 text-[13px] text-muted lg:h-14 lg:gap-0 lg:px-8">
           <div
             aria-hidden
             className="absolute -top-px left-0 h-0.5 bg-accent transition-[width] duration-500 motion-reduce:transition-none lg:hidden"

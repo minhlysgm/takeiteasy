@@ -8,6 +8,7 @@
   --muted: #7d8590;
   --line: #1f262e;
   --accent: #3fb950;
+  --focus: #3fb950; /* viền focus bàn phím */
   --ink: #e3b341;
   --ink-strong: #f0c667;
   --danger: #f85149;
@@ -23,6 +24,7 @@
   --muted: #6f6862;
   --line: #e2dccd;
   --accent: #b45309;
+  --focus: #1c1917; /* gần đen: tách khỏi cam của accent/ink */
   --ink: #b45309;
   --ink-strong: #92400e;
   --danger: #b91c1c;

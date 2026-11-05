@@ -8,7 +8,7 @@ body { background: var(--bg); color: var(--text); }
 /* Viền focus chung khi đi bằng bàn phím — thay viền xanh mặc định của trình duyệt.
    Chỉ :focus-visible nên bấm chuột không hiện viền. Phần tử nào cần tắt thì dùng `outline-none`. */
 @layer base {
-  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 }
 
 @keyframes blink { 0%, 55% { opacity: 1; } 56%, 100% { opacity: 0; } }

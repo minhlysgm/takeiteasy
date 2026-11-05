@@ -15,7 +15,7 @@ export function MobileNoteList({ chunks, onChunkClick }: Props) {
           <button
             type="button"
             onClick={() => onChunkClick(chunk.id)}
-            className="flex min-h-[44px] w-full items-center gap-3 text-left"
+            className="flex min-h-[44px] w-fit max-w-full items-center gap-3 text-left"
           >
             <span
               aria-hidden="true"

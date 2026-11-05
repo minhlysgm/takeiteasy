@@ -6,8 +6,8 @@
 ## Đang làm
 
 - **Task:** Viền focus chung theo token (cỡ S · UI) — nhánh `task/focus-ring`
-- **Trạm:** ⑥ Kiểm thử & soi — build xong (commit `6081123`), verify xanh (tsc+lint, 172 unit, 95 e2e), code review không có lỗi. Đang chờ Minh chọn mục sửa trong bảng soi UI (#1 ✕ tấm mobile bị cắt viền, #2 nút ▶ viền to, #3 'xem ngay' mờ 30%, #4 theme sáng viền trùng màu nút giải thích, #5 thanh tiến độ kệ sách tràn mobile, #6–#9 thấp). Ảnh: `.ui-snaps/focus/`
-- **Đã chốt:** 1 luật `:focus-visible` trong `app/globals.css`: outline 2px `var(--accent)`, offset 2px; dialog ChunkDrawer giữ `outline-none`.
+- **Trạm:** ⑦ Nghiệm thu — chờ Minh duyệt. ⑥ đã sửa cả 9 mục; #4 chọn B: token `--focus` (tối #3fb950, sáng #1c1917). Verify xanh (tsc+lint, 178 unit, 98 e2e). Ảnh: `.ui-snaps/focus/` (lưu ý `npm run ui:snap` xoá cả thư mục `.ui-snaps/`).
+- **Đã chốt:** 1 luật `:focus-visible` trong `app/globals.css`: outline 2px `var(--focus)`, offset 2px; dialog ChunkDrawer giữ `outline-none`.
 - **Test:** `e2e/focus-ring.spec.ts`
 
 ## Backlog
