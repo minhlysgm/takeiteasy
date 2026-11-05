@@ -2,18 +2,23 @@
 import { useEffect, useRef } from "react";
 import { prefersReducedMotion } from "@/lib/motion";
 import type { TextSelection } from "@/lib/useTextSelection";
+import { LookupCard, type LookupState } from "./LookupCard";
 import { SelectionActions } from "./SelectionActions";
 
 interface Props {
   selection: TextSelection;
   speechOk: boolean;
+  /** Thẻ tra nghĩa của vùng chọn này (null = chưa mở). */
+  lookup: LookupState | null;
+  onLookUp: () => void;
+  onCloseLookup: () => void;
 }
 
 /** Khoảng hở giữa chữ đang chọn và mép trên thanh / mép trên màn hình. */
 const GAP = 12;
 
 /** Thanh chọn chữ trên mobile: khối trong luồng, nằm ngay trên footer. */
-export function SelectionDock({ selection, speechOk }: Props) {
+export function SelectionDock({ selection, speechOk, lookup, onLookUp, onCloseLookup }: Props) {
   const ref = useRef<HTMLDivElement>(null);
 
   // Thanh hiện ra đè lên chữ đang chọn (và tay cầm) → cuộn trang lên vừa đủ, không đẩy đỉnh vùng chọn
@@ -43,8 +48,14 @@ export function SelectionDock({ selection, speechOk }: Props) {
         <span className="shrink-0">&quot;</span>
       </div>
       <div className="flex gap-2">
-        <SelectionActions text={selection.text} speechOk={speechOk} size="dock" />
+        <SelectionActions text={selection.text} speechOk={speechOk} size="dock" onLookUp={onLookUp} lookupOpen={lookup !== null} />
       </div>
+      {/* Thẻ mở lên phía trên footer, cao tối đa nửa màn hình, cuộn bên trong */}
+      {lookup && (
+        <div className="-mx-2 -mb-2 max-h-[50dvh] overflow-y-auto overscroll-contain">
+          <LookupCard state={lookup} text={selection.text} speechOk={speechOk} onClose={onCloseLookup} />
+        </div>
+      )}
     </div>
   );
 }

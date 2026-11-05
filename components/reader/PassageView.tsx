@@ -4,9 +4,11 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import type { Book, Passage } from "@/content/types";
 import { DOCK_QUERY } from "@/lib/breakpoints";
 import { chapterLabel, type PassageOutline } from "@/lib/content";
+import { fetchLookup } from "@/lib/lookupClient";
 import { prefersReducedMotion } from "@/lib/motion";
 import { saveProgress } from "@/lib/progress";
 import { getReadPassages, markPassageRead } from "@/lib/readPassages";
+import { chunkAt, sentenceAt } from "@/lib/selection";
 import { isSpeechAvailable, speak, stopSpeech } from "@/lib/speech";
 import { useMediaQuery } from "@/lib/useMediaQuery";
 import { useTextSelection } from "@/lib/useTextSelection";
@@ -17,6 +19,7 @@ import { ChunkDrawer } from "./ChunkDrawer";
 import { FirstTimeHint } from "./FirstTimeHint";
 import { FooterButton } from "./FooterButton";
 import { Kbd } from "./Kbd";
+import type { LookupState } from "./LookupCard";
 import { MobileNoteList } from "./MobileNoteList";
 import { OriginalText } from "./OriginalText";
 import { PassageJumpList } from "./PassageJumpList";
@@ -65,6 +68,29 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
   // Đọc khả năng speech sau mount để SSR và client render lần đầu khớp nhau.
   const [speechOk, setSpeechOk] = useState(false);
   useEffect(() => setSpeechOk(isSpeechAvailable()), []);
+  // Thẻ tra nghĩa gắn với đúng vùng chọn đã bấm "tra nghĩa" (kể cả đoạn): vùng chọn đổi / mất → thẻ thôi hiện.
+  const [lookup, setLookup] = useState<{ key: string; state: LookupState } | null>(null);
+  const lookupAbort = useRef<AbortController | null>(null);
+  // Khoá của lượt tra gần nhất (cả khi đã có kết quả); null = không có.
+  const lookupKey = useRef<string | null>(null);
+  // Mỗi lần huỷ tăng một số: phản hồi về muộn của lượt cũ bị bỏ qua kể cả khi abort chưa kịp có tác dụng.
+  const lookupSeq = useRef(0);
+  const selectionKey = selection ? `${passage.id}:${selection.start}-${selection.end}` : null;
+  const shownLookup = lookup !== null && lookup.key === selectionKey ? lookup.state : null;
+  const cancelLookup = useCallback(() => {
+    lookupSeq.current++;
+    lookupAbort.current?.abort();
+    lookupAbort.current = null;
+    lookupKey.current = null;
+  }, []);
+  const closeLookup = useCallback(() => {
+    cancelLookup();
+    setLookup(null);
+  }, [cancelLookup]);
+  // Vùng chọn rời khỏi chữ đang tra (bôi chữ khác, bỏ chọn, Esc, bấm ra ngoài) → huỷ request, bỏ thẻ.
+  useEffect(() => {
+    if (lookupKey.current !== null && lookupKey.current !== selectionKey) closeLookup();
+  }, [selectionKey, closeLookup]);
 
   // Chuyển đoạn: PassageView nằm ở layout của chương nên KHÔNG remount. State của đoạn được đặt lại
   // ngay trong lúc vẽ (không đợi effect) để đoạn mới không vẽ lần nào với tấm giải thích / chế độ
@@ -76,6 +102,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
     setDrawerIndex(null);
     setDrawerClosing(false);
     setJumpOpen(false); // gỡ danh sách → hook của nó trả focus + mở khoá cuộn (cả khi back/forward)
+    setLookup(null); // request đang chờ được huỷ ở effect bên dưới
   }
 
   // Việc ngoài React khi chuyển đoạn: huỷ hẹn giờ đóng tấm, tắt speech, bỏ vùng chọn của trình duyệt
@@ -83,6 +110,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
   useEffect(() => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
     stopSpeech();
+    cancelLookup();
     clearSelection();
     if (prefersReducedMotion()) typing.skip();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -103,6 +131,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
   }, [book.id, chapterId, passageIndex]);
 
   useEffect(() => () => stopSpeech(), []);
+  useEffect(() => cancelLookup, [cancelLookup]);
   useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current); }, []);
 
   // Đóng drawer có animation trượt ra: đánh dấu closing, chờ transition xong mới unmount
@@ -240,6 +269,33 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
     setDrawerIndex(i);
   };
 
+  const lookUp = () => {
+    if (!selection) return;
+    const { text, start, end } = selection;
+    const chunk = chunkAt(passage, start, end);
+    if (chunk) {
+      openChunk(chunk.id); // cụm soạn sẵn: dữ liệu biên tập có rồi, không gọi AI
+      return;
+    }
+    cancelLookup();
+    const ctrl = new AbortController();
+    const seq = lookupSeq.current;
+    const key = `${passage.id}:${start}-${end}`;
+    lookupAbort.current = ctrl;
+    lookupKey.current = key;
+    setLookup({ key, state: { phase: "loading" } });
+    fetchLookup(
+      { bookId: book.id, chapterId, passageIndex, text, sentence: sentenceAt(passage.original, start, end) },
+      ctrl.signal,
+    ).then(
+      (res) => {
+        if (seq !== lookupSeq.current) return;
+        setLookup({ key, state: res.status === "ok" ? { phase: "ok", result: res.result } : { phase: "error" } });
+      },
+      () => {}, // chỉ ném khi bị huỷ (AbortError): lượt đó đã bị thay / bỏ
+    );
+  };
+
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="flex h-11 shrink-0 items-center border-b border-line bg-surface lg:sticky lg:top-0 lg:z-[15] lg:gap-4 lg:px-5">
@@ -297,7 +353,16 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
           </div>
           <OriginalText ref={originalTextRef} passage={passage} explainOn={explainOn} onChunkClick={openChunk} />
           {explainOn && <MobileNoteList chunks={passage.chunks} onChunkClick={openChunk} />}
-          {showSel && !docked && <SelectionPopup selection={selection} containerRef={originalColRef} speechOk={speechOk} />}
+          {showSel && !docked && (
+            <SelectionPopup
+              selection={selection}
+              containerRef={originalColRef}
+              speechOk={speechOk}
+              lookup={shownLookup}
+              onLookUp={lookUp}
+              onCloseLookup={closeLookup}
+            />
+          )}
           {passage.sketch && (
             <PassageSketch key={passage.id} sketch={passage.sketch} passageId={passage.id} start={typing.done} dimmed={explainOn} />
           )}
@@ -345,7 +410,15 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
       {/* Footer dính đáy màn hình ở mọi cỡ; desktop nằm trên vùng mờ của ngăn giải thích nên vẫn bấm được */}
       {/* Nền surface: khe lẻ pixel giữa các dải không lộ nội dung phía sau */}
       <div className="sticky bottom-0 z-[5] bg-surface lg:z-[15]">
-        {showSel && docked && <SelectionDock selection={selection} speechOk={speechOk} />}
+        {showSel && docked && (
+          <SelectionDock
+            selection={selection}
+            speechOk={speechOk}
+            lookup={shownLookup}
+            onLookUp={lookUp}
+            onCloseLookup={closeLookup}
+          />
+        )}
         {/* Thanh đang hiện thì mẹo tạm nhường chỗ (màn nhỏ: mẹo + thanh + footer chiếm gần nửa màn) */}
         <FirstTimeHint explainOn={explainOn} hidden={(showSel && docked) || jumpOpen} />
         <footer className="relative flex [&_button:focus-visible]:outline-offset-1 h-[60px] shrink-0 items-center justify-between gap-1.5 border-t border-line bg-bg px-2 text-[13px] text-muted lg:h-14 lg:gap-0 lg:px-8">

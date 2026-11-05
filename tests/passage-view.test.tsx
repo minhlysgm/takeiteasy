@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { PassageView } from "@/components/reader/PassageView";
+import { DOCK_QUERY } from "@/lib/breakpoints";
 import { books, firstSentence, getPassages } from "@/lib/content";
 import { getProgress } from "@/lib/progress";
 import { getReadPassages } from "@/lib/readPassages";
@@ -466,5 +467,182 @@ describe("PassageView — chọn chữ khi chuyển đoạn", () => {
     rerender(view(2));
     expect(screen.getByTestId("original-text").textContent).toContain("Bukowski wanted to be a writer");
     expect(screen.queryByTestId("selection-popup")).toBeNull();
+  });
+});
+
+// Tra nghĩa: cụm soạn sẵn → mở tấm giải thích; chữ khác → POST /api/lookup, thẻ hiện ngay trong popup.
+describe("PassageView — tra nghĩa", () => {
+  const original = Range.prototype.getBoundingClientRect;
+  beforeAll(() => {
+    Range.prototype.getBoundingClientRect = () =>
+      ({ left: 40, top: 200, width: 120, height: 20, right: 160, bottom: 220, x: 40, y: 200, toJSON() {} }) as DOMRect;
+  });
+  afterAll(() => {
+    Range.prototype.getBoundingClientRect = original;
+  });
+  beforeEach(() => {
+    localStorage.clear();
+    push.mockClear();
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    window.getSelection()?.removeAllRanges();
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  /** Bôi đen `needle` (nằm trọn trong một text node của nguyên văn) rồi chờ quá 250ms → popup / thanh hiện. */
+  function selectWord(needle: string, ui = "selection-popup") {
+    const root = screen.getByTestId("original-text");
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let node: Text | null = null;
+    while (walker.nextNode()) {
+      const t = walker.currentNode as Text;
+      if (new RegExp(`\\b${needle}\\b`).test(t.data)) {
+        node = t;
+        break;
+      }
+    }
+    const at = node!.data.search(new RegExp(`\\b${needle}\\b`));
+    act(() => {
+      const range = document.createRange();
+      range.setStart(node!, at);
+      range.setEnd(node!, at + needle.length);
+      const sel = window.getSelection()!;
+      sel.removeAllRanges();
+      sel.addRange(range);
+      document.dispatchEvent(new Event("selectionchange"));
+    });
+    act(() => void vi.advanceTimersByTime(300));
+    expect(window.getSelection()!.toString()).toBe(needle);
+    expect(screen.getByTestId(ui)).toBeTruthy();
+  }
+
+  const result = (headword: string) => ({
+    status: "ok" as const,
+    result: { headword, ipa: "/x/", pos: "danh từ", meaning: `nghĩa của ${headword}`, example: { en: `A ${headword}.`, vi: "Một ví dụ." } },
+  });
+  /** `fetch` giả: mỗi lượt treo tới khi test gọi `resolve` của lượt đó. */
+  function deferredFetch() {
+    const calls: { body: Record<string, unknown>; resolve: (body: unknown) => void }[] = [];
+    const spy = vi.spyOn(globalThis, "fetch").mockImplementation(
+      (_url, init) =>
+        new Promise<Response>((res) => {
+          calls.push({
+            body: JSON.parse(init!.body as string),
+            resolve: (body) => res({ status: 200, json: async () => body } as Response),
+          });
+        }),
+    );
+    return { calls, spy };
+  }
+
+  it("tra nghĩa trên 'chronic' mở tấm giải thích, không fetch", () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    renderView();
+    fireEvent.keyDown(window, { key: "x" }); // skip typing
+    selectWord("chronic");
+    fireEvent.click(screen.getByRole("button", { name: /tra nghĩa/ }));
+    expect(screen.getByRole("dialog").textContent).toContain("chronic + noun");
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("lookup-card")).toBeNull();
+  });
+
+  it("tra nghĩa trên 'lout' → khung xương rồi thẻ kết quả; gửi đúng sách/đoạn/câu", async () => {
+    const { calls } = deferredFetch();
+    renderView();
+    fireEvent.keyDown(window, { key: "x" });
+    selectWord("lout");
+    fireEvent.click(screen.getByRole("button", { name: /tra nghĩa/ }));
+    expect(screen.getByTestId("selection-popup").contains(screen.getByTestId("lookup-skeleton"))).toBe(true);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].body).toMatchObject({ bookId: book.id, chapterId: "ch01", passageIndex: 1, text: "lout" });
+    expect(calls[0].body.sentence).toMatch(/^Charles Bukowski was .* a poet\.$/);
+    await act(async () => calls[0].resolve(result("lout")));
+    expect(screen.getByTestId("lookup-card").textContent).toContain("nghĩa của lout");
+    expect(screen.queryByTestId("lookup-skeleton")).toBeNull();
+  });
+
+  it("API lỗi → thẻ báo 'Tạm chưa tra được'", async () => {
+    const { calls } = deferredFetch();
+    renderView();
+    fireEvent.keyDown(window, { key: "x" });
+    selectWord("lout");
+    fireEvent.click(screen.getByRole("button", { name: /tra nghĩa/ }));
+    await act(async () => calls[0].resolve({ status: "unavailable", reason: "paused" }));
+    expect(screen.getByTestId("lookup-card").textContent).toContain("Tạm chưa tra được, thử lại sau nhé.");
+  });
+
+  it("bôi đen chữ khác khi đang chờ → phản hồi cũ không hiện", async () => {
+    const { calls } = deferredFetch();
+    renderView();
+    fireEvent.keyDown(window, { key: "x" });
+    selectWord("lout");
+    fireEvent.click(screen.getByRole("button", { name: /tra nghĩa/ }));
+    expect(screen.getByTestId("lookup-skeleton")).toBeTruthy();
+    selectWord("cheapskate");
+    expect(screen.queryByTestId("lookup-card")).toBeNull(); // thẻ thuộc vùng chọn cũ
+    fireEvent.click(screen.getByRole("button", { name: /tra nghĩa/ }));
+    expect(calls).toHaveLength(2);
+    await act(async () => calls[0].resolve(result("lout")));
+    expect(screen.getByTestId("lookup-card").textContent).not.toContain("lout");
+    expect(screen.getByTestId("lookup-skeleton")).toBeTruthy();
+    await act(async () => calls[1].resolve(result("cheapskate")));
+    expect(screen.getByTestId("lookup-card").textContent).toContain("nghĩa của cheapskate");
+  });
+
+  it("bôi đen chữ khác (không bấm tra) rồi phản hồi cũ về → không có thẻ", async () => {
+    const { calls } = deferredFetch();
+    renderView();
+    fireEvent.keyDown(window, { key: "x" });
+    selectWord("lout");
+    fireEvent.click(screen.getByRole("button", { name: /tra nghĩa/ }));
+    selectWord("cheapskate");
+    await act(async () => calls[0].resolve(result("lout")));
+    expect(screen.queryByTestId("lookup-card")).toBeNull();
+  });
+
+  it("Escape đóng thẻ cùng vùng chọn", async () => {
+    const { calls } = deferredFetch();
+    renderView();
+    fireEvent.keyDown(window, { key: "x" });
+    selectWord("lout");
+    fireEvent.click(screen.getByRole("button", { name: /tra nghĩa/ }));
+    await act(async () => calls[0].resolve(result("lout")));
+    expect(screen.getByTestId("lookup-card")).toBeTruthy();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryByTestId("lookup-card")).toBeNull();
+    expect(screen.queryByTestId("selection-popup")).toBeNull();
+  });
+
+  it("chuyển đoạn khi đang chờ → huỷ request, đoạn mới không có thẻ", async () => {
+    const { calls, spy } = deferredFetch();
+    const { rerender } = renderView();
+    fireEvent.keyDown(window, { key: "x" });
+    selectWord("lout");
+    fireEvent.click(screen.getByRole("button", { name: /tra nghĩa/ }));
+    const signal = spy.mock.calls[0][1]!.signal!;
+    expect(signal.aborted).toBe(false);
+    rerender(view2());
+    expect(signal.aborted).toBe(true);
+    await act(async () => calls[0].resolve(result("lout")));
+    expect(screen.queryByTestId("lookup-card")).toBeNull();
+  });
+
+  it("thanh đáy: ✕ 'đóng thẻ' khi đang chờ → thẻ đóng, phản hồi về sau không mở lại", async () => {
+    vi.stubGlobal("matchMedia", (q: string) => ({ matches: q === DOCK_QUERY, addEventListener() {}, removeEventListener() {} }));
+    const { calls, spy } = deferredFetch();
+    renderView();
+    fireEvent.keyDown(window, { key: "x" });
+    selectWord("lout", "selection-dock");
+    fireEvent.click(screen.getByRole("button", { name: /tra nghĩa/ }));
+    expect(screen.getByTestId("selection-dock").contains(screen.getByTestId("lookup-skeleton"))).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "đóng thẻ" }));
+    expect(screen.queryByTestId("lookup-card")).toBeNull();
+    expect(spy.mock.calls[0][1]!.signal!.aborted).toBe(true);
+    await act(async () => calls[0].resolve(result("lout")));
+    expect(screen.queryByTestId("lookup-card")).toBeNull();
+    expect(screen.getByTestId("selection-dock")).toBeTruthy(); // vùng chọn vẫn còn, chỉ thẻ đóng
   });
 });
