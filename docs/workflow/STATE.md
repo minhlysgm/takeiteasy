@@ -5,7 +5,7 @@
 
 ## Đang làm
 
-**Bước kế:** đề xuất làm **Task 6 của plan tra nghĩa — gắn dịch vụ thật** (`docs/superpowers/plans/2026-11-05-in-app-lookup.md` dòng ~238): Anthropic Console (workspace, spend limit $9, key, tắt auto-reload) → Vercel thêm Upstash Redis → Minh dán `ANTHROPIC_API_KEY` + `LOOKUP_BUDGET_USD=9` → deploy lại, thử `lout`/`piled up`/`cheapskate`. Không code; Claude mở trình duyệt, Minh tự đăng nhập & dán key. Cần push main lên GitHub trước (máy chưa đăng nhập GitHub cho git). Chờ Minh "ok".
+**Bước kế:** đề xuất làm **Task 6 của plan tra nghĩa — gắn dịch vụ thật** (`docs/superpowers/plans/2026-11-05-in-app-lookup.md` dòng ~238): Anthropic Console (workspace, spend limit $9, key, tắt auto-reload) → Vercel thêm Upstash Redis → Minh dán `ANTHROPIC_API_KEY` + `LOOKUP_BUDGET_USD=9` → deploy lại, thử `lout`/`piled up`/`cheapskate`. Không code; Claude mở trình duyệt, Minh tự đăng nhập & dán key. **Đang làm (2026-11-05):** main đã push. Console: đã tạo workspace `takeiteasy` (wrkspc_01HgcW8CnCsDEhtbT1kdFUFr), trần $9/tháng, auto-reload tắt (lưu ý gói Max tặng $100 credit/tháng → số dư không phải trần). Tiếp: Minh tự tạo key trong workspace đó → Vercel (Upstash + env) → deploy → thử.
 
 - **Ghi chú:** push `main` thất bại — máy chưa đăng nhập GitHub cho git (không có `gh`). Minh tự push hoặc đăng nhập rồi bảo Claude push.
 
