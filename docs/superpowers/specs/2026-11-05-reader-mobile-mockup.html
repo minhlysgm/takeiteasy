@@ -1,0 +1,315 @@
+<title>Reader trên điện thoại</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Patrick+Hand&display=swap">
+<style>
+/* Layout: bàn mockup — 3 khung điện thoại 390px đặt cạnh nhau (xuống hàng khi hẹp), mỗi khung là bản sao màn đọc takeiteasy ở bố cục mobile. Token = lib/theme.css. */
+:root {
+  --bg: #0f1317; --surface: #141a21; --text: #d6dee6; --bright: #e6edf3; --muted: #7d8590;
+  --line: #1f262e; --accent: #3fb950; --ink: #e3b341; --ink-strong: #f0c667; --danger: #f85149;
+  --scrim: rgba(2, 6, 10, 0.55); --desk: #0a0d10;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --hand: "Patrick Hand", "Comic Sans MS", "Chalkboard SE", cursive;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f6f3ec; --surface: #efeadf; --text: #44403c; --bright: #1c1917; --muted: #a8a29e;
+    --line: #e2dccd; --accent: #b45309; --ink: #b45309; --ink-strong: #92400e; --danger: #b91c1c;
+    --scrim: rgba(41, 37, 36, 0.35); --desk: #e9e4d8;
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #f6f3ec; --surface: #efeadf; --text: #44403c; --bright: #1c1917; --muted: #a8a29e;
+  --line: #e2dccd; --accent: #b45309; --ink: #b45309; --ink-strong: #92400e; --danger: #b91c1c;
+  --scrim: rgba(41, 37, 36, 0.35); --desk: #e9e4d8;
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  --bg: #0f1317; --surface: #141a21; --text: #d6dee6; --bright: #e6edf3; --muted: #7d8590;
+  --line: #1f262e; --accent: #3fb950; --ink: #e3b341; --ink-strong: #f0c667; --danger: #f85149;
+  --scrim: rgba(2, 6, 10, 0.55); --desk: #0a0d10;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--desk); color: var(--text); font-family: var(--mono); font-size: 13px; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.page {
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 48px;
+  max-width: 1320px; margin: 0 auto;
+  display: flex; flex-direction: column; gap: 20px;
+}
+.mock-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.mock-title { color: var(--muted); }
+.mock-title b { color: var(--ink); font-weight: 500; }
+.mock-bar button { border: 1px solid var(--line); padding: 6px 12px; background: var(--bg); transition: border-color .15s, color .15s; }
+.mock-bar button:hover { border-color: var(--accent); color: var(--bright); }
+
+.phones { display: flex; flex-wrap: wrap; gap: 28px; justify-content: center; }
+.slot { display: flex; flex-direction: column; gap: 10px; width: 390px; max-width: 100%; }
+.slot-cap { color: var(--muted); line-height: 1.5; min-height: 3em; }
+.slot-cap b { color: var(--ink); font-weight: 500; }
+
+/* khung điện thoại */
+.phone {
+  position: relative; height: 780px; max-width: 100%;
+  border: 1px solid var(--line); border-radius: 28px; overflow: hidden;
+  background: var(--bg); display: flex; flex-direction: column;
+  box-shadow: 0 18px 50px rgba(0,0,0,.25);
+}
+.app-head {
+  height: 40px; flex-shrink: 0; display: flex; align-items: center; gap: 12px; padding: 0 16px;
+  background: var(--surface); border-bottom: 1px solid var(--line); font-size: 12px; color: var(--muted);
+}
+.dots { display: flex; gap: 6px; }
+.dots i { width: 10px; height: 10px; border-radius: 50%; opacity: .7; }
+.dots i:nth-child(1) { background: var(--danger); } .dots i:nth-child(2) { background: var(--ink); } .dots i:nth-child(3) { background: var(--accent); }
+.crumb { flex: 1; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.crumb .on { color: var(--ink); }
+.head-pad { width: 42px; }
+
+.scroll { flex: 1; overflow-y: auto; padding: 24px 16px 28px; display: flex; flex-direction: column; gap: 0; }
+.label { font-size: 12.5px; color: var(--muted); margin-bottom: 14px; display: flex; gap: 10px; align-items: baseline; }
+.label .ink { color: var(--ink); } .label .acc { color: var(--accent); font-size: 12px; }
+
+.original { font-size: 17px; line-height: 1.85; color: var(--bright); white-space: pre-line; }
+.chunk-on { color: var(--ink-strong); text-decoration: underline; text-decoration-color: var(--ink); text-decoration-thickness: 1.5px; text-underline-offset: 5px; cursor: pointer; }
+.num {
+  display: inline-flex; align-items: center; justify-content: center; vertical-align: super;
+  width: 16px; height: 16px; margin-left: 2px; border: 1.2px solid var(--ink); border-radius: 50%;
+  font: 500 10px/1 var(--mono); color: var(--ink);
+}
+
+.notes { margin-top: 18px; display: flex; flex-direction: column; gap: 10px; }
+.note { display: flex; gap: 10px; align-items: flex-start; text-align: left; padding: 6px 4px; min-height: 44px; }
+.note .num { vertical-align: 0; margin: 4px 0 0; flex-shrink: 0; }
+.note span:last-child { font-family: var(--hand); font-size: 17px; line-height: 1.25; color: var(--ink); white-space: pre-line; }
+.note:nth-child(odd) span:last-child { transform: rotate(-1deg); }
+.note:nth-child(even) span:last-child { transform: rotate(.8deg); }
+
+.sketch { margin-top: 24px; transition: opacity .2s; }
+.sketch-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+.sketch svg { width: 100%; height: auto; display: block; }
+.dim { opacity: .3; }
+
+.divider { border: 0; border-top: 1px solid var(--line); margin: 28px 0 22px; }
+.vi { font-size: 15.5px; line-height: 1.95; white-space: pre-line; transition: opacity .2s; }
+.idea { margin-top: 22px; border-top: 1px solid var(--line); padding-top: 16px; font-size: 13.5px; line-height: 1.65; color: var(--muted); }
+.idea b { color: var(--accent); font-weight: 400; display: block; margin-bottom: 6px; }
+
+.hint { flex-shrink: 0; display: flex; align-items: center; gap: 12px; justify-content: space-between; padding: 9px 16px; background: var(--surface); border-top: 1px solid var(--line); font-size: 12.5px; line-height: 1.5; }
+.hint span { color: var(--ink); } .hint button { color: var(--muted); flex-shrink: 0; padding: 6px 0; }
+
+/* footer mobile */
+.foot { position: relative; flex-shrink: 0; height: 60px; display: flex; align-items: center; gap: 6px; padding: 0 12px; border-top: 1px solid var(--line); background: var(--bg); color: var(--muted); }
+.progress { position: absolute; top: -1px; left: 0; height: 2px; background: var(--accent); }
+.fbtn { height: 38px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 11px; border: 1px solid var(--line); white-space: nowrap; }
+.fbtn.icon { width: 40px; padding: 0; }
+.fbtn.on { border-color: var(--ink); color: var(--ink); }
+.fbtn:disabled { opacity: .4; cursor: default; }
+.spacer { flex: 1; }
+
+/* tấm giải thích trượt từ dưới lên */
+.scrim { position: absolute; inset: 0; background: var(--scrim); z-index: 5; }
+.sheet {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 85%; z-index: 6;
+  background: var(--surface); border-top: 1px solid var(--line); border-radius: 16px 16px 0 0;
+  display: flex; flex-direction: column; box-shadow: 0 -12px 40px rgba(0,0,0,.3);
+}
+.grab { width: 36px; height: 4px; border-radius: 2px; background: var(--line); margin: 8px auto 0; flex-shrink: 0; }
+.sheet-top { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px 0 20px; color: var(--muted); font-size: 12.5px; flex-shrink: 0; }
+.sheet-top button { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.sheet-body { flex: 1; overflow-y: auto; padding: 8px 20px 20px; display: flex; flex-direction: column; gap: 20px; }
+.sheet h2 { margin: 0; font-size: 20px; font-weight: 500; color: var(--ink-strong); line-height: 1.35; text-wrap: balance; }
+.meaning { margin: 8px 0 0; font-size: 15px; color: var(--bright); line-height: 1.6; }
+.pattern { border: 1px dashed var(--accent); padding: 14px; }
+.pattern .t { font-size: 11px; letter-spacing: .14em; color: var(--accent); }
+.pattern .f { margin-top: 6px; font-size: 15px; color: var(--bright); }
+.pattern .n { margin-top: 4px; font-size: 13px; color: var(--muted); line-height: 1.55; }
+.ex-label { font-size: 12.5px; color: var(--muted); margin-bottom: 10px; }
+.ex { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.ex li { display: flex; gap: 8px; align-items: flex-start; }
+.ex .play { color: var(--accent); width: 28px; height: 28px; margin: -4px 0 0 -8px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; }
+.ex .en { font-size: 14.5px; color: var(--bright); line-height: 1.55; }
+.ex .vn { font-size: 13px; color: var(--muted); line-height: 1.55; }
+.cnote { font-size: 13.5px; line-height: 1.6; color: var(--muted); margin: 0; }
+.sheet-nav { flex-shrink: 0; display: flex; justify-content: space-between; border-top: 1px solid var(--line); padding: 0 8px; height: 56px; align-items: center; color: var(--muted); }
+.sheet-nav button { min-height: 44px; padding: 0 12px; }
+.sheet-nav button:disabled { opacity: .4; cursor: default; }
+
+.notes-list { color: var(--muted); line-height: 1.7; max-width: 72ch; margin: 8px auto 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.notes-list b { color: var(--text); font-weight: 500; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="page">
+  <div class="mock-bar">
+    <div class="mock-title"><b>takeiteasy</b> · màn đọc trên điện thoại (390px) · đoạn 1, chương 1</div>
+    <button type="button" id="themeBtn">đổi sáng / tối</button>
+  </div>
+
+  <div class="phones">
+    <!-- ① đọc thường -->
+    <section class="slot">
+      <div class="slot-cap"><b>① Đọc thường.</b> Nguyên văn + hình ở trên, bản dịch ở dưới. Footer dính đáy, vạch xanh trên footer là tiến độ.</div>
+      <div class="phone">
+        <div class="app-head"><div class="dots"><i></i><i></i><i></i></div><div class="crumb">chương 1 · đoạn 1/3</div><div class="head-pad"></div></div>
+        <div class="scroll">
+          <div class="label">// nguyên văn</div>
+          <div class="original" data-original="plain"></div>
+          <div class="sketch" data-sketch></div>
+          <hr class="divider">
+          <div class="label">// bản dịch</div>
+          <div class="vi" data-vi></div>
+          <div class="idea" data-idea></div>
+        </div>
+        <div class="hint"><span>// mẹo: chạm "giải thích" để xem các cụm đáng học</span><button type="button">đã hiểu</button></div>
+        <div class="foot" data-foot="off"></div>
+      </div>
+    </section>
+
+    <!-- ② bật giải thích -->
+    <section class="slot">
+      <div class="slot-cap"><b>② Bật giải thích.</b> Cụm đáng học được gạch chân kèm số. Ghi chú tay cùng số nằm ngay dưới nguyên văn. Chạm cụm, số hay ghi chú đều mở giải thích.</div>
+      <div class="phone" id="phone2">
+        <div class="app-head"><div class="dots"><i></i><i></i><i></i></div><div class="crumb">chương 1 · đoạn 1/3<span class="on"> · explain</span></div><div class="head-pad"></div></div>
+        <div class="scroll">
+          <div class="label">// nguyên văn <span class="ink">5 chunks đáng học</span></div>
+          <div class="original" data-original="explain"></div>
+          <div class="notes" data-notes></div>
+          <div class="sketch dim" data-sketch></div>
+          <hr class="divider">
+          <div class="label">// bản dịch</div>
+          <div class="vi dim" data-vi></div>
+        </div>
+        <div class="foot" data-foot="on"></div>
+      </div>
+    </section>
+
+    <!-- ③ tấm giải thích -->
+    <section class="slot">
+      <div class="slot-cap"><b>③ Chạm ④ → tấm giải thích trượt lên.</b> Cao 85%, trên cùng vẫn thấy mờ đoạn văn. Chạm vùng mờ hoặc ✕ để đóng; dưới đáy có nút sang cụm khác.</div>
+      <div class="phone" id="phone3">
+        <div class="app-head"><div class="dots"><i></i><i></i><i></i></div><div class="crumb">chương 1 · đoạn 1/3<span class="on"> · explain</span></div><div class="head-pad"></div></div>
+        <div class="scroll">
+          <div class="label">// nguyên văn <span class="ink">5 chunks đáng học</span></div>
+          <div class="original" data-original="explain"></div>
+        </div>
+        <div class="foot" data-foot="on"></div>
+        <div class="scrim" id="scrim3"></div>
+        <div class="sheet" role="dialog" aria-label="giải thích cụm">
+          <div class="grab" aria-hidden="true"></div>
+          <div class="sheet-top"><span id="sCount"></span><button type="button" id="sClose" aria-label="đóng">✕</button></div>
+          <div class="sheet-body" id="sBody"></div>
+          <div class="sheet-nav"><button type="button" id="sPrev">← chunk trước</button><button type="button" id="sNext">chunk sau →</button></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <ul class="notes-list">
+    <li><b>Từ 1024px trở lên:</b> giữ nguyên màn đọc 4 cột như bây giờ.</li>
+    <li><b>Máy cảm ứng:</b> ẩn gợi ý phím (e, s, t, enter, esc, j, k). Nút "enter đoạn tiếp" bỏ trên mobile vì trùng nút "tiếp →".</li>
+    <li><b>Mẹo lần đầu:</b> trên điện thoại bỏ vế "tô đen để nghe phát âm" vì tính năng đó chưa chạy trên cảm ứng (đã vào backlog).</li>
+    <li><b>Mockup này bấm được:</b> ở khung ② chạm cụm, số hoặc ghi chú thì khung ③ đổi sang cụm đó; ← / → trong tấm chuyển cụm.</li>
+  </ul>
+</div>
+
+<script>
+const ORIGINAL = "Charles Bukowski was an alcoholic, a womanizer, a chronic gambler, a lout, a cheapskate, a deadbeat, and on his worst days, a poet. He's probably the last person on earth you would ever look to for life advice or expect to see in any sort of self-help book.\n\nWhich is why he's the perfect place to start.";
+const VI = "Charles Bukowski là một gã nghiện rượu, một tay sát gái, một con bạc kinh niên, một kẻ thô lỗ, một đứa keo kiệt, một tên chây lười, và vào những ngày tồi tệ nhất của mình — một nhà thơ. Ông có lẽ là người cuối cùng trên đời mà bạn tìm đến để xin lời khuyên về cuộc sống, hay ngờ rằng sẽ xuất hiện trong bất kỳ cuốn sách self-help nào.\n\nVà chính vì thế, ông là điểm khởi đầu hoàn hảo.";
+const IDEA = "Manson mở chương bằng một chân dung tệ hại đúng nghĩa: Bukowski có đủ mọi thói xấu, là người cuối cùng ai đó tìm đến xin lời khuyên. Rồi ông lật ngược trong đúng một câu đứng riêng: chính vì thế Bukowski là điểm khởi đầu hoàn hảo.";
+const CHUNKS = [
+  { match: "chronic", label: "chronic = kinh niên\n(chronic gambler / pain)", head: "chronic + noun", meaning: "= kinh niên, mạn tính — thói xấu hoặc vấn đề kéo dài dai dẳng",
+    ex: [["He's a chronic procrastinator — every task slips to the last day.", "Anh ấy là chúa trì hoãn kinh niên — việc gì cũng dồn tới ngày cuối."], ["She suffers from chronic back pain.", "Cô ấy bị đau lưng kinh niên."]] },
+  { match: "on his worst days", label: "on one's worst days\n= vào những ngày tệ nhất", head: "on one's best / worst days", meaning: "= vào những ngày sung nhất / tệ nhất của ai đó",
+    ex: [["Even on my worst days, I still make time for breakfast with my family.", "Kể cả những ngày tệ nhất, tôi vẫn dành thời gian ăn sáng cùng gia đình."], ["On her best days, she can run ten kilometers without stopping.", "Vào những ngày sung nhất, cô ấy chạy mười cây số không nghỉ."]] },
+  { match: "the last person on earth", label: "the last person on earth\n(you would ever...)", head: "the last person (on earth) + mệnh đề quan hệ", meaning: "= người cuối cùng mà... — cách nhấn mạnh \"không đời nào là người này\"",
+    ex: [["He's the last person I'd trust with a secret.", "Anh ta là người cuối cùng tôi dám tin để kể bí mật."], ["She's the last person on earth who would forget your birthday.", "Cô ấy là người cuối cùng trên đời có thể quên sinh nhật bạn."]] },
+  { match: "look to for life advice", label: "look to sb for sth\n= tìm đến ai để xin gì", head: "look to somebody for something", meaning: "= tìm đến ai, trông cậy vào ai để xin lời khuyên / sự giúp đỡ",
+    ex: [["Children often look to their parents for guidance.", "Con cái thường tìm đến cha mẹ để được định hướng."], ["Don't look to me for sympathy — I warned you.", "Đừng tìm đến tôi mong được thông cảm — tôi cảnh báo rồi mà."]],
+    note: "Trong câu này giới từ đứng cuối mệnh đề quan hệ: the last person you would ever look to (= mà bạn tìm đến)." },
+  { match: "Which is why", label: "..., which is why...\n= chính vì vậy mà", head: "..., which is why ...", meaning: "= chính vì vậy mà... — nối thẳng vào cả ý của câu trước",
+    pattern: ["[sự việc], which is why [hệ quả]", "Manson còn tách hẳn thành câu riêng để nhấn mạnh — văn nói làm được y hệt."],
+    ex: [["The bus kept coming late, which is why I finally bought a motorbike.", "Xe buýt cứ trễ suốt, chính vì vậy mà cuối cùng tôi mua hẳn xe máy."], ["She always keeps her word, which is why everyone trusts her.", "Cô ấy luôn giữ lời, chính vì thế mà ai cũng tin cô ấy."]] },
+];
+
+const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+function originalHTML(explain) {
+  if (!explain) return esc(ORIGINAL);
+  let html = esc(ORIGINAL);
+  CHUNKS.forEach((c, i) => {
+    html = html.replace(esc(c.match), `<span class="chunk-on" data-open="${i}">${esc(c.match)}</span><button type="button" class="num" data-open="${i}" aria-label="giải thích cụm ${i + 1}">${i + 1}</button>`);
+  });
+  return html;
+}
+
+const SKETCH = `<div class="sketch-row"><span>// phác thảo · một chân dung tệ hại</span><span>↻ vẽ lại</span></div>
+<svg viewBox="0 0 520 200" role="img" aria-label="hình phác thảo minh hoạ: Bukowski giữa chai rượu, lá bài và cây bút">
+  <g fill="none" stroke="var(--text)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="260" cy="70" r="30"/><path d="M247 64h4M269 64h4M250 82q10 -6 20 0"/>
+    <path d="M222 168q38 -66 76 0"/>
+    <path d="M90 168v-62q0-12 10-18v-22h14v22q10 6 10 18v62z"/>
+    <rect x="384" y="104" width="44" height="62" rx="5" transform="rotate(-10 406 135)"/><rect x="410" y="100" width="44" height="62" rx="5" transform="rotate(8 432 131)"/>
+  </g>
+  <path d="M330 150l40 -60" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round"/>
+  <text x="260" y="194" text-anchor="middle" fill="var(--ink)" font-family="Patrick Hand, cursive" font-size="17">"a poet" — on his worst days</text>
+</svg>`;
+
+function foot(on) {
+  return `<div class="progress" style="width:33.3%"></div>
+  <button type="button" class="fbtn${on ? " on" : ""}">giải thích</button>
+  <button type="button" class="fbtn">đọc to</button>
+  <button type="button" class="fbtn icon" aria-label="đổi theme"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg></button>
+  <span class="spacer"></span>
+  <button type="button" class="fbtn icon" disabled aria-label="đoạn trước">←</button>
+  <button type="button" class="fbtn">tiếp →</button>`;
+}
+
+document.querySelectorAll("[data-original]").forEach((el) => (el.innerHTML = originalHTML(el.dataset.original === "explain")));
+document.querySelectorAll("[data-sketch]").forEach((el) => (el.innerHTML = SKETCH));
+document.querySelectorAll("[data-vi]").forEach((el) => (el.textContent = VI));
+document.querySelectorAll("[data-idea]").forEach((el) => (el.innerHTML = `<b>// ý chính</b>${esc(IDEA)}`));
+document.querySelectorAll("[data-foot]").forEach((el) => (el.innerHTML = foot(el.dataset.foot === "on")));
+document.querySelector("[data-notes]").innerHTML = CHUNKS.map((c, i) =>
+  `<button type="button" class="note" data-open="${i}"><span class="num" aria-hidden="true">${i + 1}</span><span>${esc(c.label)}</span></button>`).join("");
+
+let cur = 3;
+function renderSheet() {
+  const c = CHUNKS[cur];
+  document.getElementById("sCount").textContent = `// chunk ${cur + 1}/${CHUNKS.length}`;
+  const play = `<svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="currentColor"/></svg>`;
+  document.getElementById("sBody").innerHTML =
+    `<div><h2>${esc(c.head)}</h2><p class="meaning">${esc(c.meaning)}</p></div>` +
+    (c.pattern ? `<div class="pattern"><div class="t">PATTERN</div><div class="f">${esc(c.pattern[0])}</div><div class="n">${esc(c.pattern[1])}</div></div>` : "") +
+    `<div><div class="ex-label">// ví dụ</div><ul class="ex">${c.ex.map(([en, vn]) => `<li><button type="button" class="play" aria-label="nghe: ${esc(en)}">${play}</button><div><div class="en">${esc(en)}</div><div class="vn">${esc(vn)}</div></div></li>`).join("")}</ul></div>` +
+    (c.note ? `<p class="cnote">${esc(c.note)}</p>` : "");
+  document.getElementById("sPrev").disabled = cur === 0;
+  document.getElementById("sNext").disabled = cur === CHUNKS.length - 1;
+  document.getElementById("sBody").scrollTop = 0;
+}
+renderSheet();
+document.getElementById("sPrev").addEventListener("click", () => { cur = Math.max(0, cur - 1); renderSheet(); });
+document.getElementById("sNext").addEventListener("click", () => { cur = Math.min(CHUNKS.length - 1, cur + 1); renderSheet(); });
+document.getElementById("phone2").addEventListener("click", (e) => {
+  const t = e.target.closest("[data-open]");
+  if (!t) return;
+  cur = Number(t.dataset.open); renderSheet();
+  document.getElementById("phone3").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "nearest", inline: "center" });
+});
+
+document.getElementById("themeBtn").addEventListener("click", () => {
+  const root = document.documentElement;
+  const isDark = root.dataset.theme ? root.dataset.theme === "dark" : !matchMedia("(prefers-color-scheme: light)").matches;
+  root.dataset.theme = isDark ? "light" : "dark";
+});
+</script>
