@@ -56,10 +56,47 @@ describe("handleLookup", () => {
     expect(ask).not.toHaveBeenCalled();
   });
 
-  it("câu không có trong đoạn → 400, không gọi ask", async () => {
+  it("câu gửi lên không có trong đoạn → vẫn tra, nhưng dùng câu chuẩn server tự tính", async () => {
     const res = await handleLookup({ ...req, sentence: "A lout is not here." }, deps());
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(200);
+    expect(ask).toHaveBeenCalledWith("lout", SENTENCE);
+  });
+
+  it("câu gửi lên là một mẩu bất kỳ của đoạn → ask và cache dùng câu chuẩn (không đẻ thêm khoá cache)", async () => {
+    await handleLookup({ ...req, sentence: "a lout, a cheapskate" }, deps());
+    await handleLookup({ ...req, sentence: "gambler, a lout" }, deps());
+    await handleLookup(req, deps());
+    expect(ask).toHaveBeenCalledTimes(1);
+    expect(ask).toHaveBeenCalledWith("lout", SENTENCE);
+    expect(await store.getCached(cacheKey("lout", SENTENCE))).toEqual(LOUT);
+  });
+
+  it("chữ có ở 2 câu → chọn câu khớp với câu gửi lên; không khớp thì lấy chỗ đầu tiên", async () => {
+    const original = "I met a lout at the bar.\nLater he was a lout again.";
+    vi.mocked(getPassage).mockReturnValue({ original } as ReturnType<typeof getPassage>);
+    await handleLookup({ ...req, sentence: "Later he was a lout again." }, deps());
+    expect(ask).toHaveBeenLastCalledWith("lout", "Later he was a lout again.");
+    await handleLookup({ ...req, sentence: "something else" }, deps());
+    expect(ask).toHaveBeenLastCalledWith("lout", "I met a lout at the bar.");
+  });
+
+  it("chữ tra không trọn từ (một mẩu giữa từ) → 400", async () => {
+    for (const text of ["ou", "ucho", "out, a che"]) {
+      expect((await handleLookup({ ...req, text }, deps())).status).toBe(400);
+    }
     expect(ask).not.toHaveBeenCalled();
+  });
+
+  it("dấu câu ở đầu/cuối chữ tra được bỏ → 'lout,' dùng chung kết quả với 'lout'", async () => {
+    await handleLookup({ ...req, text: "lout," }, deps());
+    await handleLookup({ ...req, text: ", lout" }, deps());
+    await handleLookup(req, deps());
+    expect(ask).toHaveBeenCalledTimes(1);
+    expect(ask).toHaveBeenCalledWith("lout", SENTENCE);
+  });
+
+  it("chữ tra chỉ toàn dấu câu → 400", async () => {
+    expect((await handleLookup({ ...req, text: ", ," }, deps())).status).toBe(400);
   });
 
   it("không tìm thấy đoạn → 400", async () => {
