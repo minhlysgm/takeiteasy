@@ -50,7 +50,12 @@ describe("ChunkDrawer", () => {
     const stubMobile = (matches: boolean) =>
       vi.stubGlobal(
         "matchMedia",
-        vi.fn((q: string) => ({ matches: matches && q === "(max-width: 1023.98px)", media: q })),
+        vi.fn((q: string) => ({
+          matches: matches && q === "(max-width: 1023.98px)",
+          media: q,
+          addEventListener: () => {},
+          removeEventListener: () => {},
+        })),
       );
 
     it("dưới 1024px: mở thì khoá cuộn body, đóng thì trả lại", () => {

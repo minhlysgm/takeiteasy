@@ -151,7 +151,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
 
       <div ref={readerRef} data-testid="reader" className="relative flex grow flex-col overflow-x-clip px-4 py-6 lg:grid lg:grid-cols-[200px_1fr_200px_1fr] lg:px-8 lg:py-12">
         <div aria-hidden="true" className="hidden lg:block" />
-        <div key={passage.id} ref={originalColRef} data-testid="original-col" className="animate-passage-in relative pr-0 lg:pr-6">
+        <div key={passage.id} ref={originalColRef} data-testid="original-col" className="animate-passage-in relative mx-auto w-full max-w-[40rem] pr-0 lg:mx-0 lg:max-w-none lg:pr-6">
           <div className="mb-6 text-[13px] text-muted">
             {"// nguyên văn"}
             {explainOn && <span className="ml-3 text-ink">{passage.chunks.length} chunks đáng học</span>}
@@ -167,7 +167,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
         <div
           key={`${passage.id}-vi`}
           data-testid="translation-col"
-          className={`animate-passage-in mt-7 border-t border-line pt-6 transition-opacity motion-reduce:transition-none lg:mt-0 lg:border-t-0 lg:pt-0 lg:pl-12 ${explainOn ? "opacity-30" : ""}`}
+          className={`animate-passage-in mx-auto mt-7 w-full max-w-[40rem] border-t border-line pt-6 transition-opacity motion-reduce:transition-none lg:mx-0 lg:mt-0 lg:max-w-none lg:border-t-0 lg:pt-0 lg:pl-12 ${explainOn ? "lg:opacity-30" : ""}`}
           onClick={() => typing.skip()}
         >
           <div className="mb-6 flex items-baseline gap-3 text-[13px]">

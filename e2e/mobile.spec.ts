@@ -151,7 +151,7 @@ test("bật giải thích: 5 số cạnh cụm + 5 ghi chú tay giữa nguyên v
   await page.goto(P1);
   await finishTyping(page);
   await page.getByRole("button", { name: /giải thích/ }).tap();
-  const nums = page.getByRole("button", { name: /^xem cụm \d$/ });
+  const nums = page.getByTestId("chunk-badge");
   await expect(nums).toHaveCount(5);
   for (let i = 0; i < 5; i++) await expect(nums.nth(i)).toBeVisible();
 
@@ -180,7 +180,7 @@ test("chạm cụm gạch chân hoặc số thì mở đúng cụm", async ({ pa
   await expect(dialog).toContainText("// chunk 1/5");
   await dialog.getByRole("button", { name: /đóng/ }).tap();
   await expect(dialog).toBeHidden();
-  await page.getByRole("button", { name: "xem cụm 3" }).tap();
+  await page.getByTestId("chunk-badge").nth(2).tap();
   await expect(page.getByRole("dialog")).toContainText("// chunk 3/5");
 });
 
@@ -333,4 +333,140 @@ test("tấm vẫn trọn màn hình khi đổi cỡ qua 1024px", async ({ page }
   expect(b.y).toBeGreaterThanOrEqual(0);
   expect(b.x + b.width).toBeLessThanOrEqual(390);
   expect(b.y + b.height).toBeLessThanOrEqual(844 + 1);
+});
+
+// ---- Sửa sau trạm ⑥ (2026-11-05) ----
+
+test.describe("số tròn không rời cụm, dấu câu không rớt xuống đầu dòng", () => {
+  for (const width of [320, 360, 390, 412, 720, 790]) {
+    test(`${width}px, cả 3 đoạn`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 844 });
+      for (const n of [1, 2, 3]) {
+        await page.goto(`/read/the-subtle-art/ch01/${n}`);
+        await finishTyping(page);
+        await page.keyboard.press("e"); // 320px: nút "N" của Next dev che nút giải thích — dùng phím
+        await expect(page.getByTestId("chunk-badge").first()).toBeVisible();
+        const broken = await page.evaluate(() => {
+          const out: string[] = [];
+          const chunks = document.querySelectorAll('[data-testid="original-text"] [data-chunk-id]');
+          const badges = document.querySelectorAll<HTMLElement>('[data-testid="chunk-badge"]');
+          for (const [i, badge] of badges.entries()) {
+            const b = badge.getBoundingClientRect();
+            const mid = (r: DOMRect) => r.top + r.height / 2;
+            // cụm ngay trước số: dòng cuối của cụm phải chứa số
+            const rects = chunks[i].getClientRects();
+            const last = rects[rects.length - 1];
+            if (Math.abs(mid(last) - mid(b)) > 6) out.push(`số ${badge.dataset.n} rời cụm`);
+            // dấu câu ngay sau số: cùng dòng với số
+            let next = badge.nextSibling; // bỏ qua SVG gạch chân chèn vào DOM
+            while (next && next.nodeType === Node.ELEMENT_NODE && (next as Element).tagName.toLowerCase() === "svg") next = next.nextSibling;
+            if (next?.nodeType === Node.TEXT_NODE && /^[,.;:!?)]/.test(next.textContent ?? "")) {
+              const range = document.createRange();
+              range.setStart(next, 0);
+              range.setEnd(next, 1);
+              if (Math.abs(mid(range.getBoundingClientRect()) - mid(b)) > 6) out.push(`dấu sau số ${badge.dataset.n} rớt dòng`);
+            }
+          }
+          return out;
+        });
+        expect(broken, `đoạn ${n}`).toEqual([]);
+      }
+    });
+  }
+});
+
+test("bôi đen nguyên văn khi bật giải thích không dính số", async ({ page }) => {
+  await page.goto(P1);
+  await finishTyping(page);
+  const selected = () =>
+    page.evaluate(() => {
+      const el = document.querySelector('[data-testid="original-text"]')!;
+      const sel = window.getSelection()!;
+      sel.removeAllRanges();
+      const r = document.createRange();
+      r.selectNodeContents(el);
+      sel.addRange(r);
+      const s = sel.toString();
+      sel.removeAllRanges();
+      return s;
+    });
+  const plain = await selected();
+  await page.getByRole("button", { name: /giải thích/ }).tap();
+  await expect(page.getByTestId("chunk-badge")).toHaveCount(5);
+  expect(await selected()).toBe(plain);
+});
+
+test("bật giải thích: bản dịch vẫn rõ trên mobile", async ({ page }) => {
+  await page.goto(P1);
+  await finishTyping(page);
+  await page.getByRole("button", { name: /giải thích/ }).tap();
+  await expect(page.getByText("5 chunks đáng học")).toBeVisible();
+  // chờ hiệu ứng mờ dần (nếu có) chạy xong rồi mới đo
+  const opacity = await page.getByTestId("translation-col").evaluate(async (el) => {
+    await new Promise((r) => setTimeout(r, 50));
+    await Promise.all(el.getAnimations().map((a) => a.finished));
+    return getComputedStyle(el).opacity;
+  });
+  expect(opacity).toBe("1");
+});
+
+test("khoá cuộn theo bề ngang khi đổi cỡ lúc tấm đang mở", async ({ page }) => {
+  const overflow = () => page.evaluate(() => document.body.style.overflow);
+  await page.goto(P1);
+  await openNote(page, 1);
+  expect(await overflow()).toBe("hidden");
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect.poll(overflow).toBe("");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(overflow).toBe("hidden");
+  await page.getByRole("dialog").getByRole("button", { name: "đóng", exact: true }).tap();
+  await expect(page.getByRole("dialog")).toBeHidden();
+  expect(await overflow()).toBe("");
+});
+
+test("mở tấm ở desktop rồi thu về 390px thì khoá cuộn", async ({ page }) => {
+  const overflow = () => page.evaluate(() => document.body.style.overflow);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(P1);
+  await finishTyping(page);
+  await page.getByRole("button", { name: /giải thích/ }).tap();
+  await page.getByTestId("reader").locator("button.font-hand:visible").first().tap();
+  await waitSettled(page);
+  expect(await overflow()).toBe("");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(overflow).toBe("hidden");
+});
+
+test("Tab không thoát ra ngoài tấm; tấm báo là modal", async ({ page }) => {
+  await page.goto(P1);
+  const dialog = await openNote(page, 3); // cụm giữa: cả 2 nút chuyển cụm đều bật
+  await expect(dialog).toHaveAttribute("aria-modal", "true");
+  const inside = () => page.evaluate(() => !!document.activeElement?.closest('[role="dialog"]'));
+  for (let i = 0; i < 12; i++) {
+    await page.keyboard.press("Tab");
+    expect(await inside(), `Tab lần ${i + 1}`).toBe(true);
+  }
+  for (let i = 0; i < 12; i++) {
+    await page.keyboard.press("Shift+Tab");
+    expect(await inside(), `Shift+Tab lần ${i + 1}`).toBe(true);
+  }
+});
+
+test('nút "đã hiểu" của mẹo lần đầu có vùng chạm ≥ 44px', async ({ page }) => {
+  await page.goto(P1);
+  const btn = page.getByRole("button", { name: "đã hiểu" });
+  await expect(btn).toBeVisible();
+  const b = (await btn.boundingBox())!;
+  expect(b.height).toBeGreaterThanOrEqual(44);
+  expect(b.width).toBeGreaterThanOrEqual(44);
+});
+
+test("tablet 900px: cột đọc không trải hết bề ngang, căn giữa", async ({ page }) => {
+  await page.setViewportSize({ width: 900, height: 1000 });
+  await page.goto(P1);
+  for (const id of ["original-col", "translation-col"]) {
+    const b = (await page.getByTestId(id).boundingBox())!;
+    expect(b.width, id).toBeLessThanOrEqual(640);
+    expect(Math.abs(b.x - (900 - (b.x + b.width))), `${id} căn giữa`).toBeLessThanOrEqual(2);
+  }
 });

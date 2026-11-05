@@ -35,7 +35,7 @@ export function FirstTimeHint({ explainOn }: { explainOn: boolean }) {
           markHintSeen(HINT_ID);
           setShow(false);
         }}
-        className="shrink-0 text-muted transition-colors hover:text-bright"
+        className="-my-3 -mr-2 flex min-h-11 min-w-11 shrink-0 items-center justify-center px-2 text-muted transition-colors hover:text-bright"
       >
         đã hiểu
       </button>

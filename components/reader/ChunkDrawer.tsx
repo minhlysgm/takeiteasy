@@ -4,6 +4,9 @@ import type { Chunk } from "@/content/types";
 import { isSpeechAvailable, speak } from "@/lib/speech";
 import { Kbd } from "./Kbd";
 
+/** Khớp breakpoint `lg` của Tailwind: dưới mức này giải thích là tấm trượt từ dưới lên. */
+const MOBILE_QUERY = "(max-width: 1023.98px)";
+
 interface Props {
   chunks: Chunk[];
   index: number;
@@ -37,17 +40,42 @@ export function ChunkDrawer({ chunks, index, closing = false, onNavigate, onClos
     return () => cancelAnimationFrame(id);
   }, []);
 
-  // Mobile: khoá cuộn trang phía sau trong lúc tấm mở (chỉ đọc media query trong effect)
+  // Mobile (< lg): tấm là modal — khoá cuộn trang phía sau + aria-modal. Theo dõi media query
+  // để xoay máy / đổi cỡ cửa sổ qua 1024px khi tấm đang mở vẫn đúng.
   useEffect(() => {
     if (typeof window.matchMedia !== "function") return;
-    if (!window.matchMedia("(max-width: 1023.98px)").matches) return;
+    const mq = window.matchMedia(MOBILE_QUERY);
     const body = document.body;
     const prevOverflow = body.style.overflow;
-    body.style.overflow = "hidden";
+    const apply = () => {
+      body.style.overflow = mq.matches ? "hidden" : prevOverflow;
+      if (mq.matches) ref.current?.setAttribute("aria-modal", "true");
+      else ref.current?.removeAttribute("aria-modal");
+    };
+    apply();
+    mq.addEventListener("change", apply);
     return () => {
+      mq.removeEventListener("change", apply);
       body.style.overflow = prevOverflow;
     };
   }, []);
+
+  // Mobile: Tab / Shift+Tab quanh quẩn trong tấm (footer phía sau bị vùng mờ che)
+  const trapTab = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== "Tab" || !window.matchMedia?.(MOBILE_QUERY).matches) return;
+    const items = Array.from(ref.current?.querySelectorAll<HTMLElement>("button:not(:disabled)") ?? []);
+    if (items.length === 0) return;
+    const first = items[0];
+    const last = items[items.length - 1];
+    const active = document.activeElement;
+    if (e.shiftKey && (active === first || active === ref.current)) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && active === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
 
   if (!chunk) return null;
   const speechOk = isSpeechAvailable();
@@ -67,6 +95,7 @@ export function ChunkDrawer({ chunks, index, closing = false, onNavigate, onClos
         tabIndex={-1}
         role="dialog"
         aria-label={chunk.headword}
+        onKeyDown={trapTab}
         className={`fixed inset-x-0 bottom-0 z-40 flex h-[85dvh] flex-col rounded-t-2xl border-t border-line bg-surface shadow-2xl outline-none transition-transform duration-300 ease-out motion-reduce:transition-none lg:absolute lg:inset-y-0 lg:left-auto lg:right-0 lg:z-20 lg:h-auto lg:w-[500px] lg:rounded-none lg:border-l lg:border-t-0 ${offscreen ? "translate-y-full lg:translate-x-full lg:translate-y-0" : "translate-x-0 translate-y-0"}`}
       >
         <div aria-hidden="true" className="mx-auto mt-2 h-1 w-9 shrink-0 rounded-full bg-line lg:hidden" />
