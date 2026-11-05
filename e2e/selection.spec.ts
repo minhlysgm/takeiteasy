@@ -109,3 +109,19 @@ test("Khi popup đang hiện mà nhấn Escape thì popup tắt, vùng chọn b�
   await expect(popup(page)).toHaveCount(0);
   expect(await page.evaluate(() => window.getSelection()!.toString())).toBe("");
 });
+
+test("Khi ở chế độ giải thích mà kéo chuột bôi đen trong một cụm thì tấm giải thích mở, vùng chọn bị bỏ; đóng tấm thì không hiện popup cũ", async ({ page }) => {
+  await page.goto(P(1));
+  await finishTyping(page, "click");
+  await page.keyboard.press("e");
+  // Kéo qua vài chữ cái đầu của cụm đầu: thả chuột trong cụm → click rơi vào cụm → mở tấm.
+  const word = (await page.locator("[data-chunk-id]").first().textContent())!.trim().slice(0, 4);
+  await dragOver(page, word);
+  await page.mouse.up();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  expect(await page.evaluate(() => window.getSelection()!.toString())).toBe("");
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.waitForTimeout(400); // > 250ms chờ ổn định
+  await expect(popup(page)).toHaveCount(0);
+});

@@ -127,6 +127,68 @@ test.describe("mẹo lần đầu đã tắt (thanh nằm ngay trên footer)", (
   });
 });
 
+test.describe("mẹo lần đầu còn hiện", () => {
+  test("Khi mẹo lần đầu còn hiện mà bôi đen thì mẹo tạm ẩn nhường chỗ cho thanh; bỏ chọn thì mẹo hiện lại", async ({ page }) => {
+    await page.goto(P(1));
+    await finishTyping(page, "tap");
+    const hintBtn = page.getByRole("button", { name: "đã hiểu" });
+    await expect(hintBtn).toBeVisible();
+    await selectText(page, "original-text", "chronic gambler");
+    await expect(dock(page)).toBeVisible();
+    await expect(hintBtn).toBeHidden();
+    await page.evaluate(() => window.getSelection()!.removeAllRanges());
+    await page.touchscreen.tap(6, 400);
+    await expect(dock(page)).toBeHidden();
+    await expect(hintBtn).toBeVisible();
+  });
+});
+
+test.describe("màn thấp 390×560", () => {
+  test.use({ viewport: { width: 390, height: 560 } });
+
+  test("Khi bôi đen chữ nằm ngay chỗ thanh sắp hiện thì trang tự cuộn để chữ đang chọn nằm trên thanh", async ({ page }) => {
+    await dismissFirstTimeHint(page);
+    await page.goto(P(1));
+    await finishTyping(page, "tap");
+    const words = PASSAGE_1.original.trim().split(/\s+/);
+    const needle = words.slice(-2).join(" ");
+    // Đưa chữ cần chọn xuống còn cách đáy màn hình 90px: đúng dải thanh (~82px) + footer (60px) sẽ chiếm.
+    // Trả về đáy của chữ sau khi cuộn (trang có thể không cuộn được đủ).
+    const bottom = await page.evaluate((s) => {
+      const root = document.querySelector('[data-testid="original-text"]')!;
+      const i = root.textContent!.lastIndexOf(s);
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      let seen = 0;
+      while (walker.nextNode()) {
+        const node = walker.currentNode as Text;
+        if (i < seen + node.data.length) {
+          const r = document.createRange();
+          r.setStart(node, i - seen);
+          r.setEnd(node, i - seen + 1);
+          window.scrollBy(0, r.getBoundingClientRect().bottom - (window.innerHeight - 90));
+          return r.getBoundingClientRect().bottom;
+        }
+        seen += node.data.length;
+      }
+      throw new Error("không thấy chữ");
+    }, needle);
+    expect(bottom, "điều kiện đầu: chữ nằm trong dải thanh sẽ chiếm (đáy màn - 60 footer - 70)").toBeGreaterThan(560 - 60 - 70);
+    await selectText(page, "original-text", needle);
+    await expect(dock(page)).toBeVisible();
+    await expect
+      .poll(async () => {
+        const dockTop = (await dock(page).boundingBox())!.y;
+        const sel = await page.evaluate(() => {
+          const r = window.getSelection()!.getRangeAt(0).getBoundingClientRect();
+          return { top: r.top, bottom: r.bottom };
+        });
+        return sel.top >= 0 && sel.bottom <= dockTop;
+      }, { message: "vùng chọn nằm trọn trên thanh" })
+      .toBe(true);
+    expect(await page.evaluate(() => window.getSelection()!.toString())).toBe(needle);
+  });
+});
+
 test.describe("320px", () => {
   test.use({ viewport: { width: 320, height: 700 } });
 

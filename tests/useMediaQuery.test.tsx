@@ -37,6 +37,20 @@ describe("useMediaQuery", () => {
     expect(adds).toBe(1);
   });
 
+  it("render lại không tạo MediaQueryList mới (một cái cho mỗi query)", () => {
+    let calls = 0;
+    const mql = { matches: false, addEventListener: () => {}, removeEventListener: () => {} };
+    vi.stubGlobal("matchMedia", () => (calls++, mql));
+    function Host({ n }: { n: number }) {
+      const on = useMediaQuery("(max-width: 700px)");
+      return <output data-testid="on">{`${on}-${n}`}</output>;
+    }
+    const { rerender } = render(<Host n={0} />);
+    rerender(<Host n={1} />);
+    rerender(<Host n={2} />);
+    expect(calls).toBe(1);
+  });
+
   it("đổi matches + phát change → hook cập nhật", () => {
     const listeners = new Set<() => void>();
     const mql = {

@@ -7,7 +7,7 @@ const RECT = { left: 40, top: 100, width: 120, height: 20 };
 
 function Host() {
   const ref = useRef<HTMLDivElement>(null);
-  const { selection, keep, clear } = useTextSelection(ref);
+  const { selection, clear } = useTextSelection(ref);
   return (
     <>
       <div ref={ref}>
@@ -15,9 +15,11 @@ function Host() {
         <p data-testid="punct">... --- ???</p>
       </div>
       <p data-testid="outside">somewhere else entirely</p>
-      <button type="button" data-testid="keep" onPointerDown={keep}>
-        keep
-      </button>
+      <div data-selection-ui="" data-testid="toolbar">
+        <button type="button" data-testid="keep">
+          keep
+        </button>
+      </div>
       <button type="button" data-testid="clear" onClick={clear}>
         clear
       </button>
@@ -131,7 +133,7 @@ describe("useTextSelection", () => {
     expect(text()).toBe("null");
   });
 
-  it("keep(): bỏ chọn trong 800ms vẫn giữ selection; pointerdown ngoài sau đó → null", () => {
+  it("chạm thanh ([data-selection-ui]): bỏ chọn trong 800ms vẫn giữ selection; pointerdown ngoài sau đó → null", () => {
     render(<Host />);
     select(textNode("inside"), 8, textNode("inside"), 23);
     advance(250);
@@ -142,7 +144,7 @@ describe("useTextSelection", () => {
     advance(300);
     expect(text()).toBe("chronic gambler");
 
-    advance(600); // quá 800ms kể từ keep()
+    advance(600); // quá 800ms kể từ lúc chạm thanh
     pointer("pointerdown", screen.getByTestId("outside"));
     expect(text()).toBe("null");
   });
@@ -155,12 +157,36 @@ describe("useTextSelection", () => {
     expect(text()).toBe("chronic gambler");
   });
 
-  it("pointerdown trên nút (onPointerDown={keep}) chạy keep trước listener của document", () => {
+  it("chạm thanh khi vùng chọn đã xẹp → vẫn giữ (hook tự nhận ra thanh, không dựa thứ tự listener)", () => {
     render(<Host />);
     select(textNode("inside"), 8, textNode("inside"), 23);
     advance(250);
-    collapse(false); // vùng chọn đã xẹp, chưa từng keep() → nếu keep() không chạy trước thì sẽ bị xoá
+    collapse(false);
     pointer("pointerdown", screen.getByTestId("keep"));
+    expect(text()).toBe("chronic gambler");
+    pointer("pointerdown", screen.getByTestId("toolbar")); // chỗ trống của thanh cũng vậy
+    expect(text()).toBe("chronic gambler");
+  });
+
+  it("chuột bấm thanh không bật hạn giữ: click ra ngoài ngay sau đó làm xẹp → null", () => {
+    render(<Host />);
+    select(textNode("inside"), 8, textNode("inside"), 23);
+    advance(250);
+    pointer("pointerdown", screen.getByTestId("keep"), "mouse");
+    pointer("pointerup", screen.getByTestId("keep"), "mouse");
+    expect(text()).toBe("chronic gambler");
+    pointer("pointerdown", screen.getByTestId("outside"), "mouse");
+    collapse(false);
+    pointer("pointerup", screen.getByTestId("outside"), "mouse");
+    expect(text()).toBe("null");
+  });
+
+  it("đang giữ chuột mà rời cửa sổ (alt-tab) → không kẹt: bôi đen bằng bàn phím sau đó vẫn công bố", () => {
+    render(<Host />);
+    pointer("pointerdown", screen.getByTestId("inside"), "mouse");
+    act(() => void window.dispatchEvent(new Event("blur")));
+    select(textNode("inside"), 8, textNode("inside"), 23);
+    advance(250);
     expect(text()).toBe("chronic gambler");
   });
 

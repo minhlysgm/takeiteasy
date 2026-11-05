@@ -1,22 +1,15 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createRef } from "react";
 import { SelectionDock } from "@/components/reader/SelectionDock";
 import { SelectionPopup } from "@/components/reader/SelectionPopup";
 import { lookupUrl } from "@/lib/selection";
-import { isSpeechAvailable, speak } from "@/lib/speech";
+import { speak } from "@/lib/speech";
 
-vi.mock("@/lib/speech", () => ({
-  speak: vi.fn(),
-  isSpeechAvailable: vi.fn(() => true),
-}));
+vi.mock("@/lib/speech", () => ({ speak: vi.fn() }));
 
 const rect = { left: 40, top: 200, width: 100, height: 20 };
 const sel = (text: string) => ({ text, rect });
-
-beforeEach(() => {
-  vi.mocked(isSpeechAvailable).mockReturnValue(true);
-});
 
 afterEach(() => {
   vi.clearAllMocks();
@@ -25,7 +18,7 @@ afterEach(() => {
 
 describe("SelectionDock", () => {
   it("dock: hiện chữ trong ngoặc kép, bấm 'nghe' gọi speak với đúng chữ", () => {
-    render(<SelectionDock selection={sel("chronic gambler")} onKeep={() => {}} />);
+    render(<SelectionDock selection={sel("chronic gambler")} speechOk />);
     const dock = screen.getByTestId("selection-dock");
     expect(dock.getAttribute("role")).toBe("toolbar");
     expect(dock.getAttribute("aria-label")).toBe("chữ đang chọn");
@@ -35,53 +28,32 @@ describe("SelectionDock", () => {
   });
 
   it("dock: 6 từ → không có nút 'tra nghĩa'", () => {
-    render(<SelectionDock selection={sel("one two three four five six")} onKeep={() => {}} />);
+    render(<SelectionDock selection={sel("one two three four five six")} speechOk />);
     expect(screen.getByRole("button", { name: /nghe/ })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /tra nghĩa/ })).toBeNull();
   });
 
   it("'tra nghĩa' gọi window.open(lookupUrl(text), '_blank', 'noopener')", () => {
     const open = vi.spyOn(window, "open").mockImplementation(() => null);
-    render(<SelectionDock selection={sel("chronic gambler")} onKeep={() => {}} />);
+    render(<SelectionDock selection={sel("chronic gambler")} speechOk />);
     fireEvent.click(screen.getByRole("button", { name: /tra nghĩa/ }));
     expect(open).toHaveBeenCalledWith(lookupUrl("chronic gambler"), "_blank", "noopener");
   });
 
-  it("pointerdown trên nút gọi onKeep", () => {
-    const onKeep = vi.fn();
-    render(<SelectionDock selection={sel("chronic gambler")} onKeep={onKeep} />);
-    // Sự kiện nổi lên root nên onKeep có thể được gọi nhiều lần cho một lần chạm; keep() idempotent.
-    fireEvent.pointerDown(screen.getByRole("button", { name: /nghe/ }));
-    expect(onKeep).toHaveBeenCalled();
-    onKeep.mockClear();
-    fireEvent.pointerDown(screen.getByRole("button", { name: /tra nghĩa/ }));
-    expect(onKeep).toHaveBeenCalled();
+  it("dock đánh dấu data-selection-ui để hook biết chạm vào thanh", () => {
+    render(<SelectionDock selection={sel("chronic gambler")} speechOk />);
+    expect(screen.getByTestId("selection-dock").hasAttribute("data-selection-ui")).toBe(true);
   });
 
-  it("chuột bấm nút / nền dock → không gọi onKeep (onMouseDown đã giữ vùng chọn); chạm thì gọi", () => {
-    const onKeep = vi.fn();
-    render(<SelectionDock selection={sel("chronic gambler")} onKeep={onKeep} />);
-    fireEvent.pointerDown(screen.getByRole("button", { name: /nghe/ }), { pointerType: "mouse" });
-    fireEvent.pointerDown(screen.getByRole("button", { name: /tra nghĩa/ }), { pointerType: "mouse" });
-    fireEvent.pointerDown(screen.getByText("chronic gambler"), { pointerType: "mouse" });
-    expect(onKeep).not.toHaveBeenCalled();
-    fireEvent.pointerDown(screen.getByRole("button", { name: /nghe/ }), { pointerType: "touch" });
-    expect(onKeep).toHaveBeenCalled();
-    onKeep.mockClear();
-    fireEvent.pointerDown(screen.getByRole("button", { name: /tra nghĩa/ }), { pointerType: "pen" });
-    expect(onKeep).toHaveBeenCalled();
+  it("chữ dài bị cắt vẫn giữ dấu ngoặc đóng: chỉ phần chữ có .truncate", () => {
+    render(<SelectionDock selection={sel("chronic gambler")} speechOk />);
+    const b = screen.getByText("chronic gambler");
+    expect(b.className).toContain("truncate");
+    expect(b.nextSibling?.textContent).toBe('"');
   });
 
-  it("pointerdown trên dòng chữ của dock cũng gọi onKeep", () => {
-    const onKeep = vi.fn();
-    render(<SelectionDock selection={sel("chronic gambler")} onKeep={onKeep} />);
-    fireEvent.pointerDown(screen.getByText("chronic gambler"));
-    expect(onKeep).toHaveBeenCalled();
-  });
-
-  it("speech không có → 'nghe' disabled", () => {
-    vi.mocked(isSpeechAvailable).mockReturnValue(false);
-    render(<SelectionDock selection={sel("chronic gambler")} onKeep={() => {}} />);
+  it("speech không có (speechOk=false) → 'nghe' disabled", () => {
+    render(<SelectionDock selection={sel("chronic gambler")} speechOk={false} />);
     const btn = screen.getByRole("button", { name: /nghe/ }) as HTMLButtonElement;
     expect(btn.disabled).toBe(true);
     expect(btn.title).toBe("trình duyệt không hỗ trợ đọc");
@@ -89,11 +61,11 @@ describe("SelectionDock", () => {
 });
 
 describe("SelectionPopup", () => {
-  function renderPopup(onKeep = () => {}, text = "chronic gambler") {
+  function renderPopup(text = "chronic gambler") {
     const ref = createRef<HTMLDivElement>();
     render(
       <div ref={ref} style={{ position: "relative" }}>
-        <SelectionPopup selection={sel(text)} containerRef={ref} onKeep={onKeep} />
+        <SelectionPopup selection={sel(text)} containerRef={ref} speechOk />
       </div>,
     );
     return screen.getByTestId("selection-popup");
@@ -108,14 +80,10 @@ describe("SelectionPopup", () => {
     expect(popup.className).not.toContain("invisible");
   });
 
-  it("popup: chạm (touch) nền popup gọi onKeep; chuột thì không", () => {
-    const onKeep = vi.fn();
-    const popup = renderPopup(onKeep);
-    fireEvent.pointerDown(popup, { pointerType: "mouse" });
-    fireEvent.pointerDown(screen.getByRole("button", { name: /nghe/ }), { pointerType: "mouse" });
-    expect(onKeep).not.toHaveBeenCalled();
-    fireEvent.pointerDown(popup, { pointerType: "touch" });
-    expect(onKeep).toHaveBeenCalled();
+  it("popup đánh dấu data-selection-ui; nút có hover", () => {
+    const popup = renderPopup();
+    expect(popup.hasAttribute("data-selection-ui")).toBe(true);
+    expect(screen.getByRole("button", { name: /nghe/ }).className).toContain("hover:");
   });
 
   it("popup: role='toolbar', aria-label='chữ đang chọn' như dock", () => {
@@ -125,10 +93,10 @@ describe("SelectionPopup", () => {
   });
 
   it("popup: có 'tra nghĩa' thì 'nghe' có đường kẻ ngăn; 6 từ (không 'tra nghĩa') thì không", () => {
-    renderPopup(undefined, "chronic gambler");
+    renderPopup("chronic gambler");
     expect(screen.getByRole("button", { name: /nghe/ }).className).toContain("border-r");
     cleanup();
-    renderPopup(undefined, "one two three four five six");
+    renderPopup("one two three four five six");
     expect(screen.queryByRole("button", { name: /tra nghĩa/ })).toBeNull();
     expect(screen.getByRole("button", { name: /nghe/ }).className).not.toContain("border-r");
   });
