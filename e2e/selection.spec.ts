@@ -48,10 +48,10 @@ test.describe("1024×800", () => {
   });
 });
 
-test('Khi bôi đen 6 từ trở lên thì popup chỉ có "nghe"', async ({ page }) => {
+test('Khi bôi đen 11 từ trở lên thì popup chỉ có "nghe"', async ({ page }) => {
   await page.goto(P(1));
   await finishTyping(page, "click");
-  await dragOver(page, "Charles Bukowski was an alcoholic, a");
+  await dragOver(page, "Charles Bukowski was an alcoholic, a womanizer, a chronic gambler, a");
   await page.mouse.up();
   await expect(popup(page)).toBeVisible();
   await expect(popup(page).getByRole("button", { name: /nghe/ })).toBeVisible();
