@@ -136,7 +136,7 @@ describe("PassageSketch", () => {
     expect(path.style.strokeDasharray).toBe("122 122");
     const pencil = screen.getByTestId("sketch-pencil");
     const at0 = pencil.getAttribute("transform");
-    await advance(1000);
+    await advance(1500); // chuyến đi đầu chiếm ~1s vì hình thử chỉ có vài nét ngắn
     expect(pencil.getAttribute("transform")).not.toBe(at0);
     expect(Number(path.style.strokeDashoffset)).toBeLessThan(122);
     await advance(7000);
@@ -157,7 +157,7 @@ describe("PassageSketch", () => {
     expect(paths.map((p) => p.style.strokeDashoffset)).toEqual(["122", "122"]);
 
     const state = () => paths.map((p) => Number(p.style.strokeDashoffset));
-    // chỉ có một bước nên bước đó kéo dài gần hết 5,6s: đoạn đầu dở khi đoạn sau còn ẩn, rồi ngược lại
+    // chỉ có một bước nên bước đó kéo dài gần hết 6s: đoạn đầu dở khi đoạn sau còn ẩn, rồi ngược lại
     await advance(2500);
     const [a0, b0] = state();
     expect(a0).toBeGreaterThan(2);
@@ -168,7 +168,7 @@ describe("PassageSketch", () => {
     expect(a1).toBe(0);
     expect(b1).toBeLessThan(122);
     expect(b1).toBeGreaterThan(0);
-    await advance(2000);
+    await advance(2200);
     expect(sketchEl().dataset.state).toBe("done");
     expect(paths.map((p) => p.style.strokeDasharray)).toEqual(["", ""]);
   });
@@ -179,6 +179,49 @@ describe("PassageSketch", () => {
     fireEvent.click(screen.getByRole("button", { name: "↻ vẽ lại" }));
     expect(sketchEl().dataset.state).toBe("drawing");
     expect(screen.getByTestId("sketch-pencil")).toBeTruthy();
+  });
+
+  it("xem ngay và vẽ lại là cùng một nút: bấm bằng bàn phím xong focus vẫn ở nút", async () => {
+    render(<PassageSketch sketch={sketch} passageId="p" start={true} />);
+    await advance(450);
+    const btn = screen.getByRole("button", { name: "xem ngay ⏭" });
+    btn.focus();
+    fireEvent.click(btn);
+    expect(sketchEl().dataset.state).toBe("done");
+    expect(screen.getByRole("button", { name: "↻ vẽ lại" })).toBe(btn);
+    expect(document.activeElement).toBe(btn);
+    fireEvent.click(btn);
+    expect(sketchEl().dataset.state).toBe("drawing");
+    expect(screen.getByRole("button", { name: "xem ngay ⏭" })).toBe(btn);
+  });
+
+  it("bút chì không nhận chuột: bấm trúng chỗ bút là bấm vào thứ nằm dưới nó", async () => {
+    render(<PassageSketch sketch={sketch} passageId="p" start={true} />);
+    await advance(450);
+    expect(screen.getByTestId("sketch-pencil").getAttribute("class")).toContain("pointer-events-none");
+  });
+
+  it("vòng khoanh nhiều vòng (cú chốt) vẽ đúng 1200ms ở cuối, không bị co theo tổng", async () => {
+    const ring: Sketch = {
+      ...sketch,
+      steps: [
+        { kind: "path", d: "M10,10 L100,100", tone: "line", seed: 3 },
+        { kind: "ellipse", cx: 200, cy: 150, w: 120, h: 160, tone: "ink", seed: 21, multi: true },
+      ],
+    };
+    const { container } = render(<PassageSketch sketch={ring} passageId="p" start={true} />);
+    await advance(450);
+    expect(sketchEl().dataset.state).toBe("drawing");
+    const first = () => container.querySelector<SVGPathElement>('path[data-step="1-0"]')!;
+    const off = () => parseFloat(first().style.strokeDashoffset);
+    const dash = parseFloat(first().style.strokeDasharray);
+    await advance(6000 - 1200 - 100);
+    expect(off()).toBeCloseTo(dash); // chưa tới lượt
+    await advance(400);
+    expect(off()).toBeGreaterThan(0);
+    expect(off()).toBeLessThan(dash);
+    await advance(1000);
+    expect(sketchEl().dataset.state).toBe("done");
   });
 
   it("svg role=img, tên đúng bằng alt", () => {
@@ -234,7 +277,8 @@ describe("PassageSketch", () => {
       const path = container.querySelector("path")!;
       expect(path.style.strokeDasharray).toBe("");
       expect(path.style.strokeDashoffset).toBe("");
-      expect(localStorage.getItem("tie:sketch-seen:p")).toBe("1");
+      // chưa vẽ được lần nào thì chưa tính là đã xem — lần sau (trình duyệt khác, hết lỗi) vẫn được xem vẽ
+      expect(localStorage.getItem("tie:sketch-seen:p")).toBeNull();
       await advance(0);
       expect(rejections).toEqual([]);
     } finally {
@@ -289,7 +333,7 @@ describe("PassageSketch", () => {
   });
 
   describe("chỉ vẽ khi hình đã lọt vào màn hình", () => {
-    const SCROLL = "cuộn xuống để xem vẽ…";
+    const SCROLL = "cuộn tới hình để xem vẽ…";
     const TYPING = "chờ bản dịch gõ xong…";
 
     beforeEach(() => {
@@ -353,7 +397,26 @@ describe("PassageSketch", () => {
       expect(screen.getByText(SCROLL)).toBeTruthy();
     });
 
-    it("đã lọt màn hình thì khoá lại: cuộn đi lúc chờ delay hay lúc vẽ cũng không dừng", async () => {
+    it("ngay trước khi vẽ mà hình đã bị cuộn khỏi màn hình: chưa vẽ, chưa tính đã xem, quan sát lại; cuộn tới thì vẽ", async () => {
+      const rect = vi.spyOn(SVGElement.prototype, "getBoundingClientRect").mockReturnValue({ top: 100, bottom: 400, height: 300 } as DOMRect);
+      render(<PassageSketch sketch={sketch} passageId="p" start={true} />);
+      lastObserver().report(1);
+      await advance(200);
+      rect.mockReturnValue({ top: -600, bottom: -300, height: 300 } as DOMRect); // lướt qua rồi cuộn đi tiếp
+      await advance(250);
+      expect(sketchEl().dataset.state).toBe("waiting");
+      expect(screen.getByText(SCROLL)).toBeTruthy();
+      expect(localStorage.getItem("tie:sketch-seen:p")).toBeNull();
+      expect(FakeObserver.all).toHaveLength(2);
+      expect(lastObserver().disconnected).toBe(false);
+
+      rect.mockReturnValue({ top: 100, bottom: 400, height: 300 } as DOMRect);
+      lastObserver().report(1);
+      await advance(450);
+      expect(sketchEl().dataset.state).toBe("drawing");
+    });
+
+    it("đã bắt đầu vẽ thì cuộn đi cũng không dừng; báo của trình duyệt sau khi đã thấy thì bỏ qua", async () => {
       render(<PassageSketch sketch={sketch} passageId="p" start={true} />);
       const io = lastObserver();
       io.report(1);

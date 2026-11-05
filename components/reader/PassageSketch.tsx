@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { Sketch, SketchStep, SketchTone } from "@/content/types";
-import { buildTimeline, drawMs, ease, frameAt, locateOnSubpaths, SKETCH_START_DELAY_MS, visibleThreshold, type MeasuredStep, type Pt, type TimedStep } from "@/lib/sketch/timeline";
+import { buildTimeline, drawMs, ease, frameAt, locateOnSubpaths, pencilAngle, SKETCH_EMPHASIS_MS, SKETCH_START_DELAY_MS, visibleRatio, visibleThreshold, type MeasuredStep, type Pt, type TimedStep } from "@/lib/sketch/timeline";
 import { waitFonts } from "@/lib/sketch/fonts";
 import { pointOn, splitSubpaths, stepPaths } from "@/lib/sketch/paths";
 import { isSketchSeen, markSketchSeen } from "@/lib/sketchSeen";
@@ -12,7 +12,7 @@ type State = "idle" | "waiting" | "drawing" | "done";
 type TextStep = Extract<SketchStep, { kind: "text" }>;
 
 type Item =
-  | { kind: "path"; key: string; subpaths: string[]; cls: string; width: number; plain: boolean }
+  | { kind: "path"; key: string; subpaths: string[]; cls: string; width: number; plain: boolean; emphasis: boolean }
   | { kind: "text"; key: string; step: TextStep; clipId: string }
   | { kind: "pause"; key: string; ms: number };
 
@@ -26,19 +26,21 @@ type Live =
   | { kind: "pause" };
 
 const STROKE: Record<"line" | "ink", string> = { line: "stroke-text", ink: "stroke-ink" };
-const FILL: Record<SketchTone, string> = { ink: "fill-ink", name: "fill-bright", muted: "fill-muted", line: "fill-text" };
+const FILL: Record<SketchTone, string> = { ink: "fill-ink", name: "fill-bright", line: "fill-text" };
 
 export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sketch: Sketch; passageId: string; start: boolean; dimmed?: boolean }) {
   const [state, setState] = useState<State>("idle");
   const [reduced, setReduced] = useState(false);
-  // Hình có đang trên màn hình không. Chỉ đo sau khi bản dịch gõ xong; "yes" là chốt luôn, cuộn đi cũng không đổi.
+  // Hình có đang trên màn hình không. Chỉ đo sau khi bản dịch gõ xong. "yes" giữ nguyên cho tới lúc sắp vẽ;
+  // ngay trước khi vẽ kiểm lại một lần, lướt qua rồi cuộn đi thì về "no" và chờ tiếp.
   const [onScreen, setOnScreen] = useState<"unknown" | "no" | "yes">("unknown");
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
 
   const { home, fullRect } = useMemo(() => {
     const [x, y, w, h] = sketch.viewBox.split(/[\s,]+/).map(Number);
     return {
-      home: [w - 10, 8] as Pt,
+      // chỗ bút nằm chờ: góc phải trên, đủ thấp để thân bút không trùi lên hàng tiêu đề
+      home: [w - 70, 40] as Pt,
       // rect "lộ hết" của clipPath — rộng hơn viewBox vì svg overflow-visible
       fullRect: { x: x - w, y: y - h, width: w * 3, height: h * 3 },
     };
@@ -58,6 +60,7 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
             cls: STROKE[s.tone],
             width: s.kind === "path" ? (s.width ?? 2) : 2,
             plain: s.kind === "path" && !!s.plain,
+            emphasis: s.kind === "ellipse" && !!s.multi,
           }),
         );
     });
@@ -91,8 +94,8 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
     if (l.kind === "text" && l.rect) l.rect.setAttribute("width", String(l.w * p));
   };
 
-  /** Hiện đủ hình (bỏ dash, mở clip hết cỡ) → "done" + nhớ đã xem */
-  const finish = useCallback(() => {
+  /** Hiện đủ hình (bỏ dash, mở clip hết cỡ) → "done"; `seen` thì nhớ là đã xem */
+  const reveal = useCallback((seen: boolean) => {
     live.current.forEach((l) => {
       if (l.kind === "path") {
         for (const { el } of l.subs) {
@@ -106,10 +109,16 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
       }
     });
     setState("done");
-    markSketchSeen(passageId);
+    if (seen) markSketchSeen(passageId);
   }, [passageId, fullRect]);
 
-  /** Đo DOM, dựng timeline, xoá trắng hình rồi chuyển sang "drawing". Đo lỗi thì hiện đủ hình, đừng để hình ẩn mãi. */
+  /** Xem xong (vẽ hết hoặc người đọc bấm xem ngay) */
+  const finish = useCallback(() => reveal(true), [reveal]);
+
+  /**
+   * Đo DOM, dựng timeline, xoá trắng hình rồi chuyển sang "drawing". Đo lỗi thì hiện đủ hình, đừng để hình ẩn mãi,
+   * nhưng không tính là đã xem: người đọc chưa được xem vẽ lần nào.
+   */
   const begin = useCallback(() => {
     const measured: MeasuredStep[] = [];
     const measure = (it: Item, i: number): Live => {
@@ -142,6 +151,7 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
       measured.push({
         kind: "path",
         rawMs: drawMs("path", total > 0 ? total + 2 : 0, it.plain),
+        fixedMs: it.emphasis ? SKETCH_EMPHASIS_MS : undefined,
         start: pointOn(subs[0]?.el ?? null, 0),
         end: pointOn(last?.el ?? null, last?.len ?? 0),
       });
@@ -156,9 +166,9 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
       next.forEach((l) => setP(l, 0));
       setState("drawing");
     } catch {
-      finish();
+      reveal(false);
     }
-  }, [items, home, finish]);
+  }, [items, home, reveal]);
 
   const visible = onScreen === "yes";
 
@@ -186,7 +196,14 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
     let alive = true;
     let fonts: ReturnType<typeof waitFonts> | undefined;
     const go = () => {
-      if (alive) begin();
+      if (!alive) return;
+      const el = svg.current;
+      if (el && typeof IntersectionObserver !== "undefined") {
+        const r = el.getBoundingClientRect();
+        const vh = window.innerHeight;
+        if (visibleRatio(r.top, r.bottom, vh) < visibleThreshold(r.height, vh)) return setOnScreen("no");
+      }
+      begin();
     };
     const timer = setTimeout(() => {
       fonts = waitFonts();
@@ -211,7 +228,7 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
 
     const place = ([x, y]: Pt, now: number) => {
       pencil.current?.setAttribute("transform", `translate(${x.toFixed(1)},${y.toFixed(1)})`);
-      pencilBody.current?.setAttribute("transform", `rotate(${(-52 + Math.sin(now / 95) * 2.5).toFixed(2)})`);
+      pencilBody.current?.setAttribute("transform", `rotate(${(pencilAngle(y) + Math.sin(now / 95) * 2.5).toFixed(2)})`);
     };
 
     const tick = (now: number) => {
@@ -242,9 +259,10 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
   }, [state, finish]);
 
   const hidden = state === "idle" || state === "waiting";
-  const waitingFor = !start ? "chờ bản dịch gõ xong…" : onScreen === "no" ? "cuộn xuống để xem vẽ…" : null;
+  const waitingFor = !start ? "chờ bản dịch gõ xong…" : onScreen === "no" ? "cuộn tới hình để xem vẽ…" : null;
   const status = state === "waiting" ? waitingFor : state === "drawing" ? "đang vẽ…" : null;
-  const btn = "ml-auto px-1 py-0.5 text-xs text-muted transition-colors hover:text-ink motion-reduce:transition-none";
+  // Một nút duy nhất, chỉ đổi nhãn: bấm bằng bàn phím xong focus vẫn còn ở nút
+  const action = state === "drawing" ? "skip" : state === "done" && !reduced ? "replay" : null;
 
   return (
     <section
@@ -252,17 +270,17 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
       data-state={state}
       className={`mt-9 transition-opacity motion-reduce:transition-none ${dimmed ? "opacity-30" : ""}`}
     >
-      <div className="flex min-h-[22px] items-baseline gap-3 text-[13px]">
-        <span className="text-muted">{"// phác thảo"}</span>
+      {/* flex-wrap: cột hẹp thì xuống dòng, đừng nong cột ra theo tổng chiều dài các nhãn */}
+      <div className="flex min-h-[22px] flex-wrap items-baseline gap-x-3 gap-y-1 text-[13px]">
+        <span className="whitespace-nowrap text-muted">{"// phác thảo"}</span>
         {status && <span className="text-xs text-accent">{status}</span>}
-        {state === "drawing" && (
-          <button type="button" className={btn} onClick={finish}>
-            xem ngay ⏭
-          </button>
-        )}
-        {state === "done" && !reduced && (
-          <button type="button" className={btn} onClick={begin}>
-            ↻ vẽ lại
+        {action && (
+          <button
+            type="button"
+            className="ml-auto whitespace-nowrap px-1 py-0.5 text-xs text-muted transition-colors hover:text-ink motion-reduce:transition-none"
+            onClick={action === "skip" ? finish : begin}
+          >
+            {action === "skip" ? "xem ngay ⏭" : "↻ vẽ lại"}
           </button>
         )}
       </div>
@@ -271,7 +289,7 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
         viewBox={sketch.viewBox}
         role="img"
         aria-label={sketch.alt}
-        className={`mt-2 block h-auto w-full max-w-[520px] overflow-visible ${state === "drawing" ? "cursor-pointer" : ""}`}
+        className={`mt-6 block h-auto w-full max-w-[520px] overflow-visible ${state === "drawing" ? "cursor-pointer" : ""}`}
         onClick={() => state === "drawing" && finish()}
       >
         <defs>
@@ -319,8 +337,14 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
           })}
         </g>
         {state === "drawing" && (
-          <g ref={pencil} data-testid="sketch-pencil" aria-hidden="true" transform={`translate(${home[0]},${home[1]})`}>
-            <g ref={pencilBody} transform="rotate(-52)">
+          <g
+            ref={pencil}
+            data-testid="sketch-pencil"
+            aria-hidden="true"
+            className="pointer-events-none"
+            transform={`translate(${home[0]},${home[1]})`}
+          >
+            <g ref={pencilBody} transform={`rotate(${pencilAngle(home[1])})`}>
               <polygon points="0,0 6,-2.2 6,2.2" className="fill-text" />
               <polygon points="6,-2.2 17,-6 17,6 6,2.2" className="fill-surface stroke-text" strokeWidth={0.6} />
               <rect x="17" y="-6" width="46" height="12" className="fill-ink" />

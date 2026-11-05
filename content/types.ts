@@ -28,7 +28,7 @@ export interface Chunk {
   note?: string;
 }
 
-export type SketchTone = "line" | "ink" | "name" | "muted";
+export type SketchTone = "line" | "ink" | "name"; // không có tone nhạt: chữ trong hình phải đọc được ở cả hai theme
 export type SketchStep =
   | { kind: "path"; d: string; tone: "line" | "ink"; width?: number; rough?: number; seed?: number; plain?: boolean }
   | { kind: "ellipse"; cx: number; cy: number; w: number; h: number; tone: "line" | "ink"; rough?: number; seed?: number; multi?: boolean }

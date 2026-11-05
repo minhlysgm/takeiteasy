@@ -240,7 +240,7 @@ test.describe("phác thảo đoạn 1", () => {
 test.describe("12. chỉ vẽ khi hình đã lọt vào màn hình", () => {
   const readSeen = (page: Page) => page.evaluate((k) => localStorage.getItem(k), `tie:sketch-seen:${getPassage(BOOK, CH, 1)!.id}`);
 
-  test("chưa lọt màn hình: chưa vẽ, báo cuộn xuống, chưa tính đã xem; cuộn tới thì vẽ", async ({ page }) => {
+  test("chưa lọt màn hình: chưa vẽ, báo cuộn tới hình, chưa tính đã xem; cuộn tới thì vẽ", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 480 });
     await page.goto(P1);
     const sketch = page.getByTestId("sketch");
@@ -250,7 +250,7 @@ test.describe("12. chỉ vẽ khi hình đã lọt vào màn hình", () => {
     await page.keyboard.press("Shift");
     await expect(page.getByText("đang gõ…")).toBeHidden();
     await expect(sketch.locator("svg")).not.toBeInViewport({ ratio: 0.9 });
-    await expect(sketch).toContainText("cuộn xuống để xem vẽ…");
+    await expect(sketch).toContainText("cuộn tới hình để xem vẽ…");
     await page.waitForTimeout(SKETCH_START_DELAY_MS + 300);
     await expect(sketch).toHaveAttribute("data-state", "waiting");
     await expect(page.getByTestId("sketch-pencil")).toHaveCount(0);
@@ -258,7 +258,7 @@ test.describe("12. chỉ vẽ khi hình đã lọt vào màn hình", () => {
 
     await revealSketch(page);
     await expect(sketch).toHaveAttribute("data-state", "drawing");
-    await expect(sketch).not.toContainText("cuộn xuống để xem vẽ…");
+    await expect(sketch).not.toContainText("cuộn tới hình để xem vẽ…");
     await expect(page.getByTestId("sketch-pencil")).toBeVisible();
   });
 
@@ -296,8 +296,12 @@ test.describe("Enter trên nút đang focus chỉ làm đúng việc của nút"
     await page.getByRole("button", { name: "xem ngay ⏭" }).focus();
     await page.keyboard.press("Enter");
     await expect(page.getByTestId("sketch")).toHaveAttribute("data-state", "done");
+    // cùng một nút đổi nhãn: focus không rơi về <body>, Enter lần nữa là vẽ lại
+    await expect(page.getByRole("button", { name: "↻ vẽ lại" })).toBeFocused();
     await page.waitForTimeout(200);
     await expect(page).toHaveURL(url(1));
+    await page.keyboard.press("Enter");
+    await expect(page.getByTestId("sketch")).toHaveAttribute("data-state", "drawing");
   });
 
   test("giải thích: bật đúng một lần, không chuyển đoạn", async ({ page }) => {
@@ -345,6 +349,16 @@ test.describe("Enter trên nút đang focus chỉ làm đúng việc của nút"
     });
   }
 
+  for (const name of [/giải thích/, /theme/]) {
+    test(`bấm chuột vào ${name.source} rồi Enter: Enter sang đoạn sau`, async ({ page }) => {
+      await page.goto(P1);
+      await finishTyping(page);
+      await page.getByRole("button", { name }).click();
+      await page.keyboard.press("Enter");
+      await expect(page).toHaveURL(url(2));
+    });
+  }
+
   test("← trước: về đúng đoạn trước, một lần", async ({ page }) => {
     await page.goto(`/read/${BOOK}/${CH}/2`);
     await finishTyping(page);
@@ -364,6 +378,8 @@ type DrawSample = {
   partialSubpaths: number[];
   /** Khoảng cách từ đầu mực của nét đang dở tới mũi bút chì */
   tipGap: number | null;
+  /** Bút chì trùi lên hàng tiêu đề "// phác thảo" bao nhiêu px (≤ 0 là không chạm) */
+  pencilOverHeader: number;
 };
 
 /**
@@ -402,7 +418,10 @@ async function sampleWholeDrawing(page: Page, url: string): Promise<{ samples: D
           const m = /translate\(([-\d.]+),([-\d.]+)\)/.exec(root.querySelector('[data-testid="sketch-pencil"]')!.getAttribute("transform")!)!;
           tipGap = Math.hypot(ink.x - Number(m[1]), ink.y - Number(m[2]));
         }
+        const header = root.firstElementChild!.getBoundingClientRect();
+        const pen = root.querySelector('[data-testid="sketch-pencil"]')!.getBoundingClientRect();
         out.push({
+          pencilOverHeader: header.bottom - pen.top,
           t: now,
           order,
           partialSubpaths: partial.map((el) => (el.getAttribute("d")!.match(/[Mm]/g) ?? []).length),
@@ -436,7 +455,9 @@ test.describe("bút chì đi cùng đầu nét", () => {
       expect(partial.filter((s) => s.partialSubpaths.some((c) => c !== 1))).toEqual([]);
       expect(samples.filter((s) => !/^F*P?H*$/.test(s.order))).toEqual([]);
       expect(partial.filter((s) => s.tipGap === null || s.tipGap > 0.2)).toEqual([]);
-      // Vẫn gói trong đúng 5,6 giây dù số element tăng: một `d` vẫn là một bước
+      // Thân bút không che hàng tiêu đề, kể cả khi vẽ sát mép trên hình
+      expect(Math.max(...samples.map((s) => s.pencilOverHeader))).toBeLessThanOrEqual(0);
+      // Vẫn gói trong đúng 6 giây dù số element tăng: một `d` vẫn là một bước
       const span = samples[samples.length - 1].t - samples[0].t;
       expect(Math.abs(span - SKETCH_TOTAL_MS)).toBeLessThanOrEqual(50); // sai số vài khung hình 16ms
     });
@@ -457,5 +478,39 @@ test.describe("bút chì đi cùng đầu nét", () => {
     expect(ring).toContain("PH");
     expect(ring).toContain("FP");
     expect(ring).not.toContain("PP");
+    // Vòng khoanh là cú chốt: vẽ đủ ~1,2 giây, không vụt qua
+    const ringT = samples.filter((s) => slice(s.order, `${ringAt}`).includes("P")).map((s) => s.t);
+    expect(ringT[ringT.length - 1] - ringT[0]).toBeGreaterThanOrEqual(1100);
+  });
+});
+
+test.describe("mobile 390px", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test("hàng tiêu đề hình không vỡ chữ, hình không xê dịch khi bắt đầu vẽ và khi vẽ xong", async ({ page }) => {
+    await page.goto(P1);
+    const sketch = page.getByTestId("sketch");
+    // Bỏ qua gõ chữ bằng phím: ở 390px cột dịch nằm ngoài màn hình (backlog: reader chưa dùng được trên mobile)
+    await expect(sketch).toHaveAttribute("data-state", "waiting");
+    await page.keyboard.press("Shift");
+    await expect(page.getByText("đang gõ…")).toBeHidden();
+    const svg = sketch.locator("svg");
+    const label = sketch.getByText("// phác thảo");
+    const lines = () => label.evaluate((el) => el.getClientRects().length);
+    const box = async () => {
+      const b = (await svg.boundingBox())!;
+      return [Math.round(b.x), Math.round(b.width)];
+    };
+    const before = await box(); // lúc còn chờ (hoặc vừa bắt đầu vẽ)
+    await svg.scrollIntoViewIfNeeded();
+    await expect(sketch).toHaveAttribute("data-state", "drawing");
+    expect(await box()).toEqual(before);
+    expect(await lines()).toBe(1);
+    const skip = sketch.getByRole("button", { name: "xem ngay ⏭" });
+    expect(await skip.evaluate((el) => el.getBoundingClientRect().height)).toBeLessThan(24); // một dòng
+    await skip.click();
+    await expect(sketch).toHaveAttribute("data-state", "done");
+    expect(await box()).toEqual(before);
+    expect(await lines()).toBe(1);
   });
 });

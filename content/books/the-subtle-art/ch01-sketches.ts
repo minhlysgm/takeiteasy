@@ -39,7 +39,7 @@ export const ch01Sketches: Record<"p01" | "p02" | "p03", Sketch> = {
       { kind: "text", text: "a poet", x: 44, y: 282, size: 20, tone: "ink" },
       { kind: "text", text: "(on his worst days)", x: 30, y: 302, size: 16, tone: "ink" },
       // các thói còn lại
-      { kind: "text", text: "+ lout · cheapskate · deadbeat", x: 14, y: 30, size: 17, tone: "muted" },
+      { kind: "text", text: "+ lout · cheapskate · deadbeat", x: 14, y: 30, size: 17, tone: "line" },
       { kind: "pause", ms: 380 },
       // cú lật: khoanh tròn + "perfect place to start"
       { kind: "ellipse", cx: 240, cy: 156, w: 138, h: 206, tone: "ink", seed: 21, rough: 1.2, multi: true },

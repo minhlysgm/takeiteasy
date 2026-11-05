@@ -4,8 +4,11 @@ import {
   drawMs,
   frameAt,
   locateOnSubpaths,
+  pencilAngle,
+  SKETCH_EMPHASIS_MS,
   SKETCH_START_DELAY_MS,
   SKETCH_TOTAL_MS,
+  visibleRatio,
   visibleThreshold,
   type MeasuredStep,
   type Pt,
@@ -19,9 +22,10 @@ const steps: MeasuredStep[] = [
 ];
 
 describe("hằng số", () => {
-  it("tổng 5600ms, trễ 450ms", () => {
-    expect(SKETCH_TOTAL_MS).toBe(5600);
+  it("tổng 6000ms, trễ 450ms, nét chốt 1200ms", () => {
+    expect(SKETCH_TOTAL_MS).toBe(6000);
     expect(SKETCH_START_DELAY_MS).toBe(450);
+    expect(SKETCH_EMPHASIS_MS).toBe(1200);
   });
 });
 
@@ -43,7 +47,7 @@ describe("buildTimeline", () => {
   const tl = buildTimeline(steps, home);
 
   it("bước cuối kết thúc đúng totalMs", () => {
-    expect(Math.abs(tl.at(-1)!.t2 - 5600)).toBeLessThan(1);
+    expect(Math.abs(tl.at(-1)!.t2 - SKETCH_TOTAL_MS)).toBeLessThan(1);
     const tl2 = buildTimeline(steps, home, 3000);
     expect(Math.abs(tl2.at(-1)!.t2 - 3000)).toBeLessThan(1);
   });
@@ -67,6 +71,22 @@ describe("buildTimeline", () => {
   });
   it("danh sách rỗng ra mảng rỗng", () => {
     expect(buildTimeline([], home)).toEqual([]);
+  });
+  it("bước có fixedMs vẽ đúng chừng đó, không bị co giãn; các bước khác chia phần còn lại, tổng vẫn đúng", () => {
+    const withRing: MeasuredStep[] = [...steps, { kind: "path", rawMs: 800, fixedMs: 1200, start: [200, 60], end: [200, 61] }];
+    const t = buildTimeline(withRing, home);
+    const ring = t.at(-1)!;
+    expect(ring.t2 - ring.t1).toBeCloseTo(1200);
+    expect(Math.abs(ring.t2 - SKETCH_TOTAL_MS)).toBeLessThan(1);
+    // phần co giãn của các bước khác giữ đúng tỉ lệ với nhau
+    expect((t[2].t2 - t[2].t1) / (t[0].t2 - t[0].t1)).toBeCloseTo(steps[2].rawMs / steps[0].rawMs);
+  });
+  it("fixedMs vượt cả tổng: không ra thời gian âm", () => {
+    const t = buildTimeline([{ kind: "path", rawMs: 100, start: [0, 0], end: [1, 1] }, { kind: "path", rawMs: 1, fixedMs: 9000, start: [0, 0], end: [1, 1] }], home);
+    t.forEach((s) => {
+      expect(s.t1).toBeGreaterThanOrEqual(s.t0);
+      expect(s.t2).toBeGreaterThanOrEqual(s.t1);
+    });
   });
 });
 
@@ -135,5 +155,34 @@ describe("visibleThreshold", () => {
   it("chưa đo được kích thước → vẫn 0,9", () => {
     expect(visibleThreshold(0, 900)).toBe(0.9);
     expect(visibleThreshold(358, 0)).toBe(0.9);
+  });
+});
+
+describe("visibleRatio", () => {
+  it("nằm trọn trong cửa sổ → 1", () => {
+    expect(visibleRatio(100, 400, 900)).toBe(1);
+  });
+  it("lòi ra dưới hoặc trên một nửa → 0,5", () => {
+    expect(visibleRatio(700, 1100, 900)).toBeCloseTo(0.5);
+    expect(visibleRatio(-200, 200, 900)).toBeCloseTo(0.5);
+  });
+  it("đã cuộn quá hẳn hoặc chưa tới → 0", () => {
+    expect(visibleRatio(-500, -100, 900)).toBe(0);
+    expect(visibleRatio(1000, 1400, 900)).toBe(0);
+  });
+  it("chưa đo được kích thước (jsdom) → coi như thấy", () => {
+    expect(visibleRatio(0, 0, 900)).toBe(1);
+  });
+});
+
+describe("pencilAngle", () => {
+  it("đầu nét ở xa mép trên: nghiêng -52°", () => {
+    expect(pencilAngle(70)).toBe(-52);
+    expect(pencilAngle(300)).toBe(-52);
+  });
+  it("càng gần mép trên càng nằm ngang, để thân bút không che hàng tiêu đề", () => {
+    expect(pencilAngle(0)).toBe(-10);
+    expect(pencilAngle(35)).toBeCloseTo(-31);
+    expect(pencilAngle(-20)).toBe(-10);
   });
 });

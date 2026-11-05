@@ -1,7 +1,9 @@
 export type Pt = [number, number];
 
-export const SKETCH_TOTAL_MS = 5600;
+export const SKETCH_TOTAL_MS = 6000;
 export const SKETCH_START_DELAY_MS = 450;
+/** Vòng khoanh "cú chốt" vẽ đúng chừng này, không bị co theo tổng — co lại thì nó vụt qua nhanh nhất hình */
+export const SKETCH_EMPHASIS_MS = 1200;
 /** Hình phải lọt vào màn hình ít nhất chừng này thì mới bắt đầu vẽ */
 export const SKETCH_VISIBLE_RATIO = 0.9;
 
@@ -9,6 +11,8 @@ export interface MeasuredStep {
   kind: "path" | "text" | "pause";
   /** path/text: thời gian vẽ thô (xem drawMs); pause: thời gian dừng */
   rawMs: number;
+  /** Có thì bước này vẽ đúng chừng này ms, không co giãn theo totalMs */
+  fixedMs?: number;
   start: Pt;
   end: Pt;
 }
@@ -55,14 +59,15 @@ export function buildTimeline(
     return { ...s, from, start, end, travel };
   });
 
-  const sum = raw.reduce((a, s) => a + s.travel + s.rawMs, 0);
-  const k = sum > 0 ? totalMs / sum : 0;
+  const fixed = raw.reduce((a, s) => a + (s.fixedMs ?? 0), 0);
+  const sum = raw.reduce((a, s) => a + s.travel + (s.fixedMs === undefined ? s.rawMs : 0), 0);
+  const k = sum > 0 ? Math.max(0, totalMs - fixed) / sum : 0;
 
   let t = 0;
   return raw.map(({ travel, ...s }) => {
     const t0 = t;
     const t1 = t0 + travel * k;
-    const t2 = t1 + s.rawMs * k;
+    const t2 = t1 + (s.fixedMs ?? s.rawMs * k);
     t = t2;
     return { ...s, t0, t1, t2 };
   });
@@ -96,4 +101,19 @@ export function frameAt(
     }
   }
   return { index: tl.length, phase: "done", progress: 1 };
+}
+
+/** Phần hình đang nằm trong cửa sổ (0..1), từ mép trên/dưới của hình. Chưa đo được kích thước thì coi như thấy. */
+export function visibleRatio(top: number, bottom: number, viewportHeight: number): number {
+  const h = bottom - top;
+  if (h <= 0) return 1;
+  return clamp((Math.min(bottom, viewportHeight) - Math.max(top, 0)) / h, 0, 1);
+}
+
+/**
+ * Góc thân bút chì theo độ cao đầu nét (đơn vị viewBox). Thân bút chĩa lên trên bên phải; đầu nét gần
+ * mép trên thì bút nằm ngang dần, kẻo thân bút trùi lên hàng tiêu đề phía trên hình.
+ */
+export function pencilAngle(y: number): number {
+  return -52 + 42 * clamp((70 - y) / 70, 0, 1);
 }
