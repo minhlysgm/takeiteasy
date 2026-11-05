@@ -29,7 +29,7 @@ export function SelectionDock({ selection, speechOk, lookup, onLookUp, onCloseLo
     const { top, height } = selection.rect;
     const delta = Math.min(top + height - (dock.getBoundingClientRect().top - GAP), top - GAP);
     if (delta > 0) window.scrollBy({ top: delta, behavior: prefersReducedMotion() ? "auto" : "smooth" });
-  }, [selection]);
+  }, [selection, lookup?.phase]);
 
   return (
     <div

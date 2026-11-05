@@ -23,6 +23,7 @@ const req = { bookId: "the-subtle-art", chapterId: "ch01", passageIndex: 1, text
 const HOUR = 3_600_000;
 
 let store: LookupStore;
+let errorLog: ReturnType<typeof vi.spyOn>;
 let ask: ReturnType<typeof vi.fn>;
 const deps = (over: Partial<LookupDeps> = {}): LookupDeps => ({
   store,
@@ -34,6 +35,7 @@ const deps = (over: Partial<LookupDeps> = {}): LookupDeps => ({
 });
 
 beforeEach(() => {
+  errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
   vi.mocked(getPassage).mockReset(); // mockReset trả về cài đặt gốc (getPassage thật)
   store = memoryStore();
   ask = vi.fn().mockResolvedValue({ result: LOUT, costUsd: 0.0002 });
@@ -146,6 +148,7 @@ describe("handleLookup", () => {
     ask.mockRejectedValue(Object.assign(new Error("credit"), { status: 402 }));
     const res = await handleLookup(req, deps());
     expect(res).toEqual({ status: 503, body: { status: "unavailable", reason: "paused" } });
+    expect(errorLog).toHaveBeenCalledWith("[lookup]", "ask", 402, "credit");
   });
 
   it("ask ném lỗi thường → 503 error, không văng", async () => {
@@ -153,6 +156,7 @@ describe("handleLookup", () => {
     const res = await handleLookup(req, deps());
     expect(res).toEqual({ status: 503, body: { status: "unavailable", reason: "error" } });
     expect(await store.getCached(cacheKey("lout", SENTENCE))).toBeNull();
+    expect(errorLog).toHaveBeenCalledWith("[lookup]", "ask", undefined, "boom");
   });
 
   it("lỗi mang costUsd → vẫn cộng tiền", async () => {
@@ -166,6 +170,7 @@ describe("handleLookup", () => {
     const res = await handleLookup(req, deps());
     expect(res).toEqual({ status: 503, body: { status: "unavailable", reason: "error" } });
     expect(ask).not.toHaveBeenCalled();
+    expect(errorLog).toHaveBeenCalledWith("[lookup]", "store-read", undefined, "network");
   });
 
   it("getCached / getSpentUsd ném → 503 error", async () => {
@@ -182,6 +187,7 @@ describe("handleLookup", () => {
     const res = await handleLookup(req, deps());
     expect(res).toEqual({ status: 200, body: { status: "ok", result: LOUT } });
     expect(await store.getSpentUsd()).toBeCloseTo(0.0002);
+    expect(errorLog).toHaveBeenCalledWith("[lookup]", "cache-write", undefined, "network");
   });
 
   it("addSpentUsd ném sau khi ask xong → vẫn 200 ok và vẫn lưu cache", async () => {
@@ -189,6 +195,13 @@ describe("handleLookup", () => {
     const res = await handleLookup(req, deps());
     expect(res).toEqual({ status: 200, body: { status: "ok", result: LOUT } });
     expect(await store.getCached(cacheKey("lout", SENTENCE))).toEqual(LOUT);
+    expect(errorLog).toHaveBeenCalledWith("[lookup]", "spend-write", undefined, "network");
+  });
+
+  it("log không chứa đối tượng lỗi gốc (chỉ chuỗi/số)", async () => {
+    ask.mockRejectedValue(Object.assign(new Error("boom"), { status: 500, headers: { "x-api-key": "sk-secret" } }));
+    await handleLookup(req, deps());
+    expect(JSON.stringify(errorLog.mock.calls)).not.toContain("sk-secret");
   });
 
   it("store hoặc ask null → 503 paused", async () => {

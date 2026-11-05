@@ -62,4 +62,23 @@ describe("fetchLookup", () => {
     ctrl.abort();
     await expect(p).rejects.toMatchObject({ name: "AbortError" });
   });
+
+  it("quá 20 giây (TimeoutError) → unavailable, dù có signal của người gọi", async () => {
+    const timeoutSpy = vi.spyOn(AbortSignal, "timeout");
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new DOMException("timed out", "TimeoutError"));
+    const ctrl = new AbortController();
+    await expect(fetchLookup(REQ, ctrl.signal)).resolves.toEqual(UNAVAILABLE);
+    await expect(fetchLookup(REQ)).resolves.toEqual(UNAVAILABLE);
+    expect(timeoutSpy).toHaveBeenCalledWith(20_000);
+  });
+
+  it("signal gửi cho fetch gắn với signal người gọi (huỷ → fetch thấy aborted)", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(json(OK));
+    const ctrl = new AbortController();
+    await fetchLookup(REQ, ctrl.signal);
+    const sent = fetchSpy.mock.calls[0][1]?.signal as AbortSignal;
+    expect(sent.aborted).toBe(false);
+    ctrl.abort();
+    expect(sent.aborted).toBe(true);
+  });
 });

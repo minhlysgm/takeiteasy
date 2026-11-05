@@ -1,3 +1,4 @@
+import "server-only";
 import { createHash } from "node:crypto";
 import { getPassage } from "@/lib/content";
 import { canLookUp, normalizeSelectionText } from "@/lib/selection";
@@ -62,6 +63,12 @@ function validate(input: unknown): { text: string; sentence: string } | null {
 const isPaymentError = (err: unknown) =>
   typeof err === "object" && err !== null && (err as { status?: unknown }).status === 402;
 
+/** Ghi log phía server: chỉ loại lỗi, status và message — không bao giờ ghi nguyên đối tượng lỗi (SDK có thể kèm header/khoá). */
+function logError(kind: "store-read" | "ask" | "spend-write" | "cache-write", err: unknown): void {
+  const e = typeof err === "object" && err !== null ? (err as { status?: unknown; message?: unknown }) : {};
+  console.error("[lookup]", kind, e.status, typeof e.message === "string" ? e.message : String(err));
+}
+
 export async function handleLookup(input: unknown, deps: LookupDeps): Promise<Out> {
   const valid = validate(input);
   if (!valid) return unavailable(400, "invalid");
@@ -74,7 +81,8 @@ export async function handleLookup(input: unknown, deps: LookupDeps): Promise<Ou
     const cached = await store.getCached(key);
     if (cached) return { status: 200, body: { status: "ok", result: cached } };
     if ((await store.getSpentUsd()) >= deps.budgetUsd) return unavailable(503, "paused");
-  } catch {
+  } catch (err) {
+    logError("store-read", err);
     return unavailable(503, "error");
   }
 
@@ -82,12 +90,13 @@ export async function handleLookup(input: unknown, deps: LookupDeps): Promise<Ou
   try {
     asked = await ask(valid.text, valid.sentence);
   } catch (err) {
+    logError("ask", err);
     const cost = typeof err === "object" && err !== null ? (err as { costUsd?: unknown }).costUsd : undefined;
-    if (typeof cost === "number") await store.addSpentUsd(cost).catch(() => {});
+    if (typeof cost === "number") await store.addSpentUsd(cost).catch((e) => logError("spend-write", e));
     return unavailable(503, isPaymentError(err) ? "paused" : "error");
   }
   // Đã có kết quả: lỗi ghi sổ/cache không được làm mất kết quả của người dùng.
-  await store.addSpentUsd(asked.costUsd).catch(() => {});
-  await store.setCached(key, asked.result, CACHE_TTL_SECONDS).catch(() => {});
+  await store.addSpentUsd(asked.costUsd).catch((e) => logError("spend-write", e));
+  await store.setCached(key, asked.result, CACHE_TTL_SECONDS).catch((e) => logError("cache-write", e));
   return { status: 200, body: { status: "ok", result: asked.result } };
 }
