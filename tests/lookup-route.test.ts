@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const parse = vi.hoisted(() => vi.fn());
+const create = vi.hoisted(() => vi.fn());
 vi.mock("@anthropic-ai/sdk", () => ({
   default: class {
-    messages = { parse };
+    messages = { create };
   },
 }));
 
@@ -31,9 +31,9 @@ async function loadPost() {
 }
 
 beforeEach(() => {
-  parse.mockReset();
-  parse.mockResolvedValue({
-    parsed_output: RESULT,
+  create.mockReset();
+  create.mockResolvedValue({
+    content: [{ type: "text", text: JSON.stringify(RESULT) }],
     stop_reason: "end_turn",
     usage: { input_tokens: 1000, output_tokens: 1000 },
   });
@@ -53,7 +53,7 @@ describe("POST /api/lookup", () => {
     const res = await POST(post(VALID));
     expect(res.status).toBe(503);
     expect(await res.json()).toEqual({ status: "unavailable", reason: "paused" });
-    expect(parse).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
   });
 
   it("production không có KV env → 503 paused", async () => {
@@ -62,7 +62,7 @@ describe("POST /api/lookup", () => {
     const res = await POST(post(VALID));
     expect(res.status).toBe(503);
     expect(await res.json()).toEqual({ status: "unavailable", reason: "paused" });
-    expect(parse).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
   });
 
   it("body không phải JSON → 400", async () => {
@@ -77,7 +77,7 @@ describe("POST /api/lookup", () => {
     const res = await POST(post(VALID, "9.9.9.9"));
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ status: "ok", result: RESULT });
-    expect(parse).toHaveBeenCalledTimes(1);
+    expect(create).toHaveBeenCalledTimes(1);
   });
 
   it("LOOKUP_BUDGET_USD không hợp lệ → dùng 9 (không fail-open)", async () => {
@@ -92,7 +92,7 @@ describe("POST /api/lookup", () => {
     const POST = await loadPost();
     const res = await POST(post(VALID, "9.9.9.9"));
     expect(res.status).toBe(503);
-    expect(parse).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
   });
 
   it("x-forwarded-for '1.2.3.4, 10.0.0.1' → giới hạn tính theo 1.2.3.4", async () => {

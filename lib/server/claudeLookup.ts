@@ -39,23 +39,35 @@ export function costUsd(usage: { input_tokens: number; output_tokens: number }):
   return (usage.input_tokens * USD_PER_M_INPUT) / 1e6 + (usage.output_tokens * USD_PER_M_OUTPUT) / 1e6;
 }
 
-/** Lỗi API của SDK (kể cả 402 hết tiền) được để nguyên cho handleLookup phân loại theo `.status`. */
+// Chỉ gửi phần JSON schema; `parse` của zodOutputFormat không dùng (ta tự kiểm để còn tính tiền khi lỗi).
+const { type: FORMAT_TYPE, schema: FORMAT_SCHEMA } = zodOutputFormat(LookupSchema);
+
+/**
+ * Dùng `messages.create` (không phải `parse`) và tự kiểm đầu ra: `parse` ném lỗi không kèm usage khi JSON hỏng/thiếu trường,
+ * làm mất số token đã tiêu. Lỗi API của SDK (kể cả 402 hết tiền) được để nguyên cho handleLookup phân loại theo `.status`.
+ */
 export function makeAsk(client: Pick<Anthropic, "messages">): AskFn {
   return async (text, sentence) => {
-    const response = await client.messages.parse({
+    const response = await client.messages.create({
       model: MODEL,
       max_tokens: 2000,
       system: SYSTEM_PROMPT,
       messages: [{ role: "user", content: `SELECTION: ${text}\nSENTENCE: ${sentence}` }],
-      output_config: { effort: "low", format: zodOutputFormat(LookupSchema) },
+      output_config: { effort: "low", format: { type: FORMAT_TYPE, schema: FORMAT_SCHEMA } },
     });
     const cost = costUsd(response.usage);
-    if (response.stop_reason === "refusal" || !response.parsed_output) {
-      throw new LookupAiError(
-        response.stop_reason === "refusal" ? "Model refused the request" : "Model returned no parsable output",
-        cost,
-      );
+    if (response.stop_reason === "refusal") throw new LookupAiError("Model refused the request", cost);
+    if (response.stop_reason === "max_tokens") throw new LookupAiError("Model output was truncated", cost);
+    const block = response.content.find((b) => b.type === "text");
+    if (!block) throw new LookupAiError("Model returned no text", cost);
+    let json: unknown;
+    try {
+      json = JSON.parse(block.text);
+    } catch {
+      throw new LookupAiError("Model returned invalid JSON", cost);
     }
-    return { result: response.parsed_output, costUsd: cost };
+    const parsed = LookupSchema.safeParse(json);
+    if (!parsed.success) throw new LookupAiError("Model output failed schema validation", cost);
+    return { result: parsed.data, costUsd: cost };
   };
 }
