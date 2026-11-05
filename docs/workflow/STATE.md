@@ -5,16 +5,17 @@
 
 ## Đang làm
 
-_(trống — chờ chọn task từ backlog)_
+- **Task:** Next dựng lại cả màn đọc khi chuyển đoạn (cỡ S) — nhánh `task/passage-remount`. ② Minh chọn "giữ màn đọc thật".
+- **Trạm:** ⑦ chờ Minh nghiệm thu. Màn đọc dời lên `app/read/[bookId]/[chapterId]/layout.tsx` (`ChapterReader` đọc số đoạn bằng `useParams`), page chỉ kiểm số đoạn (`lib/passageIndex.ts`). Sau `/code-review`: state của đoạn reset ngay lúc vẽ (PassageView, useTypingText, useTextSelection `resetKey`), cuộn lên đầu chỉ khi chuyển bằng nút/phím của app. `npm run verify` xanh: 221 unit, 137 e2e.
+- **Claude tự chọn:** layout gửi cả chương (3 đoạn) xuống trình duyệt — đổi lại sang đoạn tức thì; sách dài thì xem lại. Số đoạn sai mà chưa kịp chuyển hướng → màn trống tạm thời.
 
 - **Ghi chú:** push `main` thất bại — máy chưa đăng nhập GitHub cho git (không có `gh`). Minh tự push hoặc đăng nhập rồi bảo Claude push.
 
 ## Backlog
 
 1. **[S · UI] Vụn vặt của hình phác thảo** (còn lại sau ⑥, đều mức thấp): bút chì "nhảy cóc" 100–150px giữa các đoạn con của một nét; "↻" "⏭" rơi sang font dự phòng (Safari có thể ra emoji, chưa kiểm); làm tròn số chỉ giảm chứ chưa triệt hẳn lỗi lệch hình giữa server và trình duyệt (hydration), hướng triệt là tính sẵn path vào content; chưa thử trên Firefox/Safari; ngưỡng 90% không tính lại khi đổi cỡ cửa sổ.
-2. **[M] Bỏ setState trong effect (luật React 19 `set-state-in-effect`, đang tắt)** — 10 chỗ: FirstTimeHint, PassageSketch (2), PassageView (3, gồm `clearSelection()` trong effect đổi đoạn), BookShelf, useTheme, useTypingText. Đọc localStorage/theme/speech bằng `useSyncExternalStore`, reset khi chuyển đoạn bằng `key`; xong thì bật lại luật trong `eslint.config.mjs`. Coi chừng lệch hình giữa server và trình duyệt.
+2. **[M] Bỏ setState trong effect (luật React 19 `set-state-in-effect`, đang tắt)** — ~8 chỗ: FirstTimeHint, PassageSketch (2), PassageView (speechOk + `clearSelection()`/`typing.skip()` trong effect đổi đoạn — reset explain/drawer đã chuyển sang lúc vẽ), BookShelf, useTheme, useTypingText. Đọc localStorage/theme/speech bằng `useSyncExternalStore`, reset khi chuyển đoạn bằng `key`; xong thì bật lại luật trong `eslint.config.mjs`. Coi chừng lệch hình giữa server và trình duyệt.
 3. **[S · UI] Vụn vặt của bôi đen** (hoãn sau ⑥, mức thấp): thanh/popup bật ra đột ngột (trượt lên + hiện dần 180ms); popup theme tối viền/bóng mờ khó thấy mép; popup lật xuống dưới chưa chặn mép dưới (câu dài sát đầu trang có thể chui dưới footer); đổi cỡ cửa sổ khi đang chọn thì popup dùng toạ độ cũ; bôi đen trong ~0.35s đầu khi đoạn mới trượt vào thì popup lệch ≤10px; tiêu chí 1 (≤ 0.5s) chỉ dư ~250ms, để ý khi chạy CI; thêm project e2e WebKit (iPhone) cho 2 file selection.
-4. **[S] Next remount cả `PassageView` khi chuyển đoạn** — trái với chú thích "không remount" ở `app/read/.../page.tsx` và `PassageView`; có thể làm vạch tiến độ footer không chạy hiệu ứng giữa các đoạn. Kiểm rồi sửa code hoặc sửa chú thích.
 
 ## Đã xong
 
