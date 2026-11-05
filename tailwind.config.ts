@@ -9,6 +9,9 @@ const config: Config = {
         accent: "var(--accent)", "accent-soft": "var(--accent-soft)", "accent-strong": "var(--accent-strong)", ink: "var(--ink)", "ink-strong": "var(--ink-strong)",
         danger: "var(--danger)", sel: "var(--sel)", scrim: "var(--scrim)",
       },
+      // Thẻ tra nghĩa hiện ra / đổi trạng thái: mờ dần vào. Chỗ dùng luôn kèm `motion-reduce:animate-none`.
+      keyframes: { "fade-in": { from: { opacity: "0" }, to: { opacity: "1" } } },
+      animation: { "fade-in": "fade-in 180ms ease-out" },
       fontFamily: {
         mono: ["var(--font-mono)", "SF Mono", "Menlo", "monospace"],
         hand: ["var(--font-hand)", "Comic Sans MS", "cursive"],

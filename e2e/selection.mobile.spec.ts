@@ -1,6 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
 import { getPassage } from "@/lib/content";
-import { lookupUrl } from "@/lib/selection";
 import { P, dismissFirstTimeHint, finishTyping, installSpies, selectText, type Spy } from "./selection-helpers";
 
 // Tiêu chí nghiệm thu 1–9 + RF4 — spec docs/superpowers/specs/2026-11-05-touch-selection-design.md.
@@ -56,14 +55,8 @@ test.describe("mẹo lần đầu đã tắt (thanh nằm ngay trên footer)", (
     expect(await page.evaluate(() => window.getSelection()!.toString())).toBe("chronic gambler");
   });
 
-  test('Khi chạm "tra nghĩa" thì mở Cambridge tìm "chronic gambler"', async ({ page }) => {
-    await selectText(page, "original-text", "chronic gambler");
-    await dock(page).getByRole("button", { name: /tra nghĩa/ }).tap();
-    await expect.poll(() => spy(page, "__opened")).toEqual([lookupUrl("chronic gambler")]);
-  });
-
-  test('Khi bôi đen câu 6 từ trở lên thì thanh chỉ có "nghe"', async ({ page }) => {
-    await selectText(page, "original-text", "Charles Bukowski was an alcoholic, a womanizer");
+  test('Khi bôi đen câu 11 từ trở lên thì thanh chỉ có "nghe"', async ({ page }) => {
+    await selectText(page, "original-text", "Charles Bukowski was an alcoholic, a womanizer, a chronic gambler, a");
     await expect(dock(page)).toBeVisible();
     await expect(dock(page).getByRole("button", { name: /nghe/ })).toBeVisible();
     await expect(dock(page).getByRole("button", { name: /tra nghĩa/ })).toHaveCount(0);

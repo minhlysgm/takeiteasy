@@ -13,6 +13,7 @@ function Host() {
       <div ref={ref}>
         <p data-testid="inside">He is a chronic gambler today</p>
         <p data-testid="punct">... --- ???</p>
+        <div data-testid="nested">ab<span>cd</span>ef</div>
       </div>
       <p data-testid="outside">somewhere else entirely</p>
       <div data-selection-ui="" data-testid="toolbar">
@@ -24,6 +25,7 @@ function Host() {
         clear
       </button>
       <output data-testid="text">{selection ? selection.text : "null"}</output>
+      <output data-testid="offsets">{selection ? `${selection.start},${selection.end}` : "null"}</output>
       <output data-testid="rect">{selection ? JSON.stringify(selection.rect) : "null"}</output>
     </>
   );
@@ -85,6 +87,23 @@ describe("useTextSelection", () => {
     advance(1);
     expect(text()).toBe("chronic gambler");
     expect(JSON.parse(screen.getByTestId("rect").textContent!)).toEqual(RECT);
+  });
+
+  it("trả start/end đúng offset trong container", () => {
+    render(<Host />);
+    // container.textContent = "He is a chronic gambler today" + "... --- ???" + "abcdef"; chọn "chronic gambler"
+    select(textNode("inside"), 8, textNode("inside"), 23);
+    advance(250);
+    expect(screen.getByTestId("offsets").textContent).toBe("8,23");
+  });
+
+  it("start/end đếm xuyên phần tử con (chọn 'cde' trong ab<span>cd</span>ef)", () => {
+    render(<Host />);
+    const nested = screen.getByTestId("nested");
+    const base = "He is a chronic gambler today".length + "... --- ???".length;
+    select(nested.firstChild as Text, 0 + 2, nested.lastChild as Text, 1);
+    advance(250);
+    expect(screen.getByTestId("offsets").textContent).toBe(`${base + 2},${base + 5}`);
   });
 
   it("selectionchange mới thì đếm lại từ đầu", () => {

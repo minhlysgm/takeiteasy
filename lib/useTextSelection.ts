@@ -3,6 +3,9 @@ import { normalizeSelectionText, type Box } from "@/lib/selection";
 
 export interface TextSelection {
   text: string;
+  /** Offset ký tự của vùng chọn trong `container.textContent` (= offset trong `passage.original`). */
+  start: number;
+  end: number;
   /** Toạ độ viewport của `getRangeAt(0).getBoundingClientRect()`. */
   rect: Box;
 }
@@ -18,6 +21,8 @@ function sameSelection(a: TextSelection | null, b: TextSelection | null): boolea
   if (!a || !b) return false;
   return (
     a.text === b.text &&
+    a.start === b.start &&
+    a.end === b.end &&
     a.rect.left === b.rect.left &&
     a.rect.top === b.rect.top &&
     a.rect.width === b.rect.width &&
@@ -92,8 +97,14 @@ export function useTextSelection(
         publish(null);
         return;
       }
-      const r = sel.getRangeAt(0).getBoundingClientRect();
-      publish({ text, rect: { left: r.left, top: r.top, width: r.width, height: r.height } });
+      const range = sel.getRangeAt(0);
+      const pre = document.createRange();
+      pre.selectNodeContents(container);
+      pre.setEnd(range.startContainer, range.startOffset);
+      const start = pre.toString().length;
+      const end = start + range.toString().length;
+      const r = range.getBoundingClientRect();
+      publish({ text, start, end, rect: { left: r.left, top: r.top, width: r.width, height: r.height } });
     };
 
     const onSelectionChange = () => {
