@@ -195,20 +195,36 @@ test.describe("phác thảo đoạn 1", () => {
     });
   });
 
-  test("8. bật giải thích thì hình mờ đi", async ({ page }) => {
+  test("7. rời đoạn lúc đang vẽ thì đoạn đó chưa tính là đã xem", async ({ page }) => {
+    await page.goto(P1);
+    await startDrawing(page);
+    await expect(page.getByTestId("sketch")).toHaveAttribute("data-state", "drawing");
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(new RegExp(`/${CH}/2$`));
+    await expect(page.getByRole("img", { name: PASSAGE_2.sketch!.alt, exact: true })).toBeVisible();
+    const key = `tie:sketch-seen:${getPassage(BOOK, CH, 1)!.id}`;
+    expect(await page.evaluate((k) => localStorage.getItem(k), key)).toBeNull();
+    // Quay lại đoạn 1: vẫn được xem hiệu ứng, không hiện sẵn
+    await page.getByRole("button", { name: "← trước" }).click();
+    await expect(page).toHaveURL(new RegExp(`/${CH}/1$`));
+    await expect(page.getByRole("img", { name: /^Phác thảo: Charles Bukowski/ })).toBeVisible();
+    await expect(page.getByTestId("sketch")).toHaveAttribute("data-state", "waiting");
+  });
+
+  test("9. bật giải thích thì hình mờ đi", async ({ page }) => {
     await page.goto(P1);
     await finishTyping(page);
     await page.getByRole("button", { name: /giải thích/ }).click();
     await expect(page.getByTestId("sketch")).toHaveClass(/opacity-30/);
   });
 
-  test("9. hình có mô tả cho trình đọc màn hình", async ({ page }) => {
+  test("10. hình có mô tả cho trình đọc màn hình", async ({ page }) => {
     await page.goto(P1);
     await expect(page.getByRole("img", { name: /^Phác thảo: Charles Bukowski/ })).toBeVisible();
   });
 
   for (const n of [1, 2, 3]) {
-    test(`10. nét vẽ SSR khớp client, không lỗi hydration (đoạn ${n})`, async ({ page }) => {
+    test(`nét vẽ SSR khớp client, không lỗi hydration (đoạn ${n})`, async ({ page }) => {
       const bad: string[] = [];
       page.on("console", (m) => m.type() === "error" && bad.push(m.text()));
       page.on("pageerror", (e) => bad.push(e.message));
