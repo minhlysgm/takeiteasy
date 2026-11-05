@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { Sketch, SketchStep, SketchTone } from "@/content/types";
-import { buildTimeline, drawMs, frameAt, locateOnSubpaths, SKETCH_START_DELAY_MS, visibleThreshold, type MeasuredStep, type Pt, type TimedStep } from "@/lib/sketch/timeline";
-import { splitSubpaths, stepPaths } from "@/lib/sketch/paths";
+import { buildTimeline, drawMs, ease, frameAt, locateOnSubpaths, SKETCH_START_DELAY_MS, visibleThreshold, type MeasuredStep, type Pt, type TimedStep } from "@/lib/sketch/timeline";
+import { waitFonts } from "@/lib/sketch/fonts";
+import { pointOn, splitSubpaths, stepPaths } from "@/lib/sketch/paths";
 import { isSketchSeen, markSketchSeen } from "@/lib/sketchSeen";
 import { prefersReducedMotion } from "@/lib/motion";
 
@@ -26,25 +27,6 @@ type Live =
 
 const STROKE: Record<"line" | "ink", string> = { line: "stroke-text", ink: "stroke-ink" };
 const FILL: Record<SketchTone, string> = { ink: "fill-ink", name: "fill-bright", muted: "fill-muted", line: "fill-text" };
-const FONT_WAIT_MS = 1500;
-
-const ease = (x: number) => 0.5 - Math.cos(Math.PI * x) / 2;
-
-function pointOn(el: SVGPathElement | null, at: number): Pt {
-  if (!el || typeof el.getPointAtLength !== "function") return [0, 0];
-  const q = el.getPointAtLength(at);
-  return [q.x, q.y];
-}
-
-/** Chờ font tay tải xong để đo chữ cho đúng, tối đa FONT_WAIT_MS. Trả hàm huỷ timeout. */
-function waitFonts(): { ready: Promise<unknown>; cancel: () => void } {
-  const fonts = typeof document !== "undefined" ? document.fonts : undefined;
-  if (!fonts?.ready) return { ready: Promise.resolve(), cancel: () => {} };
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise((r) => (timer = setTimeout(r, FONT_WAIT_MS)));
-  const ready = Promise.race([fonts.ready, timeout]).finally(() => clearTimeout(timer));
-  return { ready, cancel: () => clearTimeout(timer) };
-}
 
 export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sketch: Sketch; passageId: string; start: boolean; dimmed?: boolean }) {
   const [state, setState] = useState<State>("idle");
@@ -178,11 +160,11 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
     }
   }, [items, home, finish]);
 
-  const seen = onScreen === "yes";
+  const visible = onScreen === "yes";
 
   // waiting + start → đợi hình lọt vào màn hình
   useEffect(() => {
-    if (state !== "waiting" || !start || seen) return;
+    if (state !== "waiting" || !start || visible) return;
     if (typeof IntersectionObserver === "undefined") return setOnScreen("yes");
     const el = svg.current;
     if (!el) return;
@@ -196,11 +178,11 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [state, start, seen]);
+  }, [state, start, visible]);
 
   // đủ 2 điều kiện → chờ delay → chờ font → đo và vẽ
   useEffect(() => {
-    if (state !== "waiting" || !start || !seen) return;
+    if (state !== "waiting" || !start || !visible) return;
     let alive = true;
     let fonts: ReturnType<typeof waitFonts> | undefined;
     const go = () => {
@@ -215,7 +197,7 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
       clearTimeout(timer);
       fonts?.cancel();
     };
-  }, [state, start, seen, begin]);
+  }, [state, start, visible, begin]);
 
   // vòng rAF khi đang vẽ
   useEffect(() => {

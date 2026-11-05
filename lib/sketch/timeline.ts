@@ -23,6 +23,8 @@ export interface TimedStep extends MeasuredStep {
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
+export const ease = (x: number) => 0.5 - Math.cos(Math.PI * x) / 2;
+
 /** Ngưỡng để quan sát hình. Cửa sổ quá thấp (hay zoom lớn) không chứa nổi 90% hình thì hạ ngưỡng, kẻo chờ mãi không vẽ. */
 export function visibleThreshold(height: number, viewportHeight: number): number {
   if (height <= 0 || viewportHeight <= 0) return SKETCH_VISIBLE_RATIO;

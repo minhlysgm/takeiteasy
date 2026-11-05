@@ -1,5 +1,6 @@
 import rough from "roughjs";
 import type { SketchStep } from "@/content/types";
+import type { Pt } from "./timeline";
 
 // x1,y1, c1x,c1y, c2x,c2y, x2,y2
 export type ArrowPoints = [number, number, number, number, number, number, number, number];
@@ -21,6 +22,13 @@ export function arrowPath([x1, y1, c1x, c1y, c2x, c2y, x2, y2]: ArrowPoints): st
   const [ax, ay] = rot(0.5);
   const [cx, cy] = rot(-0.5);
   return roundNums(`M${x1},${y1} C${c1x},${c1y} ${c2x},${c2y} ${x2},${y2} M${x2 + ax},${y2 + ay} L${x2},${y2} L${x2 + cx},${y2 + cy}`);
+}
+
+/** Điểm trên nét theo độ dài. Môi trường không đo được SVG (jsdom, trình duyệt cũ) thì trả [0, 0]. */
+export function pointOn(el: SVGPathElement | null, at: number): Pt {
+  if (!el || typeof el.getPointAtLength !== "function") return [0, 0];
+  const q = el.getPointAtLength(at);
+  return [q.x, q.y];
 }
 
 /** Số tham số của một lần lặp mỗi lệnh path */
