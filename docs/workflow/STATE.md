@@ -7,9 +7,9 @@
 
 - **Task:** Hình phác thảo tự vẽ (sketch) minh hoạ đại ý mỗi đoạn — nét vẽ hiện dần, có bút chì chạy theo
 - **Cỡ:** M (1 component + thêm field `sketch?` vào Passage + vẽ tay SVG cho 3 đoạn hiện có)
-- **Trạm:** ③ Chốt spec — Minh đã duyệt concept (2026-11-05), đã bổ sung: đoạn nào cũng phải có hình + 5 khuôn vẽ + nhân vật dùng lại
-- **Đang chờ:** Minh gõ "tiếp" → sang ④ Plan (mockup: https://claude.ai/artifact/JVcy9dV3j2CUdwuZCJnfMJ)
-- **Spec:** docs/superpowers/specs/2026-11-05-passage-sketch-design.md (đã commit) · **Plan:** — · **Nhánh:** task/passage-sketch (chưa tạo)
+- **Trạm:** ④ Plan — chờ Minh duyệt (spec đã duyệt + commit 2026-11-05)
+- **Đang chờ:** Minh duyệt plan → đổi session → ⑤ Build bắt đầu từ Task 0 (cách chạy: subagent-driven)
+- **Spec:** docs/superpowers/specs/2026-11-05-passage-sketch-design.md (đã commit) · **Plan:** docs/superpowers/plans/2026-11-05-passage-sketch.md (7 task: 0 gỡ verify đỏ · 1 timeline · 2 types+roughjs · 3 seen · 4 component · 5 hình đoạn 1 + e2e · 6 hình đoạn 2–3 + cổng Minh duyệt hình) · **Nhánh:** task/passage-sketch (chưa tạo)
 - **Mockup source:** docs/superpowers/specs/2026-11-05-passage-sketch-mockup.html (bản tham khảo cách vẽ: rough.js generator + timeline rAF + clipPath cho chữ)
 - **Quyết định đã chốt (chưa nằm trong spec):** doodle có nhãn tiếng Anh · chỉ cây bút chì chạy theo nét (không bàn tay) ·
   vẽ sau khi bản dịch gõ xong · đặt dưới nguyên văn (cột 2) · Claude vẽ tay SVG từng đoạn ·
