@@ -24,6 +24,17 @@ test.describe("kệ sách → đọc", () => {
   });
 });
 
+test.describe("bố cục desktop", () => {
+  test("nguyên văn và bản dịch nằm cạnh nhau ở 1440px", async ({ page }) => {
+    await page.goto(`/read/${BOOK}/${CH}/1`);
+    await expect(page.getByTestId("original-col")).toBeVisible();
+    const o = await page.getByTestId("original-col").boundingBox();
+    const t = await page.getByTestId("translation-col").boundingBox();
+    expect(o && t).toBeTruthy();
+    expect(t!.x).toBeGreaterThanOrEqual(o!.x + o!.width);
+  });
+});
+
 test.describe("điều hướng đoạn", () => {
   test("Enter sang đoạn tiếp, nút ← trước quay lại", async ({ page }) => {
     await page.goto(`/read/${BOOK}/${CH}/1`);

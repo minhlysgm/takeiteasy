@@ -134,22 +134,22 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="flex h-11 shrink-0 items-center gap-4 border-b border-line bg-surface px-5">
+      <header className="flex h-11 shrink-0 items-center gap-4 border-b border-line bg-surface px-4 lg:px-5">
         <div className="flex gap-2" aria-hidden="true">
           <span className="block h-3 w-3 rounded-full bg-danger opacity-70" />
           <span className="block h-3 w-3 rounded-full bg-ink opacity-70" />
           <span className="block h-3 w-3 rounded-full bg-accent opacity-70" />
         </div>
-        <div className="grow text-center text-[13px] text-muted">
-          takeiteasy — {book.id} / {chapterLabel(chapterId)} · đoạn {passageIndex}/{passageCount}
+        <div className="min-w-0 grow truncate text-center text-[13px] text-muted">
+          <span className="hidden lg:inline">takeiteasy — {book.id} / </span>{chapterLabel(chapterId)} · đoạn {passageIndex}/{passageCount}
           {explainOn && <span className="text-ink"> · explain</span>}
         </div>
         <div className="w-14 shrink-0" />
       </header>
 
-      <div ref={readerRef} data-testid="reader" className="relative grid grow grid-cols-[200px_1fr_200px_1fr] overflow-x-clip px-8 py-12">
-        <div aria-hidden="true" />
-        <div key={passage.id} ref={originalColRef} data-testid="original-col" className="animate-passage-in relative pr-6">
+      <div ref={readerRef} data-testid="reader" className="relative flex grow flex-col overflow-x-clip px-4 py-6 lg:grid lg:grid-cols-[200px_1fr_200px_1fr] lg:px-8 lg:py-12">
+        <div aria-hidden="true" className="hidden lg:block" />
+        <div key={passage.id} ref={originalColRef} data-testid="original-col" className="animate-passage-in relative pr-0 lg:pr-6">
           <div className="mb-6 text-[13px] text-muted">
             {"// nguyên văn"}
             {explainOn && <span className="ml-3 text-ink">{passage.chunks.length} chunks đáng học</span>}
@@ -160,11 +160,11 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
             <PassageSketch key={passage.id} sketch={passage.sketch} passageId={passage.id} start={typing.done} dimmed={explainOn} />
           )}
         </div>
-        <div aria-hidden="true" className="border-r border-line" />
+        <div aria-hidden="true" className="hidden border-r border-line lg:block" />
         <div
           key={`${passage.id}-vi`}
           data-testid="translation-col"
-          className={`animate-passage-in pl-12 transition-opacity ${explainOn ? "opacity-30" : ""}`}
+          className={`animate-passage-in mt-7 border-t border-line pt-6 transition-opacity motion-reduce:transition-none lg:mt-0 lg:border-t-0 lg:pt-0 lg:pl-12 ${explainOn ? "opacity-30" : ""}`}
           onClick={() => typing.skip()}
         >
           <div className="mb-6 flex items-baseline gap-3 text-[13px]">
@@ -199,7 +199,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
       </div>
 
       <FirstTimeHint explainOn={explainOn} />
-      <footer className="flex h-14 shrink-0 items-center justify-between border-t border-line px-8 text-[13px] text-muted">
+      <footer className="flex h-14 max-w-full shrink-0 overflow-x-clip items-center justify-between border-t border-line px-8 text-[13px] text-muted">
         <div className="flex items-center gap-2.5">
           <button
             type="button"
