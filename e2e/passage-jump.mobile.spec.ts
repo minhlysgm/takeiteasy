@@ -107,3 +107,19 @@ test("reduced-motion: tấm hiện/ẩn không trượt (không có transition)"
   expect(await transition(page, "jump-list")).toBe("none");
   expect(await transition(page, "jump-backdrop")).toBe("none");
 });
+
+test.describe("320px", () => {
+  test.use({ viewport: { width: 320, height: 640 } });
+
+  test("Dòng đang đọc không bị chữ 'đang đọc' chiếm chỗ: câu mở đầu hiện được ≥ 15 ký tự", async ({ page }) => {
+    await open(page, 2);
+    await trigger(page).tap();
+    const current = page.locator('[data-testid="jump-row"][aria-current="true"]');
+    await expect(current).toBeVisible();
+    const label = current.getByText("đang đọc");
+    expect((await label.boundingBox())?.width ?? 0).toBeLessThanOrEqual(1);
+    const sentenceW = await current.locator("span.truncate").evaluate((e) => e.getBoundingClientRect().width);
+    const charW = await current.locator("span.truncate").evaluate((e) => parseFloat(getComputedStyle(e).fontSize) * 0.6);
+    expect(sentenceW / charW).toBeGreaterThanOrEqual(15);
+  });
+});

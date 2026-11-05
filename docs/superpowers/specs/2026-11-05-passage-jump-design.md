@@ -46,8 +46,10 @@ có câu mở đầu để nhìn là nhận ra, bấm là tới.
 
 - Mỗi dòng hiện **câu mở đầu tiếng Anh** (Minh chọn ở ②): giống nguyên văn vừa đọc nên nhận ra ngay.
 - "Đã đọc" = **đã từng mở đoạn đó** (không đo cuộn hết hay chưa) — đơn giản, đủ để định hướng.
-- Câu mở đầu = phần trước dấu chấm/chấm hỏi/chấm than đầu tiên của `original`, tính sẵn ở server
-  (ChapterReader truyền xuống `{ index, firstSentence }[]`, không truyền cả nội dung các đoạn).
+- Câu mở đầu = phần trước dấu chấm/chấm hỏi/chấm than đầu tiên của `original` (bỏ qua chữ viết tắt
+  như "Mr.", kèm dấu đóng ” ’ )), tính ở ChapterReader phía trình duyệt — _đổi lúc build (Minh duyệt ở ⑥,
+  2026-11-05)_: màn đọc sống xuyên các đoạn nên nội dung các đoạn vốn đã xuống trình duyệt, tính ở server
+  không tiết kiệm được gì.
 - Mobile dùng tiêu đề header làm nút (không thêm nút mới vào footer đã chật ở 320px).
 - Dùng lại cách làm của tấm giải thích (khoá cuộn, giữ Tab trong tấm, trả focus khi đóng, `motion-reduce`)
   — tách phần dùng chung ra một khung tấm/ô nổi dùng lại được.

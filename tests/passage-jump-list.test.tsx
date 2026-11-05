@@ -49,7 +49,7 @@ describe("PassageJumpList", () => {
     expect(screen.getByText("2/3 đoạn đã đọc")).toBeTruthy();
   });
 
-  it("focus rời khỏi danh sách sang chỗ khác → onClose('key'); chuyển giữa các dòng / chuột (relatedTarget null) thì không", async () => {
+  it("focus rời khỏi danh sách sang chỗ khác → onClose('focus-out'); chuyển giữa các dòng / chuột (relatedTarget null) thì không", async () => {
     const props = setup();
     const rows = screen.getAllByTestId("jump-row");
     const outside = document.createElement("button");
@@ -63,7 +63,7 @@ describe("PassageJumpList", () => {
     outside.focus(); // Tab ra ngoài
     await Promise.resolve();
     expect(props.onClose).toHaveBeenCalledTimes(1);
-    expect(props.onClose).toHaveBeenLastCalledWith("key");
+    expect(props.onClose).toHaveBeenLastCalledWith("focus-out");
     outside.remove();
   });
 
@@ -78,6 +78,25 @@ describe("PassageJumpList", () => {
     await Promise.resolve();
     expect(props.onClose).not.toHaveBeenCalled();
     outside.remove();
+  });
+
+  it("dòng hiện tại: chữ 'đang đọc' vẫn đọc được bằng trình đọc màn hình (mobile chỉ ẩn bằng sr-only)", () => {
+    setup();
+    const label = screen.getByText("đang đọc");
+    expect(label.className).toMatch(/\bsr-only\b/);
+    expect(label.className).toMatch(/lg:not-sr-only/);
+  });
+
+  it("restoreFocus: đóng xong focus vào phần tử trả về", () => {
+    const target = document.createElement("button");
+    document.body.appendChild(target);
+    const { unmount } = render(
+      <PassageJumpList title="t" outline={outline} current={2} read={[]} onPick={vi.fn()} onClose={vi.fn()} restoreFocus={() => target} />,
+    );
+    expect(document.activeElement?.getAttribute("data-index")).toBe("2");
+    unmount();
+    expect(document.activeElement).toBe(target);
+    target.remove();
   });
 
   it("bấm dòng 1 → onPick(1)", () => {

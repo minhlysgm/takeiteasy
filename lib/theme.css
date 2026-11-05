@@ -9,6 +9,7 @@
   --line: #1f262e;
   --accent: #3fb950;
   --accent-soft: #182a26; /* ~10% accent trên surface — nền dòng đang chọn */
+  --accent-strong: #3fb950; /* chữ accent nhỏ trên --accent-soft (≥ 4.5:1) */
   --focus: #3fb950; /* viền focus bàn phím */
   --ink: #e3b341;
   --ink-strong: #f0c667;
@@ -26,6 +27,7 @@
   --line: #e2dccd;
   --accent: #b45309;
   --accent-soft: #e9dbca; /* ~10% accent trên surface — nền dòng đang chọn */
+  --accent-strong: #92400e; /* chữ accent nhỏ trên --accent-soft (≥ 4.5:1) */
   --focus: #1c1917; /* gần đen: tách khỏi cam của accent/ink */
   --ink: #b45309;
   --ink-strong: #92400e;

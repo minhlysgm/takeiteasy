@@ -50,3 +50,15 @@ describe("viền focus bàn phím (--focus)", () => {
     });
   }
 });
+
+describe("dòng đang đọc trong danh sách đoạn (nền --accent-soft)", () => {
+  for (const [name, t] of Object.entries(themes)) {
+    it(`${name}: --accent-strong trên --accent-soft và --surface ≥ 4.5:1`, () => {
+      expect(contrast(t["accent-strong"], t["accent-soft"])).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(t["accent-strong"], t.surface)).toBeGreaterThanOrEqual(4.5);
+    });
+    it(`${name}: --text trên --accent-soft ≥ 4.5:1 (số thứ tự dòng)`, () => {
+      expect(contrast(t.text, t["accent-soft"])).toBeGreaterThanOrEqual(4.5);
+    });
+  }
+});

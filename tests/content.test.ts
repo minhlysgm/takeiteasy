@@ -67,6 +67,18 @@ describe("firstSentence", () => {
     expect(firstSentence('He said "Don\'t try." Then left.')).toBe('He said "Don\'t try."');
     expect(firstSentence("Why? Because.")).toBe("Why?");
   });
+  it("firstSentence: dấu đóng ’ ' ) sau dấu chấm vẫn là hết câu", () => {
+    expect(firstSentence("‘Try harder.’ he said. Then left.")).toBe("‘Try harder.’");
+    expect(firstSentence("'Go home.' Then left.")).toBe("'Go home.'");
+    expect(firstSentence("(It was late.) We left.")).toBe("(It was late.)");
+  });
+  it("firstSentence: không cắt ở chữ viết tắt (Mr. Dr. e.g. …)", () => {
+    expect(firstSentence("Mr. Bukowski wrote poems. Then he drank.")).toBe("Mr. Bukowski wrote poems.");
+    expect(firstSentence("Dr. Smith and Mrs. Lee met, e.g. at lunch. Later on.")).toBe("Dr. Smith and Mrs. Lee met, e.g. at lunch.");
+  });
+  it("firstSentence: bỏ qua dòng trống đầu đoạn", () => {
+    expect(firstSentence("\n  \nFirst real line. Second.")).toBe("First real line.");
+  });
   it("firstSentence: dấu chấm giữa số không phải hết câu", () => {
     expect(firstSentence("It cost 3.5 dollars. Cheap.")).toBe("It cost 3.5 dollars.");
   });

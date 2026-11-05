@@ -12,30 +12,36 @@ interface Props {
   /** các đoạn (1-based) đã đọc */
   read: number[];
   onPick: (index: number) => void;
-  /** how: đóng bằng chuột/chạm ("pointer") hay phím ("key") — để màn đọc quyết định trả focus hay không */
-  onClose: (how: "pointer" | "key") => void;
+  /**
+   * how: đóng bằng chuột/chạm ("pointer"), phím ("key"), hay vì focus đã rời danh sách ("focus-out")
+   * — để màn đọc quyết định trả focus về đâu.
+   */
+  onClose: (how: "pointer" | "key" | "focus-out") => void;
+  /** Lúc đóng: focus vào phần tử trả về (không cuộn), null = để focus yên. Mặc định: về chỗ cũ. */
+  restoreFocus?: () => HTMLElement | null;
 }
 
 /**
  * Danh sách đoạn của chương. Mobile: bottom sheet trượt từ dưới (như ChunkDrawer).
  * Desktop (lg): popover cố định ngay trên footer, góc phải, không trượt.
  */
-export function PassageJumpList({ title, outline, current, read, onPick, onClose }: Props) {
+export function PassageJumpList({ title, outline, current, read, onPick, onClose, restoreFocus }: Props) {
   const ref = useRef<HTMLDivElement>(null);
-  const sheet = useSheetBehavior(ref);
+  const sheet = useSheetBehavior(ref, {
+    // Mở ra là focus ngay dòng hiện tại (cuộn danh sách tới nó, không cuộn trang)
+    initialFocus: () => {
+      const row = ref.current?.querySelector<HTMLElement>('[aria-current="true"]') ?? null;
+      row?.scrollIntoView?.({ block: "nearest" });
+      return row;
+    },
+    restoreFocus,
+  });
   // Chỉ tính các đoạn có trong chương (localStorage có thể còn chỉ số cũ)
-  const readSet = new Set(outline.filter((o) => read.includes(o.index)).map((o) => o.index));
-
-  // Khai báo SAU useSheetBehavior để chạy sau lần focus khung của hook: focus nhảy vào dòng hiện tại
-  useEffect(() => {
-    const row = ref.current?.querySelector<HTMLElement>('[aria-current="true"]');
-    if (!row) return;
-    row.focus({ preventScroll: true });
-    row.scrollIntoView?.({ block: "nearest" });
-  }, []);
+  const readIds = new Set(read);
+  const readSet = new Set(outline.filter((o) => readIds.has(o.index)).map((o) => o.index));
 
   // Popover desktop không khoá focus: focus rơi vào chỗ khác ngoài danh sách (Tab ra, kể cả vòng qua đầu trang)
-  // thì đóng như đóng bằng phím → focus về bộ đếm. Bấm chuột ra ngoài không đổi focus → backdrop lo.
+  // thì đóng ("focus-out") và để focus yên ở chỗ vừa tới. Bấm chuột ra ngoài không đổi focus → backdrop lo.
   // Kiểm lại SAU khi focus ổn định: StrictMode (dev) chạy cleanup của useSheetBehavior (trả focus) rồi focus lại khung.
   const onCloseRef = useRef(onClose);
   useEffect(() => {
@@ -46,7 +52,7 @@ export function PassageJumpList({ title, outline, current, read, onPick, onClose
       if (!(e.target instanceof Node) || ref.current?.contains(e.target)) return;
       queueMicrotask(() => {
         const at = document.activeElement;
-        if (ref.current?.isConnected && at && at !== document.body && !ref.current.contains(at)) onCloseRef.current("key");
+        if (ref.current?.isConnected && at && at !== document.body && !ref.current.contains(at)) onCloseRef.current("focus-out");
       });
     };
     document.addEventListener("focusin", onFocusIn);
@@ -126,11 +132,12 @@ export function PassageJumpList({ title, outline, current, read, onPick, onClose
                 data-index={o.index}
                 aria-current={isCurrent ? "true" : undefined}
                 onClick={() => onPick(o.index)}
-                className={`flex min-h-12 w-full items-center gap-3 border-l-2 px-5 text-left text-[14px] hover:text-bright max-lg:focus-visible:outline-offset-[-2px] ${isCurrent ? "border-accent bg-accent-soft text-bright" : "border-transparent text-text"}`}
+                className={`flex min-h-12 w-full items-center gap-3 border-l-2 px-5 text-left text-[14px] hover:text-bright focus-visible:outline-offset-[-2px] ${isCurrent ? "border-accent bg-accent-soft text-bright" : "border-transparent text-text"}`}
               >
-                <span className="w-6 shrink-0 text-right text-[13px] text-muted">{o.index}</span>
+                <span className={`w-6 shrink-0 text-right text-[13px] ${isCurrent ? "text-text" : "text-muted"}`}>{o.index}</span>
                 <span className="min-w-0 flex-1 truncate">{o.firstSentence}</span>
-                {isCurrent && <span className="shrink-0 text-xs text-accent">đang đọc</span>}
+                {/* Mobile: viền + nền đã đánh dấu dòng này → nhường chỗ cho câu mở đầu, chữ chỉ còn cho trình đọc màn hình */}
+                {isCurrent && <span className="sr-only shrink-0 text-xs text-accent-strong lg:not-sr-only">đang đọc</span>}
                 {readSet.has(o.index) && (
                   <>
                     <span aria-hidden="true" className="shrink-0 text-accent">

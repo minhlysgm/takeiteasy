@@ -46,9 +46,10 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
   const [read, setRead] = useState<number[]>([]);
   const jumpTriggerRef = useRef<HTMLButtonElement>(null);
   const jumpTriggerMobileRef = useRef<HTMLButtonElement>(null);
-  // Đóng bằng phím (g / Esc) → focus về bộ đếm. Còn lại (chọn đoạn, bấm chuột ra ngoài / ✕, back/forward)
-  // → bỏ focus, để enter lại là "đoạn tiếp" (cùng luật "bấm chuột vào nút xong thì nhả focus").
-  const jumpRestoreFocus = useRef(false);
+  // Đóng bằng phím (g / Esc) → focus về bộ đếm. Tab ra ngoài → focus yên chỗ vừa tới. Còn lại (chọn đoạn,
+  // bấm chuột ra ngoài / ✕, back/forward) → không trả focus: phần tử đang focus trong danh sách bị gỡ → về body,
+  // để enter lại là "đoạn tiếp" (cùng luật "bấm chuột vào nút xong thì nhả focus").
+  const jumpFocusTrigger = useRef(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const readerRef = useRef<HTMLDivElement>(null);
   const originalColRef = useRef<HTMLDivElement>(null);
@@ -131,11 +132,12 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
     setDrawerIndex(null);
     setDrawerClosing(false);
     setRead(getReadPassages(book.id, chapterId));
+    jumpFocusTrigger.current = false;
     setJumpOpen(true);
   }, [book.id, chapterId, clearSelection]);
 
-  const closeJump = useCallback((restoreFocus: boolean) => {
-    jumpRestoreFocus.current = restoreFocus;
+  const closeJump = useCallback((focusTrigger: boolean) => {
+    jumpFocusTrigger.current = focusTrigger;
     setJumpOpen(false);
   }, []);
 
@@ -144,23 +146,14 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
     goTo(i);
   };
 
-  // Chạy SAU cleanup của danh sách (useSheetBehavior đã trả focus về chỗ cũ — có thể là ghi chú tay
-  // nếu lúc mở ngăn giải thích vừa đóng) → đặt lại cho đúng: bộ đếm, hoặc không gì cả.
-  const jumpWasOpen = useRef(false);
-  useEffect(() => {
-    if (jumpOpen) {
-      jumpWasOpen.current = true;
-      return;
-    }
-    if (!jumpWasOpen.current) return;
-    jumpWasOpen.current = false;
-    if (jumpRestoreFocus.current) {
-      [jumpTriggerRef.current, jumpTriggerMobileRef.current].find((b) => b && b.getClientRects().length > 0)?.focus({ preventScroll: true }); // header mobile không dính: focus() thường sẽ kéo trang lên đầu
-    } else if (document.activeElement instanceof HTMLElement) {
-      document.activeElement.blur();
-    }
-    jumpRestoreFocus.current = false;
-  }, [jumpOpen]);
+  // Danh sách gọi lúc unmount. Không cuộn trang: header mobile không dính, focus() thường sẽ kéo trang lên đầu.
+  const jumpRestoreTarget = useCallback(
+    () =>
+      jumpFocusTrigger.current
+        ? ([jumpTriggerRef.current, jumpTriggerMobileRef.current].find((b) => b && b.getClientRects().length > 0) ?? null)
+        : null,
+    [],
+  );
 
   // Bấm chuột vào nút xong thì nhả focus: nút còn giữ focus thì Enter lại bấm nút đó thay vì sang đoạn.
   // Bấm bằng bàn phím (detail = 0) thì giữ nguyên để người dùng bàn phím không mất chỗ.
@@ -177,8 +170,8 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
-      // Shift+←/→ là phím nới vùng chọn của trình duyệt, không phải chuyển đoạn
-      if (e.shiftKey && (e.key === "ArrowLeft" || e.key === "ArrowRight")) return;
+      // Shift+←/→/Home/End là phím nới vùng chọn của trình duyệt, không phải chuyển đoạn
+      if (e.shiftKey && ["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
       // Enter trên nút đang focus là việc của nút đó, phím tắt không xen vào
       if (e.key === "Enter" && e.target instanceof Element && e.target.closest("button")) return;
       if (!typing.done && e.key !== "Escape") {
@@ -192,10 +185,10 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
         if (e.key === "k") setDrawerIndex(Math.max(0, drawerIndex - 1));
         return;
       }
-      // Danh sách đoạn đang mở: chỉ g / Esc (đóng). Phím khác để danh sách tự lo (↑/↓/enter),
+      // Danh sách đoạn đang mở: g đóng. Phím khác (Esc, ↑/↓, enter) để danh sách tự lo,
       // không chuyển đoạn hay tắt giải thích phía sau.
       if (jumpOpen) {
-        if (e.key === "g" || e.key === "Escape") closeJump(true);
+        if (e.key === "g") closeJump(true);
         return;
       }
       switch (e.key) {
@@ -354,7 +347,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
       <div className="sticky bottom-0 z-[5] bg-surface lg:z-[15]">
         {showSel && docked && <SelectionDock selection={selection} speechOk={speechOk} />}
         {/* Thanh đang hiện thì mẹo tạm nhường chỗ (màn nhỏ: mẹo + thanh + footer chiếm gần nửa màn) */}
-        <FirstTimeHint explainOn={explainOn} hidden={showSel && docked} />
+        <FirstTimeHint explainOn={explainOn} hidden={(showSel && docked) || jumpOpen} />
         <footer className="relative flex [&_button:focus-visible]:outline-offset-1 h-[60px] shrink-0 items-center justify-between gap-1.5 border-t border-line bg-bg px-2 text-[13px] text-muted lg:h-14 lg:gap-0 lg:px-8">
           <div
             aria-hidden
@@ -419,6 +412,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
           read={read}
           onPick={pickPassage}
           onClose={(how) => closeJump(how === "key")}
+          restoreFocus={jumpRestoreTarget}
         />
       )}
     </div>

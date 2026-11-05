@@ -255,6 +255,19 @@ describe("PassageView — danh sách đoạn (g / Home / End)", () => {
     expect(end.defaultPrevented).toBe(false);
   });
 
+  it("Shift+Home / Shift+End là để nới vùng chọn: không chuyển đoạn, không chặn phím", () => {
+    render(view2());
+    skipTyping();
+    for (const key of ["Home", "End"]) {
+      const ev = new KeyboardEvent("keydown", { key, shiftKey: true, bubbles: true, cancelable: true });
+      act(() => {
+        window.dispatchEvent(ev);
+      });
+      expect(ev.defaultPrevented).toBe(false);
+    }
+    expect(push).not.toHaveBeenCalled();
+  });
+
   it("Home/End khi đích khác đoạn hiện tại thì vẫn chặn phím mặc định", () => {
     render(view2());
     skipTyping();
@@ -304,7 +317,9 @@ describe("PassageView — danh sách đoạn (g / Home / End)", () => {
     skipTyping();
     fireEvent.keyDown(window, { key: "e" });
     fireEvent.keyDown(window, { key: "g" });
-    fireEvent.keyDown(window, { key: "Escape" });
+    // phím đi vào chỗ đang focus (dòng hiện tại trong danh sách) — danh sách tự lo Esc
+    expect(list()!.contains(document.activeElement)).toBe(true);
+    fireEvent.keyDown(document.activeElement!, { key: "Escape" });
     expect(list()).toBeNull();
     expect(screen.getByText(/chunks đáng học/)).toBeTruthy();
   });

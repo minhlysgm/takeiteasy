@@ -252,11 +252,11 @@ test("Home ở đoạn 1 và End ở đoạn cuối vẫn là phím cuộn của
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
 });
 
-test("Popover desktop: Tab ra khỏi danh sách thì danh sách đóng và focus về bộ đếm", async ({ page }) => {
+test("Popover desktop: Tab ra khỏi danh sách thì danh sách đóng, focus ở chỗ vừa Tab tới (không về bộ đếm)", async ({ page }) => {
   await open(page, 2);
   await page.keyboard.press("g");
   await expect(list(page)).toBeVisible();
   for (let i = 0; i < 6 && (await list(page).count()) > 0; i++) await page.keyboard.press("Tab");
   await expect(list(page)).toHaveCount(0);
-  await expect(page.getByTestId("jump-trigger")).toBeFocused();
+  await expect(page.getByTestId("jump-trigger")).not.toBeFocused();
 });
