@@ -76,6 +76,8 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
+      // Enter trên nút đang focus là việc của nút đó, phím tắt không xen vào
+      if (e.key === "Enter" && e.target instanceof Element && e.target.closest("button")) return;
       if (!typing.done && e.key !== "Escape") {
         typing.skip();
         return;

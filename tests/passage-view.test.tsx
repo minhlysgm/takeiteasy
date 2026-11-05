@@ -100,6 +100,33 @@ describe("PassageView", () => {
     expect(push).toHaveBeenCalledWith("/read/the-subtle-art/ch01/2");
   });
 
+  it("Enter trên một nút đang focus thì không chuyển đoạn, kể cả lúc đang gõ", () => {
+    renderView();
+    const btn = screen.getByRole("button", { name: /giải thích/ });
+    const typingBefore = screen.getByTestId("translation-col").textContent;
+    fireEvent.keyDown(btn, { key: "Enter" });
+    expect(push).not.toHaveBeenCalled();
+    expect(screen.getByTestId("translation-col").textContent).toBe(typingBefore); // không bỏ qua hiệu ứng gõ
+    fireEvent.keyDown(window, { key: "x" }); // skip typing
+    fireEvent.keyDown(btn, { key: "Enter" });
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("Enter trên phần tử con của nút cũng tính là trên nút", () => {
+    renderView();
+    fireEvent.keyDown(window, { key: "x" });
+    const kbd = screen.getByRole("button", { name: /giải thích/ }).querySelector("kbd")!;
+    fireEvent.keyDown(kbd, { key: "Enter" });
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("phím tắt khác trên nút đang focus vẫn chạy", () => {
+    renderView();
+    fireEvent.keyDown(window, { key: "x" });
+    fireEvent.keyDown(screen.getByRole("button", { name: /tiếp →/ }), { key: "ArrowRight" });
+    expect(push).toHaveBeenCalledTimes(1);
+  });
+
   it("đoạn 1 có hình phác thảo", () => {
     renderView();
     expect(screen.getByTestId("sketch")).toBeTruthy();

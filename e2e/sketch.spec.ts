@@ -270,6 +270,86 @@ test.describe("12. chỉ vẽ khi hình đã lọt vào màn hình", () => {
   });
 });
 
+test.describe("Enter trên nút đang focus chỉ làm đúng việc của nút", () => {
+  const url = (n: number) => new RegExp(`/${CH}/${n}$`);
+
+  test("↻ vẽ lại: vẽ lại, không chuyển đoạn", async ({ page }) => {
+    await page.addInitScript((id) => localStorage.setItem(`tie:sketch-seen:${id}`, "1"), getPassage(BOOK, CH, 1)!.id);
+    await page.goto(P1);
+    await finishTyping(page);
+    await page.getByRole("button", { name: "↻ vẽ lại" }).focus();
+    await page.keyboard.press("Enter");
+    await expect(page.getByTestId("sketch")).toHaveAttribute("data-state", "drawing");
+    await page.waitForTimeout(200);
+    await expect(page).toHaveURL(url(1));
+  });
+
+  test("xem ngay: hiện hết, không chuyển đoạn", async ({ page }) => {
+    await page.goto(P1);
+    await startDrawing(page);
+    await page.getByRole("button", { name: "xem ngay ⏭" }).focus();
+    await page.keyboard.press("Enter");
+    await expect(page.getByTestId("sketch")).toHaveAttribute("data-state", "done");
+    await page.waitForTimeout(200);
+    await expect(page).toHaveURL(url(1));
+  });
+
+  test("giải thích: bật đúng một lần, không chuyển đoạn", async ({ page }) => {
+    await page.goto(P1);
+    await finishTyping(page);
+    await page.getByRole("button", { name: /giải thích/ }).focus();
+    await page.keyboard.press("Enter");
+    await expect(page.locator("header")).toContainText("explain");
+    await page.waitForTimeout(200);
+    await expect(page).toHaveURL(url(1));
+    await page.keyboard.press("Enter");
+    await expect(page.locator("header")).not.toContainText("explain");
+  });
+
+  test("theme: đổi đúng một lần, không chuyển đoạn", async ({ page }) => {
+    await page.goto(P1);
+    await finishTyping(page);
+    const theme = () => page.evaluate(() => document.documentElement.dataset.theme);
+    const before = await theme();
+    await page.getByRole("button", { name: /theme/ }).focus();
+    await page.keyboard.press("Enter");
+    await expect.poll(theme).not.toBe(before);
+    await page.waitForTimeout(200);
+    await expect(page).toHaveURL(url(1));
+  });
+
+  for (const name of [/đoạn tiếp/, /tiếp →/]) {
+    test(`${name.source}: sang đúng đoạn sau, một lần`, async ({ page }) => {
+      await page.goto(P1);
+      await finishTyping(page);
+      await page.evaluate(() => {
+        (window as unknown as { __pushes: number }).__pushes = 0;
+        const push = history.pushState.bind(history);
+        history.pushState = (...args) => {
+          (window as unknown as { __pushes: number }).__pushes++;
+          push(...args);
+        };
+      });
+      await page.getByRole("button", { name }).focus();
+      await page.keyboard.press("Enter");
+      await expect(page).toHaveURL(url(2));
+      await page.waitForTimeout(200);
+      await expect(page).toHaveURL(url(2));
+      expect(await page.evaluate(() => (window as unknown as { __pushes: number }).__pushes)).toBe(1);
+    });
+  }
+
+  test("← trước: về đúng đoạn trước, một lần", async ({ page }) => {
+    await page.goto(`/read/${BOOK}/${CH}/2`);
+    await finishTyping(page);
+    await page.getByRole("button", { name: "← trước" }).focus();
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(url(1));
+    await page.waitForTimeout(200);
+    await expect(page).toHaveURL(url(1));
+  });
+});
+
 type DrawSample = {
   t: number;
   /** Trạng thái từng nét theo thứ tự trong DOM: F = xong, P = đang dở, H = chưa vẽ */
