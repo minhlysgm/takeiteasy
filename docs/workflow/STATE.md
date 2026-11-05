@@ -5,11 +5,18 @@
 
 ## Đang làm
 
-**Task:** Reader dùng được trên mobile · **Cỡ:** M · UI · **Trạm:** ⑥ Kiểm thử & soi — **chưa bắt đầu** (⑤ Build xong 2026-11-05). Plan đã duyệt 2026-11-05: `docs/superpowers/plans/2026-11-05-reader-mobile.md` (5 task con). Spec đã duyệt: `docs/superpowers/specs/2026-11-05-reader-mobile-design.md`, mockup https://claude.ai/artifact/XQ614Aeyj2q32gYgmhd84L
+**Task:** Reader dùng được trên mobile · **Cỡ:** M · UI · **Trạm:** ⑦ Nghiệm thu — **chờ Minh duyệt** (⑥ xong 2026-11-05).
 
-Bước kế (trạm ⑥): trên nhánh `task/reader-mobile` (HEAD 89e1bf1, chưa merge, chưa push) chạy `npm run verify` và dán kết quả → skill `ui-review` (mobile 390 + 360, sáng/tối, có bật giải thích + mở tấm) → `/code-review`. Agent build báo verify xanh: vitest 166, playwright 62 (desktop 37 + mobile 25) — trạm ⑥ phải tự chạy lại.
+Trạm ⑥ (2026-11-05): verify lần đầu xanh (vitest 166, playwright 62) → soi UI + code review → Minh chọn gói A–G, sửa ở commit e1ccb45 (HEAD) → verify lại xanh: tsc ✓ · eslint ✓ · vitest 166/166 · playwright 75/75 (thêm 13 test mobile). Minh chốt: màu `--muted` theme sáng để task riêng (backlog 7); tấm giữ 85%.
+Bước kế (trạm ⑦): Minh "ok" → merge `task/reader-mobile` vào `main` (hỏi trước khi push), chuyển task sang "Đã xong", gợi ý task tiếp.
 
 Tiến độ build: Task 1–5 ✅ · review toàn nhánh (opus) ✅ · 1 lượt sửa sau review ✅ (commit 608ae6c, 89e1bf1).
+
+Tui tự quyết ở ⑥ (báo Minh ở ⑦):
+- Số tròn ①②③ trong nguyên văn đổi từ nút thành phần tử nằm trong dòng chữ, con số vẽ bằng CSS → không ngắt dòng giữa cụm/số/dấu câu, bôi đen không dính số. Trình đọc màn hình và phím Tab dùng danh sách ghi chú bên dưới (vẫn là nút).
+- Giữ Tab trong tấm + aria-modal chỉ trên mobile (desktop: footer vẫn thấy và bấm được, không phải modal).
+- KHÔNG làm đề xuất "bỏ mount AnnotationLayer trên mobile" của code review: chính nó vẽ gạch chân tay trên mobile.
+- Footer tràn ở 320px (spec cam kết từ 360px) — chưa sửa.
 
 Tui tự quyết khi build (báo Minh ở ⑦):
 - Test "chuyển đoạn khi tấm đang mở" đổi từ tải lại trang sang chuyển đoạn phía client (bấm "← trước" rồi Back) — vì tải lại trang thì test luôn qua, không kiểm được gì.
@@ -44,6 +51,10 @@ Ghi chú trạm ① (đọc code):
 4. **[S · UI] Vụn vặt của hình phác thảo** (còn lại sau ⑥, đều mức thấp): bút chì "nhảy cóc" 100–150px giữa các đoạn con của một nét; "↻" "⏭" rơi sang font dự phòng (Safari có thể ra emoji, chưa kiểm); làm tròn số chỉ giảm chứ chưa triệt hẳn lỗi lệch hình giữa server và trình duyệt (hydration), hướng triệt là tính sẵn path vào content; chưa thử trên Firefox/Safari; ngưỡng 90% không tính lại khi đổi cỡ cửa sổ.
 5. **[M] Bỏ setState trong effect (luật React 19 `set-state-in-effect`, đang tắt)** — 9 chỗ: FirstTimeHint, PassageSketch (2), PassageView (2), BookShelf, useTheme, useTypingText. Đọc localStorage/theme/speech bằng `useSyncExternalStore`, reset khi chuyển đoạn bằng `key`; xong thì bật lại luật trong `eslint.config.mjs`. Coi chừng lệch hình giữa server và trình duyệt.
 6. **[M · UI] Bôi đen để nghe / tra nghĩa trên cảm ứng** — `SpeechTooltip` chỉ nghe `mouseup`, không hiện khi bôi đen bằng tay; popup không kẹp vào mép màn hình; đụng menu Copy/Tra cứu của iPhone. Cần thử trên máy thật.
+
+7. **[S · UI] Chữ xám `--muted` ở theme sáng chỉ đạt tương phản 2.1:1** — câu dịch ví dụ trong ngăn/tấm, ✕, ghi chú pattern khó đọc. Đề xuất `#6f6862` (4.6:1); đụng toàn app → cần ảnh trước/sau cho Minh duyệt.
+8. **[S · UI] Lặt vặt tấm giải thích mobile** — ✕ nhỏ/nhạt (13px), khoảng trống thừa dưới "// chunk i/n", thanh kéo gần vô hình (`bg-line`), nút "←" footer hẹp 36px và sát "tiếp", màn thấp không có dải mờ báo còn nội dung, vạch tiến độ mobile animate `width` 500ms (nên `scaleX` 300ms ease-out), vùng mờ thiếu `ease-out`; footer tràn ở 320px.
+9. **[S] Dọn code reader** — số thứ tự cụm tính ở 3 nơi (OriginalText/MobileNoteList/ChunkDrawer) → tính một lần; class nút footer lặp 5 lần → `FooterButton`; chuỗi breakpoint `(max-width: 1023.98px)` → hằng số chung; AnnotationLayer chỉ cần tính ghi chú/mũi tên trên desktop (gạch chân thì vẫn cần trên mobile).
 
 ## Đã xong
 
