@@ -6,7 +6,7 @@
 ## Đang làm
 
 - **Task:** Bôi đen để nghe / tra nghĩa trên cảm ứng (cỡ M · UI) — nhánh `task/touch-selection`
-- **Trạm:** ⑥ Kiểm thử & soi UI — chưa bắt đầu. ⑤ Build xong: 4 task + review từng task + review toàn nhánh + 1 đợt sửa (Shift+←/→ nới vùng chọn chứ không nhảy đoạn, Esc tắt thanh/popup, chỉ nhận chữ trong `original-text`, keep chỉ cho cảm ứng, popup có role toolbar, CLAUDE.md cập nhật). `npm run verify` xanh: 215 unit, 129 e2e. Commit cuối `a2cea7c`.
+- **Trạm:** ⑥ Kiểm thử & soi UI — verify xanh (215 unit, 129 e2e), đã soi ảnh bôi đen (script chụp riêng, không commit) + `/code-review`. Đã gửi Minh bảng 16 mục, **đang chờ Minh chọn mục nào sửa**.
 - **Bước kế:** ⑥ — dùng skill `ui-review` (desktop/mobile × sáng/tối); rồi `/code-review`. **Danh sách soi riêng cho task này:** (a) lần đầu vào: thanh + mẹo + footer chồng nhau ở 320px (~190px) có ổn không; (b) chọn chữ ở ~150px dưới cùng màn hình → thanh có che vùng chọn/tay cầm không (nếu có: cuộn nhẹ trang sau khi chọn); (c) Minh thử máy thật: iPhone Safari (giữ tay → kéo tay cầm → thanh hiện, chạm "nghe" 2 lần có tiếng, menu Copy/Tra cứu không đè thanh) + Android Chrome (thanh "Touch to Search" có đè thanh không).
 - **Quyết định Claude tự chọn ở ⑤ (Minh xem lại ở ⑦):** e2e tiêu chí 1–8 chạy khi mẹo lần đầu đã tắt (tiêu chí 9 test mẹo riêng); xoá test cũ "mẹo không nhắc tô đen" ở `e2e/mobile.spec.ts`; chạm vào chỗ trống của thanh/popup cũng không làm mất vùng chọn; Esc khi tấm giải thích đang mở chỉ đóng tấm (thanh hiện lại sau đó); tiêu chí 11 (sát mép trái) ở layout desktop thật không bao giờ chạm mép — phần kẹp mép được unit test lo.
 - **Đã chốt ở ②:** mobile dùng thanh dính đáy (trên footer); ẩn "tra nghĩa" khi > 5 từ.
