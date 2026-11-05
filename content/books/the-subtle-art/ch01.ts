@@ -137,6 +137,7 @@ export const ch01Passages: Passage[] = [
         ],
       },
     ],
+    sketch: ch01Sketches.p02,
   },
   {
     id: "ch01-p03",
@@ -205,5 +206,6 @@ export const ch01Passages: Passage[] = [
         ],
       },
     ],
+    sketch: ch01Sketches.p03,
   },
 ];

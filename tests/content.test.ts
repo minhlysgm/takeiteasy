@@ -24,6 +24,17 @@ describe("content validation", () => {
             expect(c.examples.length, `chunk "${c.id}" thiếu examples`).toBeGreaterThan(0);
           }
         });
+        it(`${p.id}: có sketch hợp lệ`, () => {
+          expect(p.sketch, "thiếu sketch").toBeDefined();
+          const { alt, viewBox, steps } = p.sketch!;
+          expect(alt.length, "alt quá ngắn").toBeGreaterThan(10);
+          expect(viewBox).toMatch(/^0 0 \d+ \d+$/);
+          expect(steps.some((s) => s.kind === "text"), "thiếu bước text").toBe(true);
+          expect(steps.some((s) => s.kind === "path" || s.kind === "ellipse" || s.kind === "arrow"), "thiếu nét vẽ").toBe(true);
+          for (const s of steps) {
+            if ("seed" in s && s.seed !== undefined) expect(Number.isInteger(s.seed), `seed ${s.seed} không nguyên`).toBe(true);
+          }
+        });
       }
     }
   }
