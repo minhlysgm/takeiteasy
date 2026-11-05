@@ -5,7 +5,7 @@
 
 ## Đang làm
 
-_(trống — chờ chọn task từ backlog)_
+_(trống)_ — 2026-11-05 Minh bảo **tạm để backlog đó, chưa cần làm**. "tiếp" lần sau: hỏi Minh muốn làm gì, đừng tự đề xuất task backlog.
 
 - **Ghi chú:** push `main` thất bại — máy chưa đăng nhập GitHub cho git (không có `gh`). Minh tự push hoặc đăng nhập rồi bảo Claude push.
 
