@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ChunkDrawer } from "@/components/reader/ChunkDrawer";
 import { books, getPassages } from "@/lib/content";
 
@@ -40,5 +40,36 @@ describe("ChunkDrawer", () => {
     expect(onClose).not.toHaveBeenCalled();
     fireEvent.click(screen.getByTestId("drawer-backdrop"));
     expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  describe("khoá cuộn trang phía sau", () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      document.body.style.overflow = "";
+    });
+    const stubMobile = (matches: boolean) =>
+      vi.stubGlobal(
+        "matchMedia",
+        vi.fn((q: string) => ({ matches: matches && q === "(max-width: 1023.98px)", media: q })),
+      );
+
+    it("dưới 1024px: mở thì khoá cuộn body, đóng thì trả lại", () => {
+      stubMobile(true);
+      const { unmount } = render(
+        <ChunkDrawer chunks={chunks} index={0} onNavigate={() => {}} onClose={() => {}} />,
+      );
+      expect(document.body.style.overflow).toBe("hidden");
+      unmount();
+      expect(document.body.style.overflow).toBe("");
+    });
+    it("từ 1024px: không đụng tới cuộn body", () => {
+      stubMobile(false);
+      const { unmount } = render(
+        <ChunkDrawer chunks={chunks} index={0} onNavigate={() => {}} onClose={() => {}} />,
+      );
+      expect(document.body.style.overflow).toBe("");
+      unmount();
+      expect(document.body.style.overflow).toBe("");
+    });
   });
 });

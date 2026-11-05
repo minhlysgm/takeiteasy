@@ -144,3 +144,103 @@ test("chạm cụm gạch chân hoặc số thì mở đúng cụm", async ({ pa
   await page.getByRole("button", { name: "xem cụm 3" }).tap();
   await expect(page.getByRole("dialog")).toContainText("// chunk 3/5");
 });
+
+/** Chờ tấm/ngăn giải thích trượt xong: vị trí (x, y) không còn đổi giữa hai lần đo. */
+async function waitSettled(page: Page) {
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  let prev = "";
+  await expect
+    .poll(async () => {
+      const b = await dialog.boundingBox();
+      const pos = b ? `${b.x},${b.y}` : "none";
+      const same = pos === prev;
+      prev = pos;
+      return same;
+    })
+    .toBe(true);
+  return dialog;
+}
+
+/** Bật giải thích rồi chạm ghi chú tay thứ n (đếm từ 1). */
+async function openNote(page: Page, n: number) {
+  await finishTyping(page);
+  await page.getByRole("button", { name: /giải thích/ }).tap();
+  await page.getByTestId("mobile-notes").getByRole("button").nth(n - 1).tap();
+  return waitSettled(page);
+}
+
+test("chạm ghi chú 4 → tấm trượt lên, trọn màn hình, đúng cụm", async ({ page }) => {
+  await page.goto(P1);
+  const dialog = await openNote(page, 4);
+  await expect(dialog).toContainText("// chunk 4/5");
+  await expect(dialog.getByRole("heading", { name: "look to somebody for something" })).toBeVisible();
+  const b = (await dialog.boundingBox())!;
+  expect(b.y).toBeGreaterThanOrEqual(0);
+  expect(b.y + b.height).toBeLessThanOrEqual(844 + 1);
+  expect(Math.abs(b.height - 0.85 * 844)).toBeLessThanOrEqual(4);
+  expect(b.x).toBe(0);
+  expect(b.width).toBe(390);
+});
+
+test("chunk sau → sang cụm 5; ✕ đóng; chạm vùng mờ đóng", async ({ page }) => {
+  await page.goto(P1);
+  const dialog = await openNote(page, 4);
+  await dialog.getByRole("button", { name: /chunk sau/ }).tap();
+  await expect(dialog).toContainText("// chunk 5/5");
+  await dialog.getByRole("button", { name: "đóng", exact: true }).tap();
+  await expect(page.getByRole("dialog")).toBeHidden();
+
+  await page.getByTestId("mobile-notes").getByRole("button").nth(3).tap();
+  await waitSettled(page);
+  await page.touchscreen.tap(195, 60);
+  await expect(page.getByRole("dialog")).toBeHidden();
+});
+
+test("cụm 5 nhiều nội dung: nút chuyển cụm luôn thấy được", async ({ page }) => {
+  await page.goto(P1);
+  const dialog = await openNote(page, 5);
+  const prev = dialog.getByRole("button", { name: /chunk trước/ });
+  await expect(prev).toBeVisible();
+  const b = (await prev.boundingBox())!;
+  expect(b.y + b.height).toBeLessThanOrEqual(844);
+});
+
+test("không thấy gợi ý phím trong tấm", async ({ page }) => {
+  await page.goto(P1);
+  const dialog = await openNote(page, 1);
+  await expect(dialog.locator("kbd:visible")).toHaveCount(0);
+});
+
+test("đóng tấm hoặc chuyển đoạn khi đang mở thì trang cuộn lại được", async ({ page }) => {
+  const overflow = () => page.evaluate(() => document.body.style.overflow);
+  await page.goto(P1);
+  const dialog = await openNote(page, 2);
+  expect(await overflow()).toBe("hidden");
+  await dialog.getByRole("button", { name: "đóng", exact: true }).tap();
+  await expect(page.getByRole("dialog")).toBeHidden();
+  expect(await overflow()).toBe("");
+
+  await page.getByTestId("mobile-notes").getByRole("button").nth(1).tap();
+  await waitSettled(page);
+  expect(await overflow()).toBe("hidden");
+  await page.goto("/read/the-subtle-art/ch01/2");
+  await expect(page.getByTestId("original-col")).toBeVisible();
+  expect(await overflow()).toBe("");
+});
+
+test("tấm vẫn trọn màn hình khi đổi cỡ qua 1024px", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(P1);
+  await finishTyping(page);
+  await page.getByRole("button", { name: /giải thích/ }).tap();
+  await page.getByTestId("reader").locator("button.font-hand:visible").first().tap();
+  await waitSettled(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  const dialog = await waitSettled(page);
+  const b = (await dialog.boundingBox())!;
+  expect(b.x).toBeGreaterThanOrEqual(0);
+  expect(b.y).toBeGreaterThanOrEqual(0);
+  expect(b.x + b.width).toBeLessThanOrEqual(390);
+  expect(b.y + b.height).toBeLessThanOrEqual(844 + 1);
+});
