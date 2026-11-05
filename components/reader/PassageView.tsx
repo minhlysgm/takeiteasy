@@ -136,7 +136,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="flex h-11 shrink-0 items-center gap-4 border-b border-line bg-surface px-4 lg:px-5">
+      <header className="flex h-11 shrink-0 items-center gap-4 border-b border-line bg-surface px-4 lg:sticky lg:top-0 lg:z-[15] lg:px-5">
         <div className="hidden gap-2 lg:flex" aria-hidden="true">
           <span className="block h-3 w-3 rounded-full bg-danger opacity-70" />
           <span className="block h-3 w-3 rounded-full bg-ink opacity-70" />
@@ -203,7 +203,8 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
         )}
       </div>
 
-      <div className="sticky bottom-0 z-[5] lg:static">
+      {/* Footer dính đáy màn hình ở mọi cỡ; desktop nằm trên vùng mờ của ngăn giải thích nên vẫn bấm được */}
+      <div className="sticky bottom-0 z-[5] lg:z-[15]">
         <FirstTimeHint explainOn={explainOn} />
         <footer className="relative flex h-[60px] shrink-0 items-center justify-between gap-1.5 border-t border-line bg-bg px-2 text-[13px] text-muted lg:h-14 lg:gap-0 lg:px-8">
           <div

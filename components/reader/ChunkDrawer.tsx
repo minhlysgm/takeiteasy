@@ -89,14 +89,14 @@ export function ChunkDrawer({ chunks, index, closing = false, onNavigate, onClos
         onClick={onClose}
         className={`fixed inset-0 z-30 bg-scrim transition-opacity duration-300 motion-reduce:transition-none lg:absolute lg:z-10 ${offscreen ? "opacity-0" : "opacity-100"}`}
       />
-      {/* Mobile: tấm trượt từ dưới lên (85% màn hình). Desktop (lg): ngăn 500px bên phải như cũ. */}
+      {/* Mobile: tấm trượt từ dưới lên (85% màn hình). Desktop (lg): ngăn 500px bên phải, cố định giữa header (h-11) và footer (h-14) dính. */}
       <div
         ref={ref}
         tabIndex={-1}
         role="dialog"
         aria-label={chunk.headword}
         onKeyDown={trapTab}
-        className={`fixed inset-x-0 bottom-0 z-40 flex h-[85dvh] flex-col rounded-t-2xl border-t border-line bg-surface shadow-2xl outline-none transition-transform duration-300 ease-out motion-reduce:transition-none lg:absolute lg:inset-y-0 lg:left-auto lg:right-0 lg:z-20 lg:h-auto lg:w-[500px] lg:rounded-none lg:border-l lg:border-t-0 ${offscreen ? "translate-y-full lg:translate-x-full lg:translate-y-0" : "translate-x-0 translate-y-0"}`}
+        className={`fixed inset-x-0 bottom-0 z-40 flex h-[85dvh] flex-col rounded-t-2xl border-t border-line bg-surface shadow-2xl outline-none transition-transform duration-300 ease-out motion-reduce:transition-none lg:bottom-14 lg:left-auto lg:right-0 lg:top-11 lg:z-20 lg:h-auto lg:w-[500px] lg:rounded-none lg:border-l lg:border-t-0 ${offscreen ? "translate-y-full lg:translate-x-full lg:translate-y-0" : "translate-x-0 translate-y-0"}`}
       >
         <div aria-hidden="true" className="mx-auto mt-2 h-1 w-9 shrink-0 rounded-full bg-line lg:hidden" />
 
