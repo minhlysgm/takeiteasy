@@ -344,7 +344,8 @@ test.describe("số tròn không rời cụm, dấu câu không rớt xuống đ
       for (const n of [1, 2, 3]) {
         await page.goto(`/read/the-subtle-art/ch01/${n}`);
         await finishTyping(page);
-        await page.keyboard.press("e"); // 320px: nút "N" của Next dev che nút giải thích — dùng phím
+        // 320px: footer tràn ngang, nút bị đẩy dưới mép màn hình (backlog "lặt vặt tấm giải thích mobile")
+        await page.keyboard.press("e");
         await expect(page.getByTestId("chunk-badge").first()).toBeVisible();
         const broken = await page.evaluate(() => {
           const out: string[] = [];
