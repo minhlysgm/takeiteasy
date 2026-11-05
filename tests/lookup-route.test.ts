@@ -98,13 +98,17 @@ describe("POST /api/lookup", () => {
   it("x-forwarded-for '1.2.3.4, 10.0.0.1' → giới hạn tính theo 1.2.3.4", async () => {
     const POST = await loadPost();
     const forwarded = "1.2.3.4, 10.0.0.1";
-    for (let i = 0; i < 30; i++) expect((await POST(post(VALID, forwarded))).status).toBe(200);
-    const res = await POST(post(VALID, forwarded));
+    // 31 cụm khác nhau trong câu (chưa có cache) — tra lại cụm đã có cache thì không trừ lượt
+    const words = SENTENCE.split(" ");
+    const texts = [...new Set(words.flatMap((_, i) => [words[i], words.slice(i, i + 2).join(" ")]))].slice(0, 31);
+    expect(texts).toHaveLength(31);
+    for (const text of texts.slice(0, 30)) expect((await POST(post({ ...VALID, text }, forwarded))).status).toBe(200);
+    const res = await POST(post({ ...VALID, text: texts[30] }, forwarded));
     expect(res.status).toBe(429);
     expect(await res.json()).toEqual({ status: "unavailable", reason: "limited" });
     // cùng IP đầu, proxy khác phía sau vẫn bị tính chung
-    expect((await POST(post(VALID, "1.2.3.4, 10.9.9.9"))).status).toBe(429);
+    expect((await POST(post({ ...VALID, text: texts[30] }, "1.2.3.4, 10.9.9.9"))).status).toBe(429);
     // IP khác thì không bị ảnh hưởng
-    expect((await POST(post(VALID, "5.6.7.8"))).status).toBe(200);
+    expect((await POST(post({ ...VALID, text: texts[30] }, "5.6.7.8"))).status).toBe(200);
   });
 });

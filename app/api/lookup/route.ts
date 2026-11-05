@@ -24,7 +24,7 @@ export async function POST(req: Request): Promise<Response> {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
   const { status, body } = await handleLookup(input, {
     store: storeFromEnv(process.env),
-    ask: process.env.ANTHROPIC_API_KEY ? makeAsk(new Anthropic({ timeout: 15_000, maxRetries: 1 })) : null,
+    ask: process.env.ANTHROPIC_API_KEY ? makeAsk(new Anthropic({ timeout: 9_000, maxRetries: 1 })) : null,
     ip,
     budgetUsd: budgetFromEnv(process.env.LOOKUP_BUDGET_USD),
     now: Date.now(),

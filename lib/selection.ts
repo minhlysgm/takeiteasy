@@ -3,6 +3,9 @@ import type { Chunk, Passage } from "@/content/types";
 
 /** Số từ tối đa để còn tra nghĩa được (đếm theo khoảng trắng). */
 const MAX_LOOKUP_WORDS = 10;
+/** Số ký tự tối đa của chữ tra / câu ngữ cảnh — server cũng chặn đúng hai số này. */
+export const MAX_LOOKUP_CHARS = 120;
+export const MAX_SENTENCE_CHARS = 600;
 
 /** Gộp mọi khoảng trắng (kể cả xuống dòng) thành một dấu cách; không còn chữ/số nào thì trả "". */
 export function normalizeSelectionText(raw: string): string {
@@ -16,9 +19,9 @@ export function countWords(text: string): number {
   return t ? t.split(/\s+/).length : 0;
 }
 
-/** Chỉ tra nghĩa khi cụm đủ ngắn (≤ 10 từ). */
+/** Chỉ tra nghĩa khi cụm đủ ngắn (≤ 10 từ và ≤ 120 ký tự). */
 export function canLookUp(text: string): boolean {
-  return countWords(text) <= MAX_LOOKUP_WORDS;
+  return countWords(text) <= MAX_LOOKUP_WORDS && text.length <= MAX_LOOKUP_CHARS;
 }
 
 /**
@@ -55,7 +58,22 @@ export function sentenceAt(original: string, start: number, end: number): string
       }
     }
   }
-  return normalizeSelectionText(original.slice(from, to));
+  const sentence = normalizeSelectionText(original.slice(from, to));
+  if (sentence.length <= MAX_SENTENCE_CHARS) return sentence;
+  // Câu quá dài (server chặn > 600): lấy khung ≤ 600 ký tự quanh vùng chọn, cắt ở khoảng trắng để vẫn là một đoạn của nguyên văn.
+  let a = Math.max(from, start - Math.floor((MAX_SENTENCE_CHARS - (end - start)) / 2));
+  let b = Math.min(to, a + MAX_SENTENCE_CHARS);
+  a = Math.max(from, b - MAX_SENTENCE_CHARS);
+  if (a > from) {
+    const ws = original.slice(a, start).search(/\s/);
+    if (ws >= 0) a += ws + 1;
+  }
+  if (b < to) {
+    const tail = original.slice(end, b);
+    const ws = Math.max(tail.lastIndexOf(" "), tail.lastIndexOf("\n"), tail.lastIndexOf("\t"));
+    if (ws >= 0) b = end + ws;
+  }
+  return normalizeSelectionText(original.slice(a, b));
 }
 
 /** Cụm soạn sẵn của đoạn mà vùng chọn [start, end) (bỏ khoảng trắng đầu/cuối) nằm trọn trong; không có thì null. */

@@ -114,15 +114,22 @@ describe("handleLookup", () => {
     expect(ask).not.toHaveBeenCalled();
   });
 
-  it("lượt thứ 31 trong 1 giờ → 429, không gọi ask; sang giờ sau lại được", async () => {
+  it("lượt thứ 31 (chưa có cache) trong 1 giờ → 429, không gọi ask; sang giờ sau lại được", async () => {
     for (let i = 0; i < 30; i++) {
-      // cache hit sau lần đầu: vẫn tính lượt
-      expect((await handleLookup(req, deps())).status).toBe(200);
+      await store.hit(deps().ip, deps().now);
     }
     const res = await handleLookup(req, deps());
     expect(res).toEqual({ status: 429, body: { status: "unavailable", reason: "limited" } });
-    expect(ask).toHaveBeenCalledTimes(1);
+    expect(ask).not.toHaveBeenCalled();
     expect((await handleLookup(req, deps({ now: 11 * HOUR }))).status).toBe(200);
+  });
+
+  it("tra lại chữ đã có cache không bị tính lượt (40 lần vẫn 200), kể cả khi đã hết lượt", async () => {
+    expect((await handleLookup(req, deps())).status).toBe(200);
+    for (let i = 0; i < 40; i++) expect((await handleLookup(req, deps())).status).toBe(200);
+    expect(ask).toHaveBeenCalledTimes(1);
+    for (let i = 0; i < 30; i++) await store.hit(deps().ip, deps().now);
+    expect((await handleLookup(req, deps())).status).toBe(200);
   });
 
   it("lần 2 cùng chữ + câu → lấy cache, ask chỉ gọi 1 lần, tiền chỉ cộng 1 lần", async () => {

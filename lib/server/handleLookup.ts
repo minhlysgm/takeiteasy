@@ -1,7 +1,7 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import { getPassage } from "@/lib/content";
-import { canLookUp, normalizeSelectionText } from "@/lib/selection";
+import { canLookUp, MAX_LOOKUP_CHARS, MAX_SENTENCE_CHARS, normalizeSelectionText } from "@/lib/selection";
 import type { LookupRequest, LookupResponse, LookupResult } from "@/lib/lookupTypes";
 import type { LookupStore } from "@/lib/server/lookupStore";
 
@@ -15,8 +15,6 @@ export interface LookupDeps {
   now: number;
 }
 
-const MAX_TEXT_CHARS = 120;
-const MAX_SENTENCE_CHARS = 600;
 const MAX_HITS_PER_HOUR = 30;
 const CACHE_TTL_SECONDS = 2_592_000; // 30 ngày
 
@@ -49,7 +47,7 @@ function parse(input: unknown): LookupRequest | null {
 function validate(input: unknown): { text: string; sentence: string } | null {
   const req = parse(input);
   if (!req) return null;
-  if (req.text.length > MAX_TEXT_CHARS || req.sentence.length > MAX_SENTENCE_CHARS) return null;
+  if (req.text.length > MAX_LOOKUP_CHARS || req.sentence.length > MAX_SENTENCE_CHARS) return null;
   const text = normalizeSelectionText(req.text);
   const sentence = normalizeSelectionText(req.sentence);
   if (!text || !sentence || !canLookUp(text)) return null;
@@ -77,9 +75,10 @@ export async function handleLookup(input: unknown, deps: LookupDeps): Promise<Ou
 
   const key = cacheKey(valid.text, valid.sentence);
   try {
-    if ((await store.hit(deps.ip, deps.now)) > MAX_HITS_PER_HOUR) return unavailable(429, "limited");
+    // Xem cache trước: tra lại chữ đã có kết quả không tốn tiền nên không trừ lượt.
     const cached = await store.getCached(key);
     if (cached) return { status: 200, body: { status: "ok", result: cached } };
+    if ((await store.hit(deps.ip, deps.now)) > MAX_HITS_PER_HOUR) return unavailable(429, "limited");
     if ((await store.getSpentUsd()) >= deps.budgetUsd) return unavailable(503, "paused");
   } catch (err) {
     logError("store-read", err);

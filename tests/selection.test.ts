@@ -12,6 +12,10 @@ describe("canLookUp", () => {
     expect(canLookUp("Charles Bukowski was an alcoholic, a womanizer, a chronic gambler,")).toBe(true));
   it("11 từ thì không", () =>
     expect(canLookUp("Charles Bukowski was an alcoholic, a womanizer, a chronic gambler, a")).toBe(false));
+  it("≤ 10 từ nhưng quá 120 ký tự → false; đúng 120 → true", () => {
+    expect(canLookUp("x".repeat(121))).toBe(false);
+    expect(canLookUp("x".repeat(120))).toBe(true);
+  });
 });
 
 const p1 = getPassages("the-subtle-art", "ch01")![0];
@@ -27,6 +31,17 @@ describe("sentenceAt", () => {
     ));
   it("câu đứng riêng sau dòng trống", () =>
     expect(sentenceAt(p1.original, ...at("perfect place"))).toBe("Which is why he's the perfect place to start."));
+  it("câu dài quá 600 ký tự → cắt khung ≤ 600 quanh vùng chọn, vẫn chứa vùng chọn và vẫn nằm trong đoạn", () => {
+    const words = Array.from({ length: 200 }, (_, i) => `word${i}`);
+    const original = words.join(" ") + ".";
+    for (const target of ["word0", "word100", "word199"]) {
+      const s = original.indexOf(target + " ") >= 0 ? original.indexOf(target + " ") : original.indexOf(target + ".");
+      const got = sentenceAt(original, s, s + target.length);
+      expect(got.length).toBeLessThanOrEqual(600);
+      expect(got).toContain(target);
+      expect(original).toContain(got);
+    }
+  });
 });
 
 describe("chunkAt", () => {
