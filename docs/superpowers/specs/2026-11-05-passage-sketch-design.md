@@ -13,7 +13,7 @@ một tấm thẻ từ vựng bằng hình.
 ## Phạm vi
 
 - Khung `// phác thảo` nằm **dưới đoạn nguyên văn** (cột 2), chỉ hiện khi đoạn có dữ liệu `sketch`.
-- Hình bắt đầu vẽ **sau khi bản dịch gõ xong**, kể cả khi user bấm để hiện hết bản dịch. Vẽ trong khoảng 5–6 giây.
+- Hình bắt đầu vẽ khi **bản dịch đã gõ xong** (kể cả khi user bấm để hiện hết bản dịch) **và hình đã lọt vào màn hình** (ít nhất 90% hình). Hình chưa lọt vào màn hình thì chờ, hiện dòng "cuộn xuống để xem vẽ…" và chưa tính là đã xem. Đã bắt đầu rồi thì cuộn đi chỗ khác vẫn vẽ tiếp. Vẽ trong khoảng 5–6 giây.
 - Có **cây bút chì** nghiêng chạy theo đầu nét đang vẽ. Không có bàn tay.
 - Đang vẽ: bấm vào hình hoặc nút "xem ngay" thì hiện hết. Vẽ xong: nút "↻ vẽ lại".
 - **Chỉ vẽ có hiệu ứng ở lần đầu xem đoạn đó.** Những lần sau hình hiện sẵn. Ghi nhớ bằng localStorage `tie:sketch-seen:<passageId>`.
@@ -75,7 +75,7 @@ Các bước được vẽ đúng theo thứ tự trong `steps`. Tổng thời g
 ## Tiêu chí nghiệm thu (mỗi dòng = một test e2e)
 
 1. Khi mở một đoạn có hình **lần đầu** và bản dịch đang gõ, thì khung `// phác thảo` hiện nhưng chưa có nét nào, kèm dòng "chờ bản dịch gõ xong…".
-2. Khi bản dịch gõ xong (hoặc user bấm để hiện hết), thì hình bắt đầu vẽ và bút chì hiện. Trong vòng 8 giây thì hình đầy đủ, bút chì ẩn, nút "vẽ lại" hiện.
+2. Khi bản dịch gõ xong (hoặc user bấm để hiện hết) và hình đã lọt vào màn hình, thì hình bắt đầu vẽ và bút chì hiện. Trong vòng 8 giây thì hình đầy đủ, bút chì ẩn, nút "vẽ lại" hiện.
 3. Khi hình đang vẽ mà bấm vào hình hoặc "xem ngay", thì hình hiện đầy đủ ngay lập tức.
 4. Khi bấm "vẽ lại", thì hình xoá đi và vẽ lại từ đầu.
 5. Khi quay lại một đoạn đã xem hình, thì hình hiện sẵn đầy đủ, không có bút chì, không vẽ lại.
@@ -85,6 +85,7 @@ Các bước được vẽ đúng theo thứ tự trong `steps`. Tổng thời g
 9. Khi bật "giải thích", thì khung phác thảo mờ đi giống cột bản dịch.
 10. Hình có `role="img"` và `aria-label` lấy từ `sketch.alt`.
 11. Khi đổi theme sáng/tối, thì nét và chữ trong hình đổi màu theo token (kiểm bằng `npm run ui:snap`, không dùng màu cứng).
+12. Khi bản dịch đã gõ xong mà hình chưa lọt vào màn hình, thì hình chưa vẽ, hiện dòng "cuộn xuống để xem vẽ…", chưa tính là đã xem; cuộn tới thì hình bắt đầu vẽ.
 
 ## Rủi ro
 
