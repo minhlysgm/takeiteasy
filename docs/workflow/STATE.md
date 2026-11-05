@@ -5,9 +5,7 @@
 
 ## Đang làm
 
-**Task:** Chữ xám `--muted` theme sáng đủ tương phản (backlog 7) · **Cỡ:** S · UI · **Trạm:** ⑦ Nghiệm thu — chờ Minh duyệt ảnh trước/sau.
-Nhánh `task/muted-contrast`: `--muted` sáng #a8a29e → #6f6862 (4.9:1 trên bg, 4.6:1 trên surface; theme tối không đổi). Test `tests/theme-contrast.test.ts` đọc thẳng `lib/theme.css`, kiểm ≥4.5:1 cả 2 theme + chữ thường vẫn đậm hơn chữ phụ ≥1.5 lần. Verify xanh: vitest 172/172 · playwright 75/75.
-Bước kế: Minh "ok" → merge vào main (chưa push), bỏ mục 7 khỏi backlog, ghi "Đã xong".
+_(trống — chờ Minh chọn task tiếp)_
 
 ## Backlog
 
@@ -18,12 +16,12 @@ Bước kế: Minh "ok" → merge vào main (chưa push), bỏ mục 7 khỏi ba
 5. **[M] Bỏ setState trong effect (luật React 19 `set-state-in-effect`, đang tắt)** — 9 chỗ: FirstTimeHint, PassageSketch (2), PassageView (2), BookShelf, useTheme, useTypingText. Đọc localStorage/theme/speech bằng `useSyncExternalStore`, reset khi chuyển đoạn bằng `key`; xong thì bật lại luật trong `eslint.config.mjs`. Coi chừng lệch hình giữa server và trình duyệt.
 6. **[M · UI] Bôi đen để nghe / tra nghĩa trên cảm ứng** — `SpeechTooltip` chỉ nghe `mouseup`, không hiện khi bôi đen bằng tay; popup không kẹp vào mép màn hình; đụng menu Copy/Tra cứu của iPhone. Cần thử trên máy thật.
 
-7. **[S · UI] Chữ xám `--muted` ở theme sáng chỉ đạt tương phản 2.1:1** — câu dịch ví dụ trong ngăn/tấm, ✕, ghi chú pattern khó đọc. Đề xuất `#6f6862` (4.6:1); đụng toàn app → cần ảnh trước/sau cho Minh duyệt.
-8. **[S · UI] Lặt vặt tấm giải thích mobile** — ✕ nhỏ/nhạt (13px), khoảng trống thừa dưới "// chunk i/n", thanh kéo gần vô hình (`bg-line`), nút "←" footer hẹp 36px và sát "tiếp", màn thấp không có dải mờ báo còn nội dung, vạch tiến độ mobile animate `width` 500ms (nên `scaleX` 300ms ease-out), vùng mờ thiếu `ease-out`; footer tràn ở 320px.
-9. **[S] Dọn code reader** — số thứ tự cụm tính ở 3 nơi (OriginalText/MobileNoteList/ChunkDrawer) → tính một lần; class nút footer lặp 5 lần → `FooterButton`; chuỗi breakpoint `(max-width: 1023.98px)` → hằng số chung; AnnotationLayer chỉ cần tính ghi chú/mũi tên trên desktop (gạch chân thì vẫn cần trên mobile).
+7. **[S · UI] Lặt vặt tấm giải thích mobile** — ✕ nhỏ/nhạt (13px), khoảng trống thừa dưới "// chunk i/n", thanh kéo gần vô hình (`bg-line`), nút "←" footer hẹp 36px và sát "tiếp", màn thấp không có dải mờ báo còn nội dung, vạch tiến độ mobile animate `width` 500ms (nên `scaleX` 300ms ease-out), vùng mờ thiếu `ease-out`; footer tràn ở 320px.
+8. **[S] Dọn code reader** — số thứ tự cụm tính ở 3 nơi (OriginalText/MobileNoteList/ChunkDrawer) → tính một lần; class nút footer lặp 5 lần → `FooterButton`; chuỗi breakpoint `(max-width: 1023.98px)` → hằng số chung; AnnotationLayer chỉ cần tính ghi chú/mũi tên trên desktop (gạch chân thì vẫn cần trên mobile).
 
 ## Đã xong
 
+- 2026-11-05 · Chữ xám `--muted` theme sáng đủ tương phản 4.6:1 (cỡ S · UI) — test `theme-contrast.test.ts`. Merge vào main (chưa push)
 - 2026-11-05 · Reader dùng được trên mobile (cỡ M · UI) — spec `2026-11-05-reader-mobile-design.md`, plan `2026-11-05-reader-mobile.md`; ⑥ sửa gói A–G (số tròn liền cụm, bản dịch rõ, khoá cuộn theo breakpoint, giữ Tab trong tấm, vùng chạm 44px, cột tablet). Merge vào main (chưa push)
 - 2026-11-05 · Sửa `npm run lint` (ESLint CLI + flat config), lint vào `verify` (cỡ S) — merge vào main (chưa push)
 - 2026-11-05 · Hình phác thảo tự vẽ minh hoạ mỗi đoạn (cỡ M) — spec `2026-11-05-passage-sketch-design.md`, merge vào main (chưa push)
