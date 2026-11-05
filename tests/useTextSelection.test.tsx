@@ -175,6 +175,9 @@ describe("useTextSelection", () => {
   });
 
   it("gỡ listener và timer khi unmount", () => {
+    // React tự gắn listener `selectionchange` lên document ở lần render đầu tiên và không bao giờ gỡ;
+    // render nháp trước khi cài spy để chỉ còn lại listener của chính hook.
+    render(<div />).unmount();
     const addSpy = vi.spyOn(document, "addEventListener");
     const removeSpy = vi.spyOn(document, "removeEventListener");
     const { unmount } = render(<Host />);
@@ -185,10 +188,14 @@ describe("useTextSelection", () => {
     advance(1000);
     expect(getSel).not.toHaveBeenCalled();
     getSel.mockRestore();
-    for (const [type, fn] of addSpy.mock.calls) {
-      if (["selectionchange", "pointerdown", "pointerup", "pointercancel"].includes(type)) {
-        expect(removeSpy).toHaveBeenCalledWith(type, fn);
-      }
+    const added = addSpy.mock.calls.filter(([type]) =>
+      ["selectionchange", "pointerdown", "pointerup", "pointercancel"].includes(type),
+    );
+    expect(added.map(([type]) => type).sort()).toEqual(
+      ["pointercancel", "pointerdown", "pointerup", "selectionchange"],
+    );
+    for (const [type, fn] of added) {
+      expect(removeSpy).toHaveBeenCalledWith(type, fn);
     }
     addSpy.mockRestore();
     removeSpy.mockRestore();
