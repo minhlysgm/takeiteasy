@@ -39,3 +39,17 @@ describe("content validation", () => {
     }
   }
 });
+
+describe("passageIndexOf", () => {
+  it("số đoạn hợp lệ giữ nguyên; sai thì kẹp về 1 hoặc đoạn cuối", async () => {
+    const { passageIndexOf } = await import("@/lib/passageIndex");
+    expect(passageIndexOf("2", 3)).toBe(2);
+    expect(passageIndexOf("3", 3)).toBe(3);
+    expect(passageIndexOf("99", 3)).toBe(3);
+    expect(passageIndexOf("0", 3)).toBe(1);
+    expect(passageIndexOf("-4", 3)).toBe(1);
+    expect(passageIndexOf("abc", 3)).toBe(1);
+    expect(passageIndexOf("1.5", 3)).toBe(1);
+    expect(passageIndexOf("", 3)).toBe(1);
+  });
+});
