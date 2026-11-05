@@ -120,6 +120,36 @@ describe("PassageSketch", () => {
     expect(path.style.strokeDasharray).toBe("");
   });
 
+  it("một bước nhiều subpath: thành nhiều <path>, vẽ lần lượt theo độ dài cộng dồn, vẫn là một bước", async () => {
+    const multi: Sketch = {
+      viewBox: "0 0 480 330",
+      alt: "hai nét",
+      steps: [{ kind: "path", d: "M0,0 L100,0 M0,10 L100,10", tone: "line", plain: true }],
+    };
+    const { container } = render(<PassageSketch sketch={multi} passageId="p" start={true} />);
+    await advance(450);
+    const paths = Array.from(container.querySelectorAll("path"));
+    expect(paths.map((p) => p.getAttribute("d"))).toEqual(["M0,0 L100,0", "M0,10 L100,10"]);
+    expect(paths.map((p) => p.dataset.step)).toEqual(["0-0", "0-0"]);
+    expect(paths.map((p) => p.style.strokeDashoffset)).toEqual(["122", "122"]);
+
+    const state = () => paths.map((p) => Number(p.style.strokeDashoffset));
+    // chỉ có một bước nên bước đó kéo dài gần hết 5,6s: đoạn đầu dở khi đoạn sau còn ẩn, rồi ngược lại
+    await advance(2500);
+    const [a0, b0] = state();
+    expect(a0).toBeGreaterThan(2);
+    expect(a0).toBeLessThan(122);
+    expect(b0).toBe(122);
+    await advance(1500);
+    const [a1, b1] = state();
+    expect(a1).toBe(0);
+    expect(b1).toBeLessThan(122);
+    expect(b1).toBeGreaterThan(0);
+    await advance(2000);
+    expect(sketchEl().dataset.state).toBe("done");
+    expect(paths.map((p) => p.style.strokeDasharray)).toEqual(["", ""]);
+  });
+
   it("done → bấm vẽ lại → drawing", async () => {
     localStorage.setItem("tie:sketch-seen:p", "1");
     render(<PassageSketch sketch={sketch} passageId="p" start={false} />);

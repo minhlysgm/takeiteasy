@@ -58,6 +58,20 @@ export function buildTimeline(
   });
 }
 
+/**
+ * Một bước có thể gồm nhiều đoạn con, vẽ lần lượt. Đổi tiến độ p (0→1) của cả bước thành
+ * đoạn đang vẽ và độ dài đã vẽ trên đoạn đó, theo độ dài cộng dồn.
+ */
+export function locateOnSubpaths(lengths: number[], p: number): { index: number; at: number } {
+  let rest = lengths.reduce((a, l) => a + l, 0) * clamp(p, 0, 1);
+  for (let i = 0; i < lengths.length; i++) {
+    if (rest <= lengths[i]) return { index: i, at: rest };
+    rest -= lengths[i];
+  }
+  // sai số làm tròn số thực có thể làm `rest` vượt đoạn cuối một chút
+  return lengths.length ? { index: lengths.length - 1, at: lengths[lengths.length - 1] } : { index: 0, at: 0 };
+}
+
 export function frameAt(
   tl: TimedStep[],
   t: number,

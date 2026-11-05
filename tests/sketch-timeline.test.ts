@@ -3,6 +3,7 @@ import {
   buildTimeline,
   drawMs,
   frameAt,
+  locateOnSubpaths,
   SKETCH_START_DELAY_MS,
   SKETCH_TOTAL_MS,
   type MeasuredStep,
@@ -90,5 +91,34 @@ describe("frameAt", () => {
     expect(frameAt(tl, 99999)).toEqual({ index: 3, phase: "done", progress: 1 });
     expect(frameAt([], 0).phase).toBe("done");
     expect(frameAt([], 0)).toEqual({ index: 0, phase: "done", progress: 1 });
+  });
+});
+
+describe("locateOnSubpaths", () => {
+  const lens = [100, 50, 50];
+
+  it("p=0 → đầu đoạn đầu; p=1 → cuối đoạn cuối", () => {
+    expect(locateOnSubpaths(lens, 0)).toEqual({ index: 0, at: 0 });
+    expect(locateOnSubpaths(lens, 1)).toEqual({ index: 2, at: 50 });
+  });
+
+  it("phân bổ theo độ dài cộng dồn, không chia đều theo số đoạn", () => {
+    expect(locateOnSubpaths(lens, 0.25)).toEqual({ index: 0, at: 50 });
+    expect(locateOnSubpaths(lens, 0.6)).toEqual({ index: 1, at: 20 });
+    expect(locateOnSubpaths(lens, 0.9)).toEqual({ index: 2, at: 30 });
+  });
+
+  it("đúng ranh giới thì còn ở đoạn vừa xong", () => {
+    expect(locateOnSubpaths(lens, 0.5)).toEqual({ index: 0, at: 100 });
+  });
+
+  it("p ngoài khoảng 0..1 bị kẹp lại", () => {
+    expect(locateOnSubpaths(lens, -1)).toEqual({ index: 0, at: 0 });
+    expect(locateOnSubpaths(lens, 2)).toEqual({ index: 2, at: 50 });
+  });
+
+  it("độ dài toàn 0 hoặc không có đoạn nào: không chia cho 0", () => {
+    expect(locateOnSubpaths([0, 0], 0.5)).toEqual({ index: 0, at: 0 });
+    expect(locateOnSubpaths([], 0.5)).toEqual({ index: 0, at: 0 });
   });
 });

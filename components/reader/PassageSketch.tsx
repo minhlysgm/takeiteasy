@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { Sketch, SketchStep, SketchTone } from "@/content/types";
-import { buildTimeline, drawMs, frameAt, SKETCH_START_DELAY_MS, type MeasuredStep, type Pt, type TimedStep } from "@/lib/sketch/timeline";
-import { stepPaths } from "@/lib/sketch/paths";
+import { buildTimeline, drawMs, frameAt, locateOnSubpaths, SKETCH_START_DELAY_MS, type MeasuredStep, type Pt, type TimedStep } from "@/lib/sketch/timeline";
+import { splitSubpaths, stepPaths } from "@/lib/sketch/paths";
 import { isSketchSeen, markSketchSeen } from "@/lib/sketchSeen";
 import { prefersReducedMotion } from "@/lib/motion";
 
@@ -11,13 +11,16 @@ type State = "idle" | "waiting" | "drawing" | "done";
 type TextStep = Extract<SketchStep, { kind: "text" }>;
 
 type Item =
-  | { kind: "path"; key: string; d: string; cls: string; width: number; plain: boolean }
+  | { kind: "path"; key: string; subpaths: string[]; cls: string; width: number; plain: boolean }
   | { kind: "text"; key: string; step: TextStep; clipId: string }
   | { kind: "pause"; key: string; ms: number };
 
+/** Một <path> của item. `dash` dài hơn nét 2 đơn vị để lúc ẩn không lộ chấm tròn của round cap; 0 = không đo được. */
+type LiveSub = { el: SVGPathElement | null; len: number; dash: number };
+
 /** Số đo của từng item, lấy từ DOM lúc bắt đầu vẽ */
 type Live =
-  | { kind: "path"; el: SVGPathElement | null; len: number }
+  | { kind: "path"; subs: LiveSub[] }
   | { kind: "text"; rect: SVGRectElement | null; w: number }
   | { kind: "pause" };
 
@@ -67,7 +70,7 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
           out.push({
             kind: "path",
             key: `${i}-${j}`,
-            d,
+            subpaths: splitSubpaths(d),
             cls: STROKE[s.tone],
             width: s.kind === "path" ? (s.width ?? 2) : 2,
             plain: s.kind === "path" && !!s.plain,
@@ -77,7 +80,8 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
     return out;
   }, [sketch.steps, uid]);
 
-  const els = useRef<(SVGPathElement | SVGTextElement | null)[]>([]);
+  const els = useRef<(SVGTextElement | null)[]>([]);
+  const pathEls = useRef<(SVGPathElement | null)[][]>([]);
   const rects = useRef<(SVGRectElement | null)[]>([]);
   const live = useRef<Live[]>([]);
   const timeline = useRef<TimedStep[]>([]);
@@ -92,7 +96,13 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
   }, [passageId]);
 
   const setP = (l: Live, p: number) => {
-    if (l.kind === "path" && l.el && l.len > 0) l.el.style.strokeDashoffset = String(l.len * (1 - p));
+    if (l.kind === "path") {
+      const { index, at } = locateOnSubpaths(l.subs.map((s) => s.len), p);
+      l.subs.forEach((s, i) => {
+        if (!s.el || s.dash <= 0) return;
+        s.el.style.strokeDashoffset = String(p >= 1 || i < index ? 0 : i > index ? s.dash : s.dash - at);
+      });
+    }
     if (l.kind === "text" && l.rect) l.rect.setAttribute("width", String(l.w * p));
   };
 
@@ -105,7 +115,7 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
         return { kind: "pause" };
       }
       if (it.kind === "text") {
-        const el = els.current[i] as SVGTextElement | null;
+        const el = els.current[i];
         const b = el && typeof el.getBBox === "function" ? el.getBBox() : { x: 0, y: 0, width: 0, height: 0 };
         const rect = rects.current[i];
         rect?.setAttribute("x", String(b.x - 3));
@@ -115,11 +125,24 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
         measured.push({ kind: "text", rawMs: drawMs("text", it.step.text.length), start: [b.x, by], end: [b.x + b.width, by] });
         return { kind: "text", rect, w: b.width + 6 };
       }
-      const el = els.current[i] as SVGPathElement | null;
-      const len = el && typeof el.getTotalLength === "function" ? el.getTotalLength() + 2 : 0;
-      if (el && len > 0) el.style.strokeDasharray = `${len} ${len}`;
-      measured.push({ kind: "path", rawMs: drawMs("path", len, it.plain), start: pointOn(el, 0), end: pointOn(el, Math.max(0, len - 2)) });
-      return { kind: "path", el, len };
+      const subs = it.subpaths.map((_, j): LiveSub => {
+        const el = pathEls.current[i]?.[j] ?? null;
+        const measurable = !!el && typeof el.getTotalLength === "function";
+        const len = measurable ? el.getTotalLength() : 0;
+        const dash = measurable ? len + 2 : 0;
+        if (el && dash > 0) el.style.strokeDasharray = `${dash} ${dash}`;
+        return { el, len, dash };
+      });
+      // Cả item vẫn là một bước: thời gian tính theo tổng độ dài các đoạn con
+      const total = subs.reduce((a, s) => a + s.len, 0);
+      const last = subs[subs.length - 1];
+      measured.push({
+        kind: "path",
+        rawMs: drawMs("path", total > 0 ? total + 2 : 0, it.plain),
+        start: pointOn(subs[0]?.el ?? null, 0),
+        end: pointOn(last?.el ?? null, last?.len ?? 0),
+      });
+      return { kind: "path", subs };
     });
     timeline.current = buildTimeline(measured, home);
     live.current.forEach((l) => setP(l, 0));
@@ -129,9 +152,12 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
   /** Hiện đủ hình (bỏ dash, mở clip hết cỡ) → "done" + nhớ đã xem */
   const finish = useCallback(() => {
     live.current.forEach((l) => {
-      if (l.kind === "path" && l.el) {
-        l.el.style.strokeDasharray = "";
-        l.el.style.strokeDashoffset = "";
+      if (l.kind === "path") {
+        for (const { el } of l.subs) {
+          if (!el) continue;
+          el.style.strokeDasharray = "";
+          el.style.strokeDashoffset = "";
+        }
       }
       if (l.kind === "text" && l.rect) {
         for (const [k, v] of Object.entries(fullRect)) l.rect.setAttribute(k, String(v));
@@ -188,7 +214,10 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
       } else {
         const p = ease(f.progress);
         setP(l, p);
-        if (l.kind === "path") place(pointOn(l.el, Math.max(0, l.len - 2) * p), now);
+        if (l.kind === "path") {
+          const { index, at } = locateOnSubpaths(l.subs.map((x) => x.len), p);
+          place(pointOn(l.subs[index]?.el ?? null, at), now);
+        }
         else if (l.kind === "text") place([s.start[0] + (s.end[0] - s.start[0]) * p, s.start[1]], now);
         else place(s.end, now);
       }
@@ -258,18 +287,19 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
                 </text>
               );
             }
-            return (
+            return it.subpaths.map((d, j) => (
               <path
-                key={it.key}
-                ref={(r) => void (els.current[i] = r)}
-                d={it.d}
+                key={`${it.key}-${j}`}
+                data-step={it.key}
+                ref={(r) => void ((pathEls.current[i] ??= [])[j] = r)}
+                d={d}
                 className={it.cls}
                 strokeWidth={it.width}
                 fill="none"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
-            );
+            ));
           })}
         </g>
         {state === "drawing" && (

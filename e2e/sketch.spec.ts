@@ -1,6 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { getPassage } from "@/lib/content";
-import { SKETCH_START_DELAY_MS } from "@/lib/sketch/timeline";
+import { SKETCH_START_DELAY_MS, SKETCH_TOTAL_MS } from "@/lib/sketch/timeline";
 
 const BOOK = "the-subtle-art";
 const CH = "ch01";
@@ -11,6 +11,16 @@ const PASSAGE_2 = getPassage(BOOK, CH, 2)!;
 async function finishTyping(page: Page) {
   await page.getByTestId("translation-col").click();
   await expect(page.getByText("đang gõ…")).toBeHidden();
+}
+
+/** Cuộn khung hình vào màn hình: hình chỉ vẽ khi đã lọt vào màn hình, đừng trông chờ vào chiều cao viewport. */
+async function revealSketch(page: Page) {
+  await page.getByTestId("sketch").locator("svg").scrollIntoViewIfNeeded();
+}
+
+async function startDrawing(page: Page) {
+  await finishTyping(page);
+  await revealSketch(page);
 }
 
 // Mỗi test dùng context mới của Playwright nên localStorage `tie:sketch-seen:*` không rò giữa các test.
@@ -138,4 +148,108 @@ test.describe("phác thảo đoạn 1", () => {
       expect(bad.filter((t) => /hydrat/i.test(t))).toEqual([]);
     });
   }
+});
+
+type DrawSample = {
+  t: number;
+  /** Trạng thái từng nét theo thứ tự trong DOM: F = xong, P = đang dở, H = chưa vẽ */
+  order: string;
+  /** Số đoạn con (M/m) của nét đang dở */
+  partialSubpaths: number[];
+  /** Khoảng cách từ đầu mực của nét đang dở tới mũi bút chì */
+  tipGap: number | null;
+};
+
+/**
+ * Ghi lại trạng thái nét ở MỌI khung hình đang vẽ, trên trình duyệt thật (đo bằng DOM + SVG thật).
+ * Dùng đồng hồ giả của Playwright nên rAF nào cũng chạy đúng 16ms/lần, không phụ thuộc máy đang bận hay rảnh:
+ * nhờ vậy bước vẽ ngắn (vòng khoanh, cầu thang) luôn có mẫu rơi vào giữa hình.
+ */
+async function sampleWholeDrawing(page: Page, url: string): Promise<{ samples: DrawSample[]; steps: (string | null)[] }> {
+  await page.clock.install({ time: new Date("2026-11-05T00:00:00") });
+  await page.goto(url);
+  await expect(page.getByTestId("sketch")).toHaveAttribute("data-state", "waiting");
+  await page.clock.pauseAt(new Date("2026-11-05T00:10:00"));
+  await startDrawing(page);
+  await page.evaluate(() => {
+    const root = document.querySelector<HTMLElement>('[data-testid="sketch"]')!;
+    const out: DrawSample[] = [];
+    (window as unknown as { __samples: DrawSample[] }).__samples = out;
+    const tick = (now: number) => {
+      if (root.dataset.state === "drawing") {
+        const paths = Array.from(root.querySelectorAll<SVGPathElement>("svg path"));
+        const partial: SVGPathElement[] = [];
+        const order = paths
+          .map((el) => {
+            const len = parseFloat(el.style.strokeDasharray);
+            const off = parseFloat(el.style.strokeDashoffset);
+            if (off <= 0.01) return "F";
+            if (off >= len - 0.01) return "H";
+            partial.push(el);
+            return "P";
+          })
+          .join("");
+        let tipGap: number | null = null;
+        if (partial.length === 1) {
+          const el = partial[0];
+          const ink = el.getPointAtLength(parseFloat(el.style.strokeDasharray) - parseFloat(el.style.strokeDashoffset));
+          const m = /translate\(([-\d.]+),([-\d.]+)\)/.exec(root.querySelector('[data-testid="sketch-pencil"]')!.getAttribute("transform")!)!;
+          tipGap = Math.hypot(ink.x - Number(m[1]), ink.y - Number(m[2]));
+        }
+        out.push({
+          t: now,
+          order,
+          partialSubpaths: partial.map((el) => (el.getAttribute("d")!.match(/[Mm]/g) ?? []).length),
+          tipGap,
+        });
+      }
+      if (root.dataset.state !== "done") requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+  // Quan sát và độ trễ chạy nối nhau, nên tua từng chút tới khi hình bắt đầu vẽ
+  await expect(async () => {
+    await page.clock.runFor(100);
+    await expect(page.getByTestId("sketch")).toHaveAttribute("data-state", "drawing", { timeout: 100 });
+  }).toPass();
+  await page.clock.runFor(SKETCH_TOTAL_MS + 200);
+  await expect(page.getByTestId("sketch")).toHaveAttribute("data-state", "done");
+  return page.evaluate(() => ({
+    samples: (window as unknown as { __samples: DrawSample[] }).__samples,
+    steps: Array.from(document.querySelectorAll('[data-testid="sketch"] svg path')).map((el) => el.getAttribute("data-step")),
+  }));
+}
+
+test.describe("bút chì đi cùng đầu nét", () => {
+  for (const n of [1, 3]) {
+    test(`đoạn ${n}: mỗi lúc chỉ một nét đang dở, trước nó xong hết, sau nó chưa vẽ, bút ở đúng đầu nét`, async ({ page }) => {
+      const { samples } = await sampleWholeDrawing(page, `/read/${BOOK}/${CH}/${n}`);
+      const partial = samples.filter((s) => s.partialSubpaths.length > 0);
+      expect(partial.length).toBeGreaterThan(50);
+      // Một element có nhiều M thì trình duyệt cho mọi đoạn con mọc cùng lúc, trong khi bút chỉ đi từng đoạn
+      expect(partial.filter((s) => s.partialSubpaths.some((c) => c !== 1))).toEqual([]);
+      expect(samples.filter((s) => !/^F*P?H*$/.test(s.order))).toEqual([]);
+      expect(partial.filter((s) => s.tipGap === null || s.tipGap > 0.2)).toEqual([]);
+      // Vẫn gói trong đúng 5,6 giây dù số element tăng: một `d` vẫn là một bước
+      const span = samples[samples.length - 1].t - samples[0].t;
+      expect(Math.abs(span - SKETCH_TOTAL_MS)).toBeLessThanOrEqual(50); // sai số vài khung hình 16ms
+    });
+  }
+
+  test("đoạn 3: cầu thang và vòng khoanh có mẫu ở giữa hình, không chỉ ở ranh giới giữa các nét", async ({ page }) => {
+    const { samples, steps } = await sampleWholeDrawing(page, `/read/${BOOK}/${CH}/3`);
+    const sketchSteps = getPassage(BOOK, CH, 3)!.sketch!.steps;
+    const stairAt = sketchSteps.findIndex((s) => s.kind === "path" && s.d.startsWith("M30,226"));
+    const ringAt = sketchSteps.findIndex((s) => s.kind === "ellipse" && s.multi);
+    const slice = (order: string, key: string) => steps.flatMap((k, i) => (k === `${key}-0` ? [order[i]] : [])).join("");
+    const stair = new Set(samples.map((s) => slice(s.order, `${stairAt}`)));
+    const ring = new Set(samples.map((s) => slice(s.order, `${ringAt}`)));
+
+    // Cầu thang nhiều đoạn: có lúc đoạn đầu xong, một đoạn đang dở, đoạn sau chưa vẽ
+    expect([...stair].some((o) => /^F+PH+$/.test(o))).toBe(true);
+    // Vòng khoanh 2 vòng: vòng 1 đang dở thì vòng 2 chưa có; vòng 2 đang dở thì vòng 1 đã xong
+    expect(ring).toContain("PH");
+    expect(ring).toContain("FP");
+    expect(ring).not.toContain("PP");
+  });
 });
