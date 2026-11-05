@@ -18,7 +18,9 @@ test.beforeEach(async ({ page }) => {
   await installSpies(page);
 });
 
-test("Khi kéo chuột bôi đen thì lúc đang kéo chưa hiện popup; thả ra thì popup hiện phía trên vùng chọn", async ({ page }) => {
+// Phía của popup: trên vùng chọn nếu ở đó đủ chỗ cho thẻ tra nghĩa (hoặc rộng hơn phía dưới), không thì dưới
+// — spec docs/superpowers/specs/2026-11-05-in-app-lookup-design.md (thẻ mở ra không làm hàng nút nhảy chỗ).
+test("Khi kéo chuột bôi đen thì lúc đang kéo chưa hiện popup; thả ra thì popup hiện cạnh vùng chọn (dòng đầu: phía dưới)", async ({ page }) => {
   await page.goto(P(1));
   await finishTyping(page, "click");
   await dragOver(page, "chronic gambler");
@@ -28,6 +30,17 @@ test("Khi kéo chuột bôi đen thì lúc đang kéo chưa hiện popup; thả 
   await page.mouse.up();
   await expect(popup(page)).toBeVisible();
   await expect(popup(page).getByRole("button", { name: /tra nghĩa/ })).toBeVisible();
+  const sel = await page.evaluate(() => window.getSelection()!.getRangeAt(0).getBoundingClientRect().bottom);
+  const b = (await popup(page).boundingBox())!;
+  expect(b.y, "đỉnh popup ở dưới vùng chọn").toBeGreaterThanOrEqual(sel);
+});
+
+test("Khi bôi đen chữ ở dòng dưới (phía trên đủ chỗ cho thẻ) thì popup hiện phía trên vùng chọn", async ({ page }) => {
+  await page.goto(P(1));
+  await finishTyping(page, "click");
+  await dragOver(page, "perfect place");
+  await page.mouse.up();
+  await expect(popup(page)).toBeVisible();
   const sel = await page.evaluate(() => window.getSelection()!.getRangeAt(0).getBoundingClientRect().top);
   const b = (await popup(page).boundingBox())!;
   expect(b.y + b.height, "đáy popup ở trên vùng chọn").toBeLessThanOrEqual(sel);

@@ -114,3 +114,69 @@ test("Khi thẻ đang hiện mà nhấn Escape thì thẻ ẩn; mở lại rồi
   await page.getByTestId("translation-col").click();
   await expect(card(page)).toHaveCount(0);
 });
+
+/** Giả /api/lookup trả `result` sau `ms` (để kịp đo lúc khung xương đang hiện). */
+async function mockLookupSlow(page: Page, result: typeof LOUT, ms = 600) {
+  await page.route("**/api/lookup", async (route) => {
+    await new Promise((r) => setTimeout(r, ms));
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ status: "ok", result }) });
+  });
+}
+
+/** Thẻ dài (cho trường hợp popup phải cuộn bên trong). */
+const LONG = {
+  ...LOUT,
+  meaning:
+    "kẻ thô lỗ, cục cằn, cư xử khó coi; người lúc nào cũng ồn ào, chen ngang, không biết nói cảm ơn hay xin lỗi, đi đâu cũng làm người khác thấy phiền",
+  example: {
+    en: "My cousin acted like a lout at the wedding: he talked loudly during the vows, cut the cake line, and never thanked the hosts.",
+    vi: "Ông anh họ tui cư xử như kẻ thô lỗ ở đám cưới: nói to lúc cô dâu chú rể đọc lời thề, chen hàng lấy bánh, rồi chẳng cảm ơn chủ nhà câu nào.",
+  },
+};
+
+// "lout": dòng đầu, phía trên chật → popup ở dưới. "perfect": dòng cuối, phía trên đủ chỗ → popup ở trên.
+for (const word of ["lout", "perfect"]) {
+  test(`Khi bấm "tra nghĩa" trên "${word}" thì nút "tra nghĩa" đứng yên (±2px) từ lúc bấm, lúc chờ tới lúc có kết quả`, async ({ page }) => {
+    await mockLookupSlow(page, LOUT);
+    await openReader(page);
+    await selectText(page, "original-text", word);
+    const btn = popup(page).getByRole("button", { name: "tra nghĩa" });
+    await expect(btn).toBeVisible();
+    const b0 = (await btn.boundingBox())!;
+    await btn.click();
+    await expect(page.getByTestId("lookup-skeleton")).toBeVisible();
+    const b1 = (await btn.boundingBox())!;
+    await expect(card(page)).toContainText("kẻ thô lỗ");
+    const b2 = (await btn.boundingBox())!;
+    for (const [label, b] of [["lúc chờ", b1], ["có kết quả", b2]] as const) {
+      expect(Math.abs(b.x - b0.x), `x ${label}`).toBeLessThanOrEqual(2);
+      expect(Math.abs(b.y - b0.y), `y ${label}`).toBeLessThanOrEqual(2);
+    }
+    // Popup không đè lên chữ đang chọn
+    const sel = await page.evaluate(() => {
+      const r = window.getSelection()!.getRangeAt(0).getBoundingClientRect();
+      return { top: r.top, bottom: r.bottom };
+    });
+    const p = (await popup(page).boundingBox())!;
+    expect(p.y >= sel.bottom || p.y + p.height <= sel.top, "popup không che vùng chọn").toBe(true);
+  });
+}
+
+for (const word of ["lout", "perfect"]) {
+  test(`Khi thẻ dài trên "${word}" thì popup nằm gọn giữa header và footer, thân thẻ cuộn bên trong`, async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 640 });
+    await mockLookup(page, { status: "ok", result: LONG });
+    await openReader(page);
+    await selectText(page, "original-text", word);
+    await popup(page).getByRole("button", { name: "tra nghĩa" }).click();
+    await expect(card(page)).toContainText("đám cưới");
+    const p = (await popup(page).boundingBox())!;
+    const header = (await page.locator("header").boundingBox())!;
+    const footer = (await page.locator("footer").boundingBox())!;
+    expect(p.y, "đỉnh popup ≥ đáy header").toBeGreaterThanOrEqual(header.y + header.height);
+    expect(p.y + p.height, "đáy popup ≤ đỉnh footer").toBeLessThanOrEqual(footer.y);
+    // Link Cambridge (dòng chân) vẫn thấy, không bị đẩy khỏi màn hình
+    const link = (await card(page).getByRole("link", { name: /Cambridge/ }).boundingBox())!;
+    expect(link.y + link.height).toBeLessThanOrEqual(footer.y);
+  });
+}

@@ -98,9 +98,13 @@ export interface Box {
 }
 
 /**
- * Đặt popup cạnh vùng chọn: canh giữa theo chiều ngang, ưu tiên phía trên (cách `gap`),
- * không đủ chỗ (dưới `minTop`) thì lật xuống dưới. Kẹp ngang để popup cách mép màn hình ≥ `margin`.
- * Mọi `Box` theo toạ độ viewport; kết quả theo toạ độ trong container (cho `position: absolute`).
+ * Đặt popup cạnh vùng chọn: canh giữa theo chiều ngang, kẹp để cách mép màn hình ≥ `margin`.
+ * Chọn phía một lần cho mỗi vùng chọn (thẻ tra nghĩa mở ra sẽ giữ phía đó): ưu tiên phía trên (cách `gap`)
+ * nếu ở đó đủ `wantRoom` cho thẻ hoặc rộng hơn phía dưới; phía trên không chứa nổi cả popup thì lật xuống.
+ * `minTop` / `maxBottom`: mép dưới header / mép trên footer dính (toạ độ viewport).
+ * Mọi `Box` theo toạ độ viewport; kết quả theo toạ độ trong container (cho `position: absolute`):
+ * `anchor` = mép popup sát vùng chọn (mép dưới nếu ở trên, mép trên nếu ở dưới) — popup lớn lên về phía xa
+ * vùng chọn, hàng nút đứng yên; `room` = chiều cao tối đa popup được chiếm ở phía đó.
  */
 export function placePopup(a: {
   sel: Box;
@@ -108,15 +112,26 @@ export function placePopup(a: {
   popup: { width: number; height: number };
   viewportWidth: number;
   minTop: number;
+  maxBottom: number;
+  wantRoom?: number;
   gap?: number;
   margin?: number;
-}): { left: number; top: number; below: boolean } {
-  const { sel, container, popup, viewportWidth, minTop, gap = 10, margin = 8 } = a;
+}): { left: number; top: number; below: boolean; anchor: number; room: number } {
+  const { sel, container, popup, viewportWidth, minTop, maxBottom, wantRoom = 0, gap = 10, margin = 8 } = a;
   const centered = sel.left + sel.width / 2 - popup.width / 2;
   const maxLeft = viewportWidth - margin - popup.width;
   const left = Math.max(margin, Math.min(centered, maxLeft));
-  const above = sel.top - popup.height - gap;
-  const below = above < minTop;
-  const top = below ? sel.top + sel.height + gap : above;
-  return { left: left - container.left, top: top - container.top, below };
+  const aboveEdge = sel.top - gap;
+  const belowEdge = sel.top + sel.height + gap;
+  const roomAbove = aboveEdge - minTop;
+  const roomBelow = maxBottom - belowEdge;
+  const below = roomAbove < popup.height || (roomAbove < wantRoom && roomAbove < roomBelow);
+  const edge = below ? belowEdge : aboveEdge;
+  return {
+    left: left - container.left,
+    top: (below ? belowEdge : aboveEdge - popup.height) - container.top,
+    below,
+    anchor: edge - container.top,
+    room: below ? roomBelow : roomAbove,
+  };
 }
