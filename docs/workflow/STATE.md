@@ -6,7 +6,7 @@
 ## Đang làm
 
 - **Task:** Lặt vặt tấm giải thích mobile + footer tràn 320px (cỡ S · UI) — nhánh `task/mobile-sheet-polish`
-- **Trạm:** ② Làm rõ — chờ Minh chọn bố cục footer (mockup https://claude.ai/artifact/AYwuw4vQzreVzRF4pcVseY: A theme lên header (khuyên) / B + đọc to thành icon loa / C giữ hết, lùi/tiếp chỉ mũi tên) và thanh kéo (bỏ (khuyên) / làm vuốt xuống để đóng / chỉ làm rõ).
+- **Trạm:** ⑦ Nghiệm thu — chờ Minh duyệt. Đã chốt: footer A (theme lên header mobile), bỏ thanh kéo. Commit `92288c4`; verify xanh (tsc+lint, 178 unit, 110 e2e), code review không lỗi. Nút N của Next dời sang top-left (top-right giờ có nút theme). Ảnh: `.ui-snaps/task/`.
 - **Tự chọn:** ✕ 19px màu text; bớt hở dưới "// chunk i/n"; dải mờ đáy vùng cuộn khi còn nội dung (ẩn khi cuộn tới cuối); vạch tiến độ mobile `scaleX` 300ms ease-out; vùng mờ thêm `ease-out`; "←" footer ≥44px, cách "tiếp" 8px.
 - **Đo được:** footer 320px cần 337px (giải thích 96, đọc to 65, theme 34, ← 36, tiếp 74).
 
