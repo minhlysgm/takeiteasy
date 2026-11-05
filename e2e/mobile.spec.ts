@@ -107,3 +107,40 @@ test.describe("360px", () => {
     expect((await footer.boundingBox())!.height).toBeLessThanOrEqual(61);
   });
 });
+
+test("bật giải thích: 5 số cạnh cụm + 5 ghi chú tay giữa nguyên văn và bản dịch", async ({ page }) => {
+  await page.goto(P1);
+  await finishTyping(page);
+  await page.getByRole("button", { name: /giải thích/ }).tap();
+  const nums = page.getByRole("button", { name: /^xem cụm \d$/ });
+  await expect(nums).toHaveCount(5);
+  for (let i = 0; i < 5; i++) await expect(nums.nth(i)).toBeVisible();
+
+  const notes = page.getByTestId("mobile-notes");
+  await expect(notes).toBeVisible();
+  const items = notes.getByRole("button");
+  await expect(items).toHaveCount(5);
+  for (let i = 0; i < 5; i++) {
+    const b = (await items.nth(i).boundingBox())!;
+    expect(b.x).toBeGreaterThanOrEqual(0);
+    expect(b.x + b.width).toBeLessThanOrEqual(390);
+  }
+  const text = (await page.locator("[data-chunk-id]").last().boundingBox())!;
+  const nb = (await notes.boundingBox())!;
+  const tr = (await page.getByTestId("translation-col").boundingBox())!;
+  expect(nb.y).toBeGreaterThan(text.y);
+  expect(nb.y + nb.height).toBeLessThan(tr.y);
+});
+
+test("chạm cụm gạch chân hoặc số thì mở đúng cụm", async ({ page }) => {
+  await page.goto(P1);
+  await finishTyping(page);
+  await page.getByRole("button", { name: /giải thích/ }).tap();
+  await page.locator('[data-chunk-id="chronic"]').tap();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toContainText("// chunk 1/5");
+  await dialog.getByRole("button", { name: /đóng/ }).tap();
+  await expect(dialog).toBeHidden();
+  await page.getByRole("button", { name: "xem cụm 3" }).tap();
+  await expect(page.getByRole("dialog")).toContainText("// chunk 3/5");
+});

@@ -12,6 +12,7 @@ import { AnnotationLayer } from "./AnnotationLayer";
 import { ChunkDrawer } from "./ChunkDrawer";
 import { FirstTimeHint } from "./FirstTimeHint";
 import { Kbd } from "./Kbd";
+import { MobileNoteList } from "./MobileNoteList";
 import { OriginalText } from "./OriginalText";
 import { PassageSketch } from "./PassageSketch";
 import { SpeechTooltip } from "./SpeechTooltip";
@@ -156,6 +157,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
             {explainOn && <span className="ml-3 text-ink">{passage.chunks.length} chunks đáng học</span>}
           </div>
           <OriginalText passage={passage} explainOn={explainOn} onChunkClick={openChunk} />
+          {explainOn && <MobileNoteList chunks={passage.chunks} onChunkClick={openChunk} />}
           <SpeechTooltip containerRef={originalColRef} />
           {passage.sketch && (
             <PassageSketch key={passage.id} sketch={passage.sketch} passageId={passage.id} start={typing.done} dimmed={explainOn} />
@@ -186,7 +188,9 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
           )}
         </div>
         {explainOn && (
-          <AnnotationLayer containerRef={readerRef} chunks={passage.chunks} onChunkClick={openChunk} />
+          <div className="hidden lg:contents">
+            <AnnotationLayer containerRef={readerRef} chunks={passage.chunks} onChunkClick={openChunk} />
+          </div>
         )}
         {drawerIndex !== null && (
           <ChunkDrawer
