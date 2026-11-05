@@ -73,6 +73,18 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
     [book.id, chapterId, passageCount, router],
   );
 
+  // Bấm chuột vào nút xong thì nhả focus: nút còn giữ focus thì Enter lại bấm nút đó thay vì sang đoạn.
+  // Bấm bằng bàn phím (detail = 0) thì giữ nguyên để người dùng bàn phím không mất chỗ.
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (e.detail === 0 || !(e.target instanceof Element)) return;
+      const btn = e.target.closest("button");
+      if (btn && document.activeElement === btn) btn.blur();
+    };
+    document.addEventListener("click", onClick);
+    return () => document.removeEventListener("click", onClick);
+  }, []);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;

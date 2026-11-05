@@ -112,6 +112,25 @@ describe("PassageView", () => {
     expect(push).not.toHaveBeenCalled();
   });
 
+  it("bấm chuột vào nút xong thì nút nhả focus: Enter lại là phím sang đoạn", () => {
+    renderView();
+    fireEvent.keyDown(window, { key: "x" }); // skip typing
+    const btn = screen.getByRole("button", { name: /giải thích/ });
+    btn.focus();
+    fireEvent.click(btn, { detail: 1 }); // chuột: detail = số lần bấm
+    expect(document.activeElement).not.toBe(btn);
+    fireEvent.keyDown(document.activeElement ?? window, { key: "Enter" });
+    expect(push).toHaveBeenCalledWith("/read/the-subtle-art/ch01/2");
+  });
+
+  it("nút được bấm bằng bàn phím (Enter/Space) thì giữ focus", () => {
+    renderView();
+    const btn = screen.getByRole("button", { name: /giải thích/ });
+    btn.focus();
+    fireEvent.click(btn, { detail: 0 }); // bàn phím: detail = 0
+    expect(document.activeElement).toBe(btn);
+  });
+
   it("Enter trên phần tử con của nút cũng tính là trên nút", () => {
     renderView();
     fireEvent.keyDown(window, { key: "x" });
