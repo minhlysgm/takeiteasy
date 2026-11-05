@@ -3,9 +3,10 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Book, Passage } from "@/content/types";
 import { DOCK_QUERY } from "@/lib/breakpoints";
-import { chapterLabel } from "@/lib/content";
+import { chapterLabel, type PassageOutline } from "@/lib/content";
 import { prefersReducedMotion } from "@/lib/motion";
 import { saveProgress } from "@/lib/progress";
+import { getReadPassages, markPassageRead } from "@/lib/readPassages";
 import { isSpeechAvailable, speak, stopSpeech } from "@/lib/speech";
 import { useMediaQuery } from "@/lib/useMediaQuery";
 import { useTextSelection } from "@/lib/useTextSelection";
@@ -18,6 +19,7 @@ import { FooterButton } from "./FooterButton";
 import { Kbd } from "./Kbd";
 import { MobileNoteList } from "./MobileNoteList";
 import { OriginalText } from "./OriginalText";
+import { PassageJumpList } from "./PassageJumpList";
 import { PassageSketch } from "./PassageSketch";
 import { SelectionDock } from "./SelectionDock";
 import { SelectionPopup } from "./SelectionPopup";
@@ -28,13 +30,22 @@ interface Props {
   passage: Passage;
   passageIndex: number; // 1-based
   passageCount: number;
+  /** Câu mở đầu của mọi đoạn trong chương — cho danh sách đoạn */
+  outline: PassageOutline[];
+  /** "Chương 1 · Don't Try" */
+  chapterTitle: string;
 }
 
-export function PassageView({ book, chapterId, passage, passageIndex, passageCount }: Props) {
+export function PassageView({ book, chapterId, passage, passageIndex, passageCount, outline, chapterTitle }: Props) {
   const router = useRouter();
   const [explainOn, setExplainOn] = useState(false);
   const [drawerIndex, setDrawerIndex] = useState<number | null>(null);
   const [drawerClosing, setDrawerClosing] = useState(false);
+  // Danh sách đoạn (nhảy tới đoạn bất kỳ). `read` đọc lại từ localStorage mỗi lần mở.
+  const [jumpOpen, setJumpOpen] = useState(false);
+  const [read, setRead] = useState<number[]>([]);
+  const jumpTriggerRef = useRef<HTMLButtonElement>(null);
+  const jumpTriggerMobileRef = useRef<HTMLButtonElement>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const readerRef = useRef<HTMLDivElement>(null);
   const originalColRef = useRef<HTMLDivElement>(null);
@@ -60,6 +71,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
     setExplainOn(false);
     setDrawerIndex(null);
     setDrawerClosing(false);
+    setJumpOpen(false); // gỡ danh sách → hook của nó trả focus + mở khoá cuộn (cả khi back/forward)
   }
 
   // Việc ngoài React khi chuyển đoạn: huỷ hẹn giờ đóng tấm, tắt speech, bỏ vùng chọn của trình duyệt
@@ -83,6 +95,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
 
   useEffect(() => {
     saveProgress({ bookId: book.id, chapterId, passageIndex });
+    markPassageRead(book.id, chapterId, passageIndex);
   }, [book.id, chapterId, passageIndex]);
 
   useEffect(() => () => stopSpeech(), []);
@@ -107,6 +120,21 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
     },
     [book.id, chapterId, passageCount, router, clearSelection],
   );
+
+  const openJump = useCallback(() => {
+    clearSelection();
+    // Desktop: footer vẫn bấm được khi ngăn giải thích mở → đóng ngay, không để hai lớp nổi chồng nhau.
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setDrawerIndex(null);
+    setDrawerClosing(false);
+    setRead(getReadPassages(book.id, chapterId));
+    setJumpOpen(true);
+  }, [book.id, chapterId, clearSelection]);
+
+  const pickPassage = (i: number) => {
+    setJumpOpen(false);
+    goTo(i);
+  };
 
   // Bấm chuột vào nút xong thì nhả focus: nút còn giữ focus thì Enter lại bấm nút đó thay vì sang đoạn.
   // Bấm bằng bàn phím (detail = 0) thì giữ nguyên để người dùng bàn phím không mất chỗ.
@@ -138,7 +166,30 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
         if (e.key === "k") setDrawerIndex(Math.max(0, drawerIndex - 1));
         return;
       }
+      // Danh sách đoạn đang mở: chỉ g / Esc (đóng). Phím khác để danh sách tự lo (↑/↓/enter),
+      // không chuyển đoạn hay tắt giải thích phía sau.
+      if (jumpOpen) {
+        if (e.key === "g" || e.key === "Escape") setJumpOpen(false);
+        return;
+      }
       switch (e.key) {
+        case "g": {
+          // Focus bộ đếm đang hiện trước khi mở: đóng danh sách thì focus trả về đúng nút này.
+          const trigger = [jumpTriggerRef.current, jumpTriggerMobileRef.current].find(
+            (b) => b && b.getClientRects().length > 0,
+          );
+          trigger?.focus();
+          openJump();
+          break;
+        }
+        case "Home":
+          e.preventDefault();
+          goTo(1);
+          break;
+        case "End":
+          e.preventDefault();
+          goTo(passageCount);
+          break;
         case "Enter":
         case "ArrowRight":
           goTo(passageIndex + 1);
@@ -163,7 +214,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [typing, drawerIndex, drawerClosing, passageIndex, goTo, passage, toggleTheme, requestCloseDrawer, clearSelection]);
+  }, [typing, drawerIndex, drawerClosing, jumpOpen, openJump, passageIndex, passageCount, goTo, passage, toggleTheme, requestCloseDrawer, clearSelection]);
 
   const openChunk = (chunkId: string) => {
     const i = passage.chunks.findIndex((c) => c.id === chunkId);
@@ -184,8 +235,26 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
           <span className="block h-3 w-3 rounded-full bg-accent opacity-70" />
         </div>
         <div className="min-w-0 grow truncate text-center text-[13px] text-muted">
-          <span className="hidden lg:inline">takeiteasy — {book.id} / </span>{chapterLabel(chapterId)} · đoạn {passageIndex}/{passageCount}
-          {explainOn && <span className="text-ink"> · explain</span>}
+          {/* Mobile: tiêu đề là nút mở danh sách đoạn. Desktop: chữ thường như cũ (nút ở footer). */}
+          <button
+            ref={jumpTriggerMobileRef}
+            type="button"
+            data-testid="jump-trigger-mobile"
+            aria-haspopup="dialog"
+            aria-expanded={jumpOpen}
+            onClick={openJump}
+            className="inline-flex h-11 max-w-full items-center gap-1.5 px-2.5 align-top text-bright focus-visible:outline-offset-[-4px] lg:hidden"
+          >
+            <span className="truncate">
+              {chapterLabel(chapterId)} · đoạn {passageIndex}/{passageCount}
+              {explainOn && <span className="text-ink"> · explain</span>}
+            </span>
+            <span aria-hidden="true" className="shrink-0 text-muted">▾</span>
+          </button>
+          <span className="hidden lg:inline">
+            takeiteasy — {book.id} / {chapterLabel(chapterId)} · đoạn {passageIndex}/{passageCount}
+            {explainOn && <span className="text-ink"> · explain</span>}
+          </span>
         </div>
         <div className="hidden w-14 shrink-0 lg:block" />
         {/* Mobile: theme ở header cho footer đủ chỗ ở 320px; desktop vẫn ở footer (phím t) */}
@@ -295,7 +364,17 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
             />
           </div>
           <div className="flex items-center gap-4">
-            <span className="hidden lg:inline">{chapterLabel(chapterId)} · {passageIndex}/{passageCount}</span>
+            <FooterButton
+              ref={jumpTriggerRef}
+              desktopOnly
+              active={jumpOpen}
+              data-testid="jump-trigger"
+              aria-haspopup="dialog"
+              aria-expanded={jumpOpen}
+              onClick={openJump}
+            >
+              <Kbd>g</Kbd> {chapterLabel(chapterId)} · {passageIndex}/{passageCount} <span aria-hidden="true">▾</span>
+            </FooterButton>
             <div className="flex gap-2">
               <FooterButton className="min-w-11 lg:min-w-0" onClick={() => goTo(passageIndex - 1)} disabled={passageIndex <= 1}>
                 ← <span className="sr-only lg:not-sr-only">trước</span>
@@ -307,6 +386,17 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
           </div>
         </footer>
       </div>
+
+      {jumpOpen && (
+        <PassageJumpList
+          title={chapterTitle}
+          outline={outline}
+          current={passageIndex}
+          read={read}
+          onPick={pickPassage}
+          onClose={() => setJumpOpen(false)}
+        />
+      )}
     </div>
   );
 }

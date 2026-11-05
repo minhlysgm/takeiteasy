@@ -1,6 +1,6 @@
-import type { ButtonHTMLAttributes } from "react";
+import type { ComponentPropsWithRef } from "react";
 
-interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
+interface Props extends ComponentPropsWithRef<"button"> {
   /** Đang bật (vd. "giải thích"): viền + chữ màu ink, không đổi màu khi rê chuột. */
   active?: boolean;
   /** Chỉ hiện ở desktop (lg) — vd. "theme", "đoạn tiếp" có phím tắt riêng. */

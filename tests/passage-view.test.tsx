@@ -1,8 +1,9 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { PassageView } from "@/components/reader/PassageView";
-import { books, getPassages } from "@/lib/content";
+import { books, firstSentence, getPassages } from "@/lib/content";
 import { getProgress } from "@/lib/progress";
+import { getReadPassages } from "@/lib/readPassages";
 
 const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
@@ -14,10 +15,14 @@ vi.mock("rough-notation", () => ({
 
 const book = books[0];
 const passages = getPassages(book.id, "ch01")!;
+const outline = passages.map((p, i) => ({ index: i + 1, firstSentence: firstSentence(p.original) }));
+const chapterTitle = "Chương 1 · Don't Try";
 
 function renderView() {
   return render(
     <PassageView
+      outline={outline}
+      chapterTitle={chapterTitle}
       book={book}
       chapterId="ch01"
       passage={passages[0]}
@@ -29,7 +34,7 @@ function renderView() {
 
 function view2() {
   return (
-    <PassageView book={book} chapterId="ch01" passage={passages[1]} passageIndex={2} passageCount={passages.length} />
+    <PassageView outline={outline} chapterTitle={chapterTitle} book={book} chapterId="ch01" passage={passages[1]} passageIndex={2} passageCount={passages.length} />
   );
 }
 
@@ -42,7 +47,7 @@ describe("PassageView", () => {
   it("render nguyên văn và header đoạn", () => {
     renderView();
     expect(screen.getByTestId("original-col").textContent).toContain("Charles Bukowski was an alcoholic");
-    expect(screen.getByText(new RegExp(`đoạn 1/${passages.length}`))).toBeTruthy();
+    expect(document.querySelector("header")!.textContent).toContain(`đoạn 1/${passages.length}`);
   });
 
   it("lưu tiến độ khi mở đoạn", () => {
@@ -102,6 +107,8 @@ describe("PassageView", () => {
   it("enter điều hướng sang đoạn kế tiếp khi còn đoạn phía sau", () => {
     render(
       <PassageView
+        outline={outline}
+        chapterTitle={chapterTitle}
         book={book}
         chapterId="ch01"
         passage={passages[0]}
@@ -179,6 +186,8 @@ describe("PassageView", () => {
     const { sketch: _sketch, ...noSketch } = passages[0];
     render(
       <PassageView
+        outline={outline}
+        chapterTitle={chapterTitle}
         book={book}
         chapterId="ch01"
         passage={noSketch}
@@ -187,6 +196,112 @@ describe("PassageView", () => {
       />,
     );
     expect(screen.queryByTestId("sketch")).toBeNull();
+  });
+});
+
+describe("PassageView — danh sách đoạn (g / Home / End)", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    push.mockClear();
+  });
+
+  const skipTyping = () => fireEvent.keyDown(window, { key: "x" });
+  const list = () => screen.queryByTestId("jump-list");
+
+  it("phím g mở danh sách, g lần nữa đóng", () => {
+    renderView();
+    skipTyping();
+    fireEvent.keyDown(window, { key: "g" });
+    expect(list()).toBeTruthy();
+    expect(screen.getAllByTestId("jump-row")).toHaveLength(passages.length);
+    expect(screen.getByText(chapterTitle)).toBeTruthy();
+    fireEvent.keyDown(window, { key: "g" });
+    expect(list()).toBeNull();
+  });
+
+  it("Home → router.push('/read/<book>/<ch>/1'); End → đoạn cuối", () => {
+    render(view2());
+    skipTyping();
+    fireEvent.keyDown(window, { key: "Home" });
+    expect(push).toHaveBeenLastCalledWith("/read/the-subtle-art/ch01/1");
+    fireEvent.keyDown(window, { key: "End" });
+    expect(push).toHaveBeenLastCalledWith(`/read/the-subtle-art/ch01/${passages.length}`);
+  });
+
+  it("tấm giải thích đang mở: g/Home/End không làm gì", () => {
+    render(view2());
+    skipTyping();
+    fireEvent.keyDown(window, { key: "e" });
+    fireEvent.click(screen.getByTestId("mobile-notes").querySelector("button")!);
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    for (const key of ["g", "Home", "End"]) fireEvent.keyDown(window, { key });
+    expect(push).not.toHaveBeenCalled();
+    expect(list()).toBeNull();
+  });
+
+  it("ngăn giải thích đang mở (desktop: footer vẫn bấm được) mà bấm bộ đếm → đóng ngăn, chỉ còn danh sách", () => {
+    render(view2());
+    skipTyping();
+    fireEvent.keyDown(window, { key: "e" });
+    fireEvent.click(screen.getByTestId("mobile-notes").querySelector("button")!);
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
+    fireEvent.click(screen.getByTestId("jump-trigger"));
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
+    expect(list()).toBeTruthy();
+  });
+
+  it("danh sách mở: ArrowRight/Enter/e không chuyển đoạn, không bật giải thích", () => {
+    render(view2());
+    skipTyping();
+    fireEvent.keyDown(window, { key: "g" });
+    for (const key of ["ArrowRight", "Enter", "e", "ArrowLeft"]) fireEvent.keyDown(window, { key });
+    expect(push).not.toHaveBeenCalled();
+    expect(screen.queryByText(/chunks đáng học/)).toBeNull();
+    expect(list()).toBeTruthy();
+  });
+
+  it("danh sách mở + Escape: đóng danh sách nhưng không tắt chế độ giải thích phía sau", () => {
+    renderView();
+    skipTyping();
+    fireEvent.keyDown(window, { key: "e" });
+    fireEvent.keyDown(window, { key: "g" });
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(list()).toBeNull();
+    expect(screen.getByText(/chunks đáng học/)).toBeTruthy();
+  });
+
+  it("chọn một dòng → đóng danh sách và chuyển tới đoạn đó", () => {
+    render(view2());
+    skipTyping();
+    fireEvent.click(screen.getByTestId("jump-trigger"));
+    expect(screen.getByTestId("jump-trigger").getAttribute("aria-expanded")).toBe("true");
+    fireEvent.click(screen.getAllByTestId("jump-row")[2]);
+    expect(list()).toBeNull();
+    expect(push).toHaveBeenCalledWith("/read/the-subtle-art/ch01/3");
+  });
+
+  it("mở đoạn thì ghi vào tie:read; danh sách hiện ✓ các đoạn đã mở", () => {
+    const { rerender } = render(view2());
+    expect(getReadPassages(book.id, "ch01")).toEqual([2]);
+    rerender(
+      <PassageView outline={outline} chapterTitle={chapterTitle} book={book} chapterId="ch01" passage={passages[0]} passageIndex={1} passageCount={passages.length} />,
+    );
+    expect(getReadPassages(book.id, "ch01")).toEqual([1, 2]);
+    skipTyping();
+    fireEvent.click(screen.getByTestId("jump-trigger-mobile"));
+    const rows = screen.getAllByTestId("jump-row");
+    expect(rows.map((r) => r.textContent?.includes("✓"))).toEqual([true, true, false]);
+  });
+
+  it("đổi đoạn không qua danh sách (back/forward) thì danh sách đóng", () => {
+    const { rerender } = render(view2());
+    skipTyping();
+    fireEvent.keyDown(window, { key: "g" });
+    expect(list()).toBeTruthy();
+    rerender(
+      <PassageView outline={outline} chapterTitle={chapterTitle} book={book} chapterId="ch01" passage={passages[0]} passageIndex={1} passageCount={passages.length} />,
+    );
+    expect(list()).toBeNull();
   });
 });
 
@@ -213,7 +328,7 @@ describe("PassageView — chọn chữ khi chuyển đoạn", () => {
 
   function view(i: number) {
     return (
-      <PassageView book={book} chapterId="ch01" passage={passages[i - 1]} passageIndex={i} passageCount={passages.length} />
+      <PassageView outline={outline} chapterTitle={chapterTitle} book={book} chapterId="ch01" passage={passages[i - 1]} passageIndex={i} passageCount={passages.length} />
     );
   }
 
