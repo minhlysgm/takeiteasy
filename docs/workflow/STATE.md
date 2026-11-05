@@ -22,10 +22,9 @@
 
 ## Backlog
 
-1. **[S] `npm run verify` đang đỏ vì lỗi type có sẵn** — `tests/annotation-layer.test.tsx:10` (TS2556, spread argument).
-2. **[S] `npm run lint` hỏng** — Next 16 đã bỏ `next lint`; chuyển sang ESLint CLI + flat config rồi đưa lint vào `verify`.
-3. **[M · UI] Reader chưa dùng được trên mobile** — lưới 4 cột cố định đẩy cột bản dịch ra ngoài màn hình, nguyên văn bị bóp còn ~10 ký tự/dòng, footer vỡ chữ (xem `npm run ui:snap`).
-4. **[S · UI] Nút "N" của Next dev che nút "giải thích"** ở góc dưới trái (chỉ khi dev) — dời `devIndicators` sang góc khác.
+1. **[S] `npm run lint` hỏng** — Next 16 đã bỏ `next lint`; chuyển sang ESLint CLI + flat config rồi đưa lint vào `verify`.
+2. **[M · UI] Reader chưa dùng được trên mobile** — lưới 4 cột cố định đẩy cột bản dịch ra ngoài màn hình, nguyên văn bị bóp còn ~10 ký tự/dòng, footer vỡ chữ (xem `npm run ui:snap`).
+3. **[S · UI] Nút "N" của Next dev che nút "giải thích"** ở góc dưới trái (chỉ khi dev) — dời `devIndicators` sang góc khác.
 
 ## Đã xong
 

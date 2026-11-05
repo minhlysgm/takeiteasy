@@ -4,7 +4,7 @@ import { useRef } from "react";
 import { AnnotationLayer } from "@/components/reader/AnnotationLayer";
 import { books, getPassages } from "@/lib/content";
 
-const annotate = vi.fn(() => ({ remove: vi.fn() }));
+const annotate = vi.fn((..._args: unknown[]) => ({ remove: vi.fn() }));
 const show = vi.fn();
 vi.mock("rough-notation", () => ({
   annotate: (...args: unknown[]) => annotate(...args),
