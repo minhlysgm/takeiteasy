@@ -11,6 +11,7 @@ export interface Passage {
   translation: string; // bản dịch tự nhiên (nguồn cho hiệu ứng typing)
   mainIdea?: string; // "ý chính của đoạn"
   chunks: Chunk[];
+  sketch?: Sketch; // hình phác thảo tự vẽ của đoạn (tuỳ chọn)
 }
 
 export interface Chunk {
@@ -26,3 +27,12 @@ export interface Chunk {
   mistake?: { wrong: string; right: string };
   note?: string;
 }
+
+export type SketchTone = "line" | "ink" | "name" | "muted";
+export type SketchStep =
+  | { kind: "path"; d: string; tone: "line" | "ink"; width?: number; rough?: number; seed?: number; plain?: boolean }
+  | { kind: "ellipse"; cx: number; cy: number; w: number; h: number; tone: "line" | "ink"; rough?: number; seed?: number; multi?: boolean }
+  | { kind: "arrow"; points: [number, number, number, number, number, number, number, number]; tone: "ink" }
+  | { kind: "text"; text: string; x: number; y: number; size: number; tone: SketchTone; anchor?: "start" | "middle" | "end" }
+  | { kind: "pause"; ms: number };
+export type Sketch = { viewBox: string; alt: string; steps: SketchStep[] }; // alt: mô tả tiếng Việt cho trình đọc màn hình
