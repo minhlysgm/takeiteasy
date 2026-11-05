@@ -212,7 +212,7 @@ test("không thấy gợi ý phím trong tấm", async ({ page }) => {
   await expect(dialog.locator("kbd:visible")).toHaveCount(0);
 });
 
-test("đóng tấm hoặc chuyển đoạn khi đang mở thì trang cuộn lại được", async ({ page }) => {
+test("đóng tấm thì trang cuộn lại được", async ({ page }) => {
   const overflow = () => page.evaluate(() => document.body.style.overflow);
   await page.goto(P1);
   const dialog = await openNote(page, 2);
@@ -221,12 +221,29 @@ test("đóng tấm hoặc chuyển đoạn khi đang mở thì trang cuộn lạ
   await expect(page.getByRole("dialog")).toBeHidden();
   expect(await overflow()).toBe("");
 
-  await page.getByTestId("mobile-notes").getByRole("button").nth(1).tap();
-  await waitSettled(page);
+});
+
+test("chuyển đoạn phía client khi tấm đang mở thì trang cuộn lại được", async ({ page }) => {
+  const overflow = () => page.evaluate(() => document.body.style.overflow);
+  const P2 = "/read/the-subtle-art/ch01/2";
+  await page.goto(P2);
+  await finishTyping(page);
+  // đánh dấu trên window: còn nguyên sau mỗi bước = không tải lại trang (điều hướng phía client)
+  await page.evaluate(() => ((window as unknown as { __tieMarker: number }).__tieMarker = 1));
+  const markerAlive = () =>
+    page.evaluate(() => (window as unknown as { __tieMarker?: number }).__tieMarker === 1);
+
+  await page.getByRole("button", { name: /← trước/ }).tap();
+  await expect(page).toHaveURL(/\/ch01\/1$/);
+  await openNote(page, 2);
   expect(await overflow()).toBe("hidden");
-  await page.goto("/read/the-subtle-art/ch01/2");
-  await expect(page.getByTestId("original-col")).toBeVisible();
+  expect(await markerAlive()).toBe(true);
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/ch01\/2$/);
+  await expect(page.getByRole("dialog")).toBeHidden();
   expect(await overflow()).toBe("");
+  expect(await markerAlive()).toBe(true);
 });
 
 test("tấm vẫn trọn màn hình khi đổi cỡ qua 1024px", async ({ page }) => {
