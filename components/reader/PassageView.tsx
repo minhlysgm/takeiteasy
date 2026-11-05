@@ -42,7 +42,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
   const typing = useTypingText(passage.translation);
   const { toggle: toggleTheme } = useTheme();
   // Chỉ chữ nguyên văn mới tính: nhãn, ghi chú tay, hình minh hoạ cùng cột thì không.
-  const { selection, keep, clear: clearSelection } = useTextSelection(originalTextRef);
+  const { selection, clear: clearSelection } = useTextSelection(originalTextRef);
   // Màn hẹp hoặc cảm ứng → thanh dính trên footer; còn lại → popup nổi cạnh vùng chọn.
   const docked = useMediaQuery(DOCK_QUERY);
   // Tấm/ngăn giải thích đang mở thì không hiện thanh/popup chọn chữ.
@@ -149,7 +149,10 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
 
   const openChunk = (chunkId: string) => {
     const i = passage.chunks.findIndex((c) => c.id === chunkId);
-    if (i >= 0) setDrawerIndex(i);
+    if (i < 0) return;
+    // Bấm vào cụm cũng có thể vừa bôi đen chữ (nhấp đúp): bỏ luôn, kẻo đóng tấm lại hiện popup cũ.
+    clearSelection();
+    setDrawerIndex(i);
   };
 
   return (
@@ -190,7 +193,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
           </div>
           <OriginalText ref={originalTextRef} passage={passage} explainOn={explainOn} onChunkClick={openChunk} />
           {explainOn && <MobileNoteList chunks={passage.chunks} onChunkClick={openChunk} />}
-          {showSel && !docked && <SelectionPopup selection={selection} containerRef={originalColRef} onKeep={keep} />}
+          {showSel && !docked && <SelectionPopup selection={selection} containerRef={originalColRef} speechOk={speechOk} />}
           {passage.sketch && (
             <PassageSketch key={passage.id} sketch={passage.sketch} passageId={passage.id} start={typing.done} dimmed={explainOn} />
           )}
@@ -236,9 +239,11 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
       </div>
 
       {/* Footer dính đáy màn hình ở mọi cỡ; desktop nằm trên vùng mờ của ngăn giải thích nên vẫn bấm được */}
-      <div className="sticky bottom-0 z-[5] lg:z-[15]">
-        {showSel && docked && <SelectionDock selection={selection} onKeep={keep} />}
-        <FirstTimeHint explainOn={explainOn} />
+      {/* Nền surface: khe lẻ pixel giữa các dải không lộ nội dung phía sau */}
+      <div className="sticky bottom-0 z-[5] bg-surface lg:z-[15]">
+        {showSel && docked && <SelectionDock selection={selection} speechOk={speechOk} />}
+        {/* Thanh đang hiện thì mẹo tạm nhường chỗ (màn nhỏ: mẹo + thanh + footer chiếm gần nửa màn) */}
+        <FirstTimeHint explainOn={explainOn} hidden={showSel && docked} />
         <footer className="relative flex [&_button:focus-visible]:outline-offset-1 h-[60px] shrink-0 items-center justify-between gap-1.5 border-t border-line bg-bg px-2 text-[13px] text-muted lg:h-14 lg:gap-0 lg:px-8">
           <div
             aria-hidden

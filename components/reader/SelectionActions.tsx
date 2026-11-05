@@ -1,35 +1,27 @@
 "use client";
-import type { PointerEvent } from "react";
 import { canLookUp, lookupUrl } from "@/lib/selection";
-import { isSpeechAvailable, speak } from "@/lib/speech";
+import { speak } from "@/lib/speech";
 
 interface Props {
   text: string;
-  /** Gọi ở pointerdown (chạm/bút) để vùng chọn không bị coi là đã bỏ khi chạm nút. */
-  onKeep: () => void;
+  /** Trình duyệt đọc được không — PassageView đọc sau mount (khớp SSR), dùng chung với nút "đọc to". */
+  speechOk: boolean;
   size: "popup" | "dock";
 }
 
 const BASE = "flex items-center gap-2 text-bright disabled:opacity-40";
 const SIZE_CLASS = {
-  popup: "px-4 py-3",
-  dock: "min-h-11 border border-line bg-bg px-3.5",
+  popup:
+    "px-4 py-3 transition-colors hover:bg-bg disabled:hover:bg-transparent motion-reduce:transition-none",
+  dock: "min-h-11 border border-line bg-bg px-3.5 text-[13.5px]",
 } as const;
 
 /**
- * onPointerDown chỉ gọi `onKeep` khi chạm/bút. Chuột thì `onMouseDown` preventDefault đã giữ vùng chọn;
- * gọi keep() thêm chỉ làm cú click ra ngoài trong 800ms sau đó không tắt được thanh/popup.
+ * Hai nút "nghe" / "tra nghĩa". Giữ vùng chọn khi bấm là việc của khung chứa (SelectionDock /
+ * SelectionPopup): `data-selection-ui` cho chạm, `onMouseDown` preventDefault cho chuột.
  */
-export function keepOnTouch(onKeep: () => void) {
-  return (e: PointerEvent) => {
-    if (e.pointerType !== "mouse") onKeep();
-  };
-}
-
-export function SelectionActions({ text, onKeep, size }: Props) {
-  const speechOk = isSpeechAvailable();
+export function SelectionActions({ text, speechOk, size }: Props) {
   const lookUp = canLookUp(text);
-  const onPointerDown = keepOnTouch(onKeep);
   const cls = `${BASE} ${SIZE_CLASS[size]}`;
   // Popup: hai nút chung một khung, ngăn cách bằng đường kẻ giữa (chỉ khi có nút thứ hai).
   const nghe = size === "popup" && lookUp ? `${cls} border-r border-line` : cls;
@@ -39,8 +31,6 @@ export function SelectionActions({ text, onKeep, size }: Props) {
       <button
         type="button"
         onClick={() => speak(text)}
-        onPointerDown={onPointerDown}
-        onMouseDown={(e) => e.preventDefault()}
         disabled={!speechOk}
         title={speechOk ? undefined : "trình duyệt không hỗ trợ đọc"}
         className={nghe}
@@ -54,8 +44,6 @@ export function SelectionActions({ text, onKeep, size }: Props) {
         <button
           type="button"
           onClick={() => window.open(lookupUrl(text), "_blank", "noopener")}
-          onPointerDown={onPointerDown}
-          onMouseDown={(e) => e.preventDefault()}
           className={cls}
         >
           <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">

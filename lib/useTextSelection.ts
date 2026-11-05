@@ -8,7 +8,9 @@ export interface TextSelection {
 }
 
 const DEFAULT_SETTLE_MS = 250;
-/** Sau `keep()`, vùng chọn bị bỏ không làm mất `selection` trong khoảng này. */
+/** Thanh/popup chọn chữ đánh dấu bằng thuộc tính này để chạm vào nó không bị coi là bỏ chọn. */
+const SELECTION_UI = "[data-selection-ui]";
+/** Sau khi chạm thanh/popup, vùng chọn bị bỏ không làm mất `selection` trong khoảng này. */
 const KEEP_MS = 800;
 
 function sameSelection(a: TextSelection | null, b: TextSelection | null): boolean {
@@ -27,14 +29,14 @@ function sameSelection(a: TextSelection | null, b: TextSelection | null): boolea
  * Theo dõi vùng chọn chữ trong `containerRef` (chuột lẫn cảm ứng).
  * - Đợi `selectionchange` lặng `settleMs` rồi mới đọc (chạm: tay còn kéo handle thì chưa công bố).
  * - Chuột đang giữ thì chưa công bố; nhả chuột thì đọc ngay.
- * - `keep()`: gọi ở `onPointerDown` (chạm/bút, không phải chuột) của nút trên thanh — trình duyệt
- *   hay bỏ chọn lúc chạm, nên 800ms kế tiếp vùng chọn xẹp không làm mất `selection`.
- *   Chuột không cần: `onMouseDown` preventDefault của nút đã giữ vùng chọn.
+ * - Chạm/bút vào thanh/popup (phần tử có `data-selection-ui`): trình duyệt hay bỏ chọn lúc chạm, nên
+ *   800ms kế tiếp vùng chọn xẹp không làm mất `selection` (kịp cho click tới nút).
+ *   Chuột không cần: `onMouseDown` preventDefault của thanh đã giữ vùng chọn.
  */
 export function useTextSelection(
   containerRef: RefObject<HTMLElement | null>,
   opts?: { settleMs?: number },
-): { selection: TextSelection | null; keep: () => void; clear: () => void } {
+): { selection: TextSelection | null; clear: () => void } {
   const settleMs = opts?.settleMs ?? DEFAULT_SETTLE_MS;
   const [selection, setSelection] = useState<TextSelection | null>(null);
   const keepUntil = useRef(0);
@@ -52,10 +54,6 @@ export function useTextSelection(
       clearTimeout(timer.current);
       timer.current = null;
     }
-  }, []);
-
-  const keep = useCallback(() => {
-    keepUntil.current = Date.now() + KEEP_MS;
   }, []);
 
   const clear = useCallback(() => {
@@ -102,10 +100,11 @@ export function useTextSelection(
         cancelTimer();
         return;
       }
-      // Chạm ngoài khi vùng chọn đã xẹp (và hết hạn keep) → thanh biến mất.
-      // Nút trên thanh gọi keep() ở onPointerDown của React. App Router lấy chính `document` làm root
-      // của React (next/dist/client/app-index.js), nên cả hai listener cùng nằm trên `document`, chạy theo
-      // thứ tự đăng ký: React đăng ký lúc hydrateRoot, trước mọi effect → keep() chạy trước listener này.
+      if (ev.target instanceof Element && ev.target.closest(SELECTION_UI)) {
+        keepUntil.current = Date.now() + KEEP_MS;
+        return;
+      }
+      // Chạm ngoài khi vùng chọn đã xẹp (và hết hạn giữ) → thanh biến mất.
       if (hasSelection.current && !isKeeping() && isCollapsed()) {
         cancelTimer();
         publish(null);
@@ -119,6 +118,7 @@ export function useTextSelection(
       read();
     };
 
+    // pointercancel, hoặc rời cửa sổ giữa lúc kéo (alt-tab): pointerup có thể không bao giờ tới.
     const onPointerCancel = () => {
       mouseDown.current = false;
     };
@@ -127,7 +127,9 @@ export function useTextSelection(
     document.addEventListener("pointerdown", onPointerDown);
     document.addEventListener("pointerup", onPointerUp);
     document.addEventListener("pointercancel", onPointerCancel);
+    window.addEventListener("blur", onPointerCancel);
     return () => {
+      window.removeEventListener("blur", onPointerCancel);
       document.removeEventListener("selectionchange", onSelectionChange);
       document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("pointerup", onPointerUp);
@@ -136,5 +138,5 @@ export function useTextSelection(
     };
   }, [containerRef, settleMs, cancelTimer, publish]);
 
-  return { selection, keep, clear };
+  return { selection, clear };
 }

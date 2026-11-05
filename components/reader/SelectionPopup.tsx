@@ -2,19 +2,19 @@
 import { useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { placePopup } from "@/lib/selection";
 import type { TextSelection } from "@/lib/useTextSelection";
-import { SelectionActions, keepOnTouch } from "./SelectionActions";
+import { SelectionActions } from "./SelectionActions";
 
 interface Props {
   selection: TextSelection;
   containerRef: RefObject<HTMLElement | null>;
-  onKeep: () => void;
+  speechOk: boolean;
 }
 
 /** Header desktop dính cao 44px + 8px đệm. */
 const MIN_TOP = 52;
 
 /** Popup nổi trên desktop; tự đo mình rồi canh vào trong màn hình. */
-export function SelectionPopup({ selection, containerRef, onKeep }: Props) {
+export function SelectionPopup({ selection, containerRef, speechOk }: Props) {
   const popupRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
   const { text, rect } = selection;
@@ -40,14 +40,14 @@ export function SelectionPopup({ selection, containerRef, onKeep }: Props) {
     <div
       ref={popupRef}
       data-testid="selection-popup"
+      data-selection-ui=""
       role="toolbar"
       aria-label="chữ đang chọn"
       className={`absolute z-10 flex border border-line bg-surface text-[13.5px] shadow-xl ${pos ? "" : "invisible"}`}
       style={{ left: pos?.left ?? 0, top: pos?.top ?? 0 }}
-      onPointerDown={keepOnTouch(onKeep)}
       onMouseDown={(e) => e.preventDefault()}
     >
-      <SelectionActions text={text} onKeep={onKeep} size="popup" />
+      <SelectionActions text={text} speechOk={speechOk} size="popup" />
     </div>
   );
 }

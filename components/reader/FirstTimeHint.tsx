@@ -4,8 +4,11 @@ import { isHintSeen, markHintSeen } from "@/lib/hints";
 
 const HINT_ID = "reader";
 
-/** Dải mẹo một-lần cho người mới: hiện đến khi bấm "đã hiểu" hoặc tự khám phá ra explain mode. */
-export function FirstTimeHint({ explainOn }: { explainOn: boolean }) {
+/**
+ * Dải mẹo một-lần cho người mới: hiện đến khi bấm "đã hiểu" hoặc tự khám phá ra explain mode.
+ * `hidden`: tạm ẩn (thanh chọn chữ đang chiếm chỗ) mà không tính là đã xem.
+ */
+export function FirstTimeHint({ explainOn, hidden = false }: { explainOn: boolean; hidden?: boolean }) {
   // Đọc localStorage sau mount để SSR và client render lần đầu khớp nhau.
   const [show, setShow] = useState(false);
   useEffect(() => {
@@ -19,7 +22,7 @@ export function FirstTimeHint({ explainOn }: { explainOn: boolean }) {
     }
   }, [explainOn]);
 
-  if (!show) return null;
+  if (!show || hidden) return null;
 
   return (
     <div className="flex items-center justify-between gap-4 border-t border-line bg-surface px-4 py-2.5 lg:px-8 text-[13px]">
