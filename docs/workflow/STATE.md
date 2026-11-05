@@ -6,7 +6,8 @@
 ## Đang làm
 
 Minh mở **2 task cùng lúc** (2026-11-05). **Bước kế:** tạo nhánh `task/passage-jump` TỪ nhánh `task/jump-and-lookup-specs` (spec + plan + mockup của cả 2 việc nằm ở đó, chưa merge main), build A bằng `superpowers:subagent-driven-development` theo plan A, cập nhật STATE sau mỗi task con. A nghiệm thu + merge main xong → B tạo `task/in-app-lookup` từ main. Task 6 của plan B (gắn Anthropic/Vercel/Upstash) làm cùng Minh qua trình duyệt, Minh tự dán key.
- làm ①–③ song song (hỏi chung một lượt, spec + mockup riêng), build lần lượt **A trước rồi B**. Mockup chung: `docs/superpowers/specs/2026-11-05-jump-lookup-mockup.html` (artifact https://claude.ai/artifact/6gSVNRTKtsfG2j9WH6gi1Z) (B cần API key, Minh lo trong lúc build A).
+
+Đã làm ①–④ song song (hỏi chung một lượt, spec + mockup riêng), build lần lượt **A trước rồi B**. Mockup chung: `docs/superpowers/specs/2026-11-05-jump-lookup-mockup.html` (artifact https://claude.ai/artifact/6gSVNRTKtsfG2j9WH6gi1Z) (B cần API key, Minh lo trong lúc build A).
 
 - **Task A — Nhảy nhanh tới đoạn bất kỳ** · cỡ **M · UI** · trạm **⑤ Build — LÀM TIẾP Ở ĐÂY** (④ Minh duyệt 2026-11-05) plan `docs/superpowers/plans/2026-11-05-passage-jump.md` (4 task) · spec `docs/superpowers/specs/2026-11-05-passage-jump-design.md`
   - Ý: bấm bộ đếm "chương 1 · 2/3" (footer desktop, PassageView.tsx:298, đang là `<span>` không bấm được) / tiêu đề header mobile (:186) → danh sách đoạn của chương (số, câu mở đầu, ✓ đã đọc, nổi đoạn hiện tại). Phím `g` mở danh sách, `Home`/`End` về đầu/cuối chương.
