@@ -6,19 +6,23 @@
 ## Đang làm
 
 - **Task:** Hình phác thảo tự vẽ (sketch) minh hoạ đại ý mỗi đoạn — nét vẽ hiện dần, có bút chì chạy theo
-- **Cỡ:** M (1 component + thêm field `sketch?` vào Passage + vẽ tay SVG cho 3 đoạn hiện có)
-- **Trạm:** ⑤ Build — chưa bắt đầu (spec + plan đã duyệt 2026-11-05)
-- **Đang chờ:** Claude bắt đầu ⑤ Build: tạo nhánh `task/passage-sketch` từ `main`, chạy plan từ Task 0 bằng superpowers:subagent-driven-development. Đánh dấu task con xong ở đây sau mỗi commit.
-- **Task con đã xong:** (chưa có)
-- **Spec:** docs/superpowers/specs/2026-11-05-passage-sketch-design.md (đã commit) · **Plan:** docs/superpowers/plans/2026-11-05-passage-sketch.md (7 task: 0 gỡ verify đỏ · 1 timeline · 2 types+roughjs · 3 seen · 4 component · 5 hình đoạn 1 + e2e · 6 hình đoạn 2–3 + cổng Minh duyệt hình) · **Nhánh:** task/passage-sketch (chưa tạo)
-- **Mockup source:** docs/superpowers/specs/2026-11-05-passage-sketch-mockup.html (bản tham khảo cách vẽ: rough.js generator + timeline rAF + clipPath cho chữ)
-- **Quyết định đã chốt (chưa nằm trong spec):** doodle có nhãn tiếng Anh · chỉ cây bút chì chạy theo nét (không bàn tay) ·
-  vẽ sau khi bản dịch gõ xong · đặt dưới nguyên văn (cột 2) · Claude vẽ tay SVG từng đoạn ·
-  Claude tự chọn: 4–6s, bấm để hiện hết, nút vẽ lại, reduced-motion = hình tĩnh, chỉ animate lần đầu xem đoạn, chỉ desktop ·
-  Giai đoạn 2 (không làm): vẽ đồng bộ với "Đọc to"
-- **Ghi chú trạm ①:** chỉ có 1 sách/1 chương/3 đoạn → vẽ tay SVG từng đoạn là khả thi. Cột 2 dưới nguyên văn đang trống.
-  Đã có sẵn: rough-notation (gạch chân), font Patrick Hand (`font-hand`), keyframe `draw` + `.arrow-draw` (globals.css:12-13),
-  token `--ink`, `prefersReducedMotion()` (lib/motion.ts). Bản dịch có hiệu ứng gõ chữ. `lib/speech.ts` chưa có sự kiện boundary.
+- **Cỡ:** M
+- **Trạm:** ⑥ Kiểm thử & soi — chưa bắt đầu (⑤ Build xong 2026-11-05)
+- **Đang chờ:** Claude làm trạm ⑥: chạy `npm run verify`, skill `ui-review`, `/code-review`, rồi gom một danh sách cho Minh chọn.
+- **Nhánh:** task/passage-sketch (chưa push, chưa merge). Commit code cuối: ff5b396. `npm run verify` tại commit đó: exit 0, type-check sạch, unit 144/144, e2e 33/33.
+- **Spec:** docs/superpowers/specs/2026-11-05-passage-sketch-design.md (đã sửa tiêu chí 2, thêm tiêu chí 12) · **Plan:** docs/superpowers/plans/2026-11-05-passage-sketch.md (Task 0–6 xong hết)
+- **Minh đã duyệt:** ảnh tĩnh hình đoạn 2 và 3. Minh **chưa xem chuyển động** sau khi sửa (nét vẽ tuần tự sau bút chì) — cho xem ở ⑦.
+- **Minh đã chọn:** chờ bản dịch gõ xong VÀ hình lọt vào màn hình (≥ 90%) rồi mới vẽ; chưa vẽ xong thì chưa tính là đã xem.
+
+**Đưa vào danh sách ở ⑥ cho Minh chọn (chưa sửa):**
+1. Footer bị đẩy xuống dưới mép màn hình: khung phác thảo làm trang cao hơn, ở 1440×900 đoạn 1 và 2 không còn thấy trọn footer (đoạn 3 vốn đã tràn từ trước). Việc này ở màn đọc, không chỉ của hình.
+2. Dòng "cuộn xuống để xem vẽ…" vẫn hiện khi người đọc đã cuộn quá hình, lúc đó "xuống" là sai hướng. Sửa nhanh: "cuộn tới hình để xem vẽ…" (1 chuỗi + tiêu chí 12).
+3. Bút chì ở vị trí xuất phát đè lên hàng tiêu đề gần nút "xem ngay", và bấm trúng bút chì được tính là bấm vào hình.
+4. Bấm chuột vào "giải thích"/theme/ghi chú xong, nút giữ focus nên Enter không sang đoạn nữa (hệ quả của việc sửa Enter trên nút).
+5. Sau khi nút "xem ngay" đổi thành "↻ vẽ lại", focus rơi về `<body>` (ảnh hưởng người dùng bàn phím). Sửa: dùng một nút cố định.
+6. Vòng khoanh mỏng hơn mockup một chút (2 thay vì 2.2) vì ellipse không có field `width`.
+
+**Lỗi nhỏ đã biết, tui khuyên để nguyên:** ngưỡng 90% không tính lại khi đổi cỡ cửa sổ; `arrowPath` có đầu mũi tên bẹt nếu điểm điều khiển trùng điểm cuối (dữ liệu hiện tại không có); `bukowskiHead` không co nét theo `s` (hiện chưa ai truyền `s`); chưa thử trên Firefox.
 
 ## Backlog
 
