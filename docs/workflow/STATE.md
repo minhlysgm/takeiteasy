@@ -5,13 +5,7 @@
 
 ## Đang làm
 
-- **Task:** Sửa `npm run lint` (Next 16 bỏ `next lint`) → ESLint CLI + flat config, đưa lint vào `verify`
-- **Cỡ:** S
-- **Trạm:** ⑦ Nghiệm thu — chờ Minh duyệt
-- **Nhánh:** task/eslint-cli (từ main 70f0ca9, chưa push, chưa merge)
-- **Minh đã chọn:** tắt luật `react-hooks/set-state-in-effect` kèm lý do trong `eslint.config.mjs`; viết lại 9 chỗ để backlog.
-- **Tui tự chọn:** bộ luật core-web-vitals + typescript (mẫu Next khuyên); `--max-warnings=0`; tên bắt đầu bằng `_` được phép không dùng; sửa 4 cảnh báo (postcss config đặt tên, `requestCloseDrawer` bọc useCallback).
-- **Bằng chứng:** `npm run verify` exit 0 (lint sạch, unit 158/158, e2e 36/36); gài biến thừa → lint exit 1.
+_(trống — chờ chọn task tiếp từ backlog)_
 
 ## Backlog
 
@@ -24,5 +18,6 @@
 
 ## Đã xong
 
+- 2026-11-05 · Sửa `npm run lint` (ESLint CLI + flat config), lint vào `verify` (cỡ S) — merge vào main (chưa push)
 - 2026-11-05 · Hình phác thảo tự vẽ minh hoạ mỗi đoạn (cỡ M) — spec `2026-11-05-passage-sketch-design.md`, merge vào main (chưa push)
 - 2026-11-05 · Dựng AI workflow (CLAUDE.md, skill `workflow` + `ui-review`, Playwright e2e, hook SessionStart)
