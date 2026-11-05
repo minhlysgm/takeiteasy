@@ -11,7 +11,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "e2e": "playwright test",
+    "ui:snap": "node scripts/ui-snap.mjs",
+    "verify": "tsc --noEmit && vitest run && playwright test"
   },
   "repository": {
     "type": "git",
@@ -33,6 +36,7 @@
     "rough-notation": "^0.5.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^26.1.1",

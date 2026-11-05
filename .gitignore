@@ -7,3 +7,7 @@ out/
 next-env.d.ts
 _verify.mjs
 _verify2.mjs
+test-results/
+playwright-report/
+.ui-snaps/
+.claude/settings.local.json
