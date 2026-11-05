@@ -6,7 +6,7 @@
 ## Đang làm
 
 - **Task:** Bôi đen để nghe / tra nghĩa trên cảm ứng (cỡ M · UI) — nhánh `task/touch-selection`
-- **Trạm:** ⑤ Build — Task 1–2 xong (209cf3c, c44d619..0376d9b), đang làm Task 3. Sổ theo dõi: `.superpowers/sdd/2026-11-05-touch-selection/progress.md`.
+- **Trạm:** ⑤ Build — Task 1–3 xong (209cf3c, c44d619..0376d9b, 478d948), đang làm Task 4. Sổ theo dõi: `.superpowers/sdd/2026-11-05-touch-selection/progress.md`.
 - **Bước kế:** tiếp tục (đọc sổ theo dõi, làm task đầu tiên chưa `complete`) — chạy `superpowers:subagent-driven-development` theo plan `docs/superpowers/plans/2026-11-05-touch-selection.md` (Task 1 → 4). Đọc kèm spec `docs/superpowers/specs/2026-11-05-touch-selection-design.md`. Cập nhật STATE sau mỗi task con.
 - **Đã chốt ở ②:** mobile dùng thanh dính đáy (trên footer); ẩn "tra nghĩa" khi > 5 từ.
 - **Hiện trạng:** `SpeechTooltip` chỉ nghe `mouseup` → chạm/giữ để bôi đen trên điện thoại không hiện gì; popup đặt phía trên vùng chọn, không kẹp mép màn hình; trên iPhone menu Copy/Tra cứu cũng hiện phía trên vùng chọn → đụng nhau.
