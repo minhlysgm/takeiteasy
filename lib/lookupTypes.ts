@@ -4,7 +4,9 @@ export interface LookupRequest {
   chapterId: string;
   passageIndex: number;
   text: string;
-  sentence: string;
+  /** Vị trí vùng chọn trong `passage.original` [start, end) — server tự cắt câu ngữ cảnh từ đây. */
+  start: number;
+  end: number;
 }
 
 export interface LookupResult {

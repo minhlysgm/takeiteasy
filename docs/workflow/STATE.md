@@ -5,14 +5,17 @@
 
 ## Đang làm
 
-**Bước kế:** không có task dở. Đề xuất task đầu backlog "[S] Tra nghĩa: chống tiêu cạn $9" (tra nghĩa đã chạy bằng tiền thật). Minh nên thử tra nghĩa trên điện thoại thật (iPhone Safari / Android Chrome) ở https://takeiteasy-navy.vercel.app.
+**Bước kế:** chờ Minh nghiệm thu (⑦) task "[S] Tra nghĩa: chống tiêu cạn $9" — nhánh `task/lookup-budget-guard`. Minh "ok" → merge vào main, push (Minh tự push/Sync), Vercel tự deploy.
+
+- **Task: chống tiêu cạn $9** · cỡ **S** · trạm **⑦**. Trình duyệt gửi `start`/`end` (vị trí vùng chọn trong `passage.original`) thay cho `sentence`; server kiểm `original.slice(start,end)` khớp chữ tra rồi tự `sentenceAt` → khoá cache chỉ gồm mẩu ≤120 ký tự có thật trong sách. Thêm test `upstashStore` bằng client giả. verify xanh: vitest 365, e2e 186. Bản đầu (dò chữ bằng regex + câu gợi ý) bị review bắt lỗi (từ chối bôi đen giữa từ, có thể lấy nhầm câu) → đã thay.
+  - **Quyết định tự chọn:** không làm bộ đếm tiền nguyên tử (nhiều request cùng lúc sát trần chỉ vượt cỡ vài phần nghìn đô); không đổi tiền tố cache `v1` (khoá giống hệt cách cũ khi dùng bình thường); trình duyệt cũ còn mở tab trước khi deploy sẽ gửi kiểu cũ → báo "chưa tra được" tới khi tải lại trang.
 
 - **Ghi chú:** push `main` thất bại — máy chưa đăng nhập GitHub cho git (không có `gh`). Minh tự push hoặc đăng nhập rồi bảo Claude push.
 
 ## Backlog
 
 0. **[S] Tra nghĩa: vụn vặt hoãn từ ⑥ task B** — giới hạn lượt dựa IP `x-forwarded-for` (giả được nếu không chạy sau Vercel; đổi sang `x-vercel-forwarded-for`/`x-real-ip`); `sentenceAt` dùng lại `ABBREV` của `lib/content` (Mr./Dr., `."` khi lùi) — nội dung hiện chưa gặp.
-0. **[S] Tra nghĩa: chống tiêu cạn $9** (từ soát cuối task B): server tự tính câu chuẩn (tìm chữ tra trong đoạn rồi `sentenceAt`) thay vì tin câu trình duyệt gửi → số khoá cache giới hạn theo nội dung sách; `chunkAt` nhận cả trường hợp chữ khớp `chunk.match` ở chỗ khác trong đoạn (spec ghi "hoặc chữ khớp"); test `upstashStore` bằng client giả; bộ đếm tiền/giới hạn lượt chưa nguyên tử (vượt nhẹ khi nhiều request cùng lúc).
+0. **[S] Tra nghĩa: `chunkAt` nhận cả trường hợp chữ khớp `chunk.match` ở chỗ khác trong đoạn** (spec task B ghi "hoặc chữ khớp").
 0. **[S · UI] Header mobile không dính → phải cuộn lên mới mở được danh sách đoạn** (từ ⑥ task A): cho header mobile dính, hoặc thêm nút "≡ 2/3" ở footer — cần mockup cho Minh chọn trước.
 0. **[S · UI] Vụn vặt danh sách đoạn** (từ ⑥ task A, mức thấp): tấm mobile đóng không trượt xuống (ChunkDrawer có `closing`); ô nổi desktop hiện bụp (fade 150ms); hover dòng gần như không thấy; gợi ý phím chân ô xuống 2 dòng; "Chương" hoa vs "chương" thường; ô nổi neo mép phải chứ không trên bộ đếm; 320px + explain chỉ dư 2px (mất ▾); readAll lặp logic `lib/progress.ts`.
 

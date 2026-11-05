@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import type { LookupRequest } from "@/lib/lookupTypes";
+import { getPassage } from "@/lib/content";
 import { LOUT, mockLookup } from "./lookup-helpers";
 import { P, dismissFirstTimeHint, finishTyping, installSpies, selectText, type Spy } from "./selection-helpers";
 
@@ -67,8 +68,25 @@ test('Khi bôi đen "lout" rồi bấm "tra nghĩa" thì thẻ hiện khung xư�
   const body = calls[0] as LookupRequest;
   expect(body.text).toBe("lout");
   expect(body.passageIndex).toBe(1);
-  expect(body.sentence.startsWith("Charles Bukowski was")).toBe(true);
+  expect(getPassage("the-subtle-art", "ch01", 1)!.original.slice(body.start, body.end)).toBe("lout");
 });
+
+for (const explain of [false, true]) {
+  test(`Khi bôi đen chữ ở đoạn 1 và 2${explain ? " (đang bật giải thích, có số tròn)" : ""} thì vị trí gửi đi khớp đúng chữ đó trong nguyên văn`, async ({ page }) => {
+    const calls: unknown[] = [];
+    await mockLookup(page, { status: "ok", result: LOUT }, calls);
+    for (const [index, word] of [[1, "cheapskate"], [1, "perfect"], [2, "decades"]] as const) {
+      await page.goto(P(index));
+      await finishTyping(page, "click");
+      if (explain) await page.keyboard.press("e");
+      await openCard(page, word);
+      await expect.poll(() => calls.length).toBeGreaterThan(0);
+      const body = calls.pop() as LookupRequest;
+      expect(body.text).toBe(word);
+      expect(getPassage("the-subtle-art", "ch01", index)!.original.slice(body.start, body.end)).toBe(word);
+    }
+  });
+}
 
 test("Khi bôi đen chữ nằm trong cụm soạn sẵn (chronic) rồi bấm \"tra nghĩa\" thì mở tấm giải thích, không gọi AI", async ({ page }) => {
   const calls: unknown[] = [];

@@ -558,7 +558,9 @@ describe("PassageView — tra nghĩa", () => {
     expect(screen.getByTestId("selection-popup").contains(screen.getByTestId("lookup-skeleton"))).toBe(true);
     expect(calls).toHaveLength(1);
     expect(calls[0].body).toMatchObject({ bookId: book.id, chapterId: "ch01", passageIndex: 1, text: "lout" });
-    expect(calls[0].body.sentence).toMatch(/^Charles Bukowski was .* a poet\.$/);
+    const p1 = getPassages(book.id, "ch01")![0].original;
+    const { start, end } = calls[0].body as { start: number; end: number };
+    expect(p1.slice(start, end)).toBe("lout");
     await act(async () => calls[0].resolve(result("lout")));
     expect(screen.getByTestId("lookup-card").textContent).toContain("nghĩa của lout");
     expect(screen.queryByTestId("lookup-skeleton")).toBeNull();
