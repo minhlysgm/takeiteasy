@@ -5,10 +5,7 @@
 
 ## Đang làm
 
-**Bước kế:** chờ Minh nghiệm thu (⑦) task "[S] Tra nghĩa: chống tiêu cạn $9" — nhánh `task/lookup-budget-guard`. Minh "ok" → merge vào main, push (Minh tự push/Sync), Vercel tự deploy.
-
-- **Task: chống tiêu cạn $9** · cỡ **S** · trạm **⑦**. Trình duyệt gửi `start`/`end` (vị trí vùng chọn trong `passage.original`) thay cho `sentence`; server kiểm `original.slice(start,end)` khớp chữ tra rồi tự `sentenceAt` → khoá cache chỉ gồm mẩu ≤120 ký tự có thật trong sách. Thêm test `upstashStore` bằng client giả. verify xanh: vitest 365, e2e 186. Bản đầu (dò chữ bằng regex + câu gợi ý) bị review bắt lỗi (từ chối bôi đen giữa từ, có thể lấy nhầm câu) → đã thay.
-  - **Quyết định tự chọn:** không làm bộ đếm tiền nguyên tử (nhiều request cùng lúc sát trần chỉ vượt cỡ vài phần nghìn đô); không đổi tiền tố cache `v1` (khoá giống hệt cách cũ khi dùng bình thường); trình duyệt cũ còn mở tab trước khi deploy sẽ gửi kiểu cũ → báo "chưa tra được" tới khi tải lại trang.
+**Bước kế:** không có task dở. Minh cần push main (Sync Changes) để Vercel deploy bản chống tiêu cạn, rồi thử tra lại trên production. Gợi ý task tiếp: backlog "[S · UI] Header mobile không dính → phải cuộn lên mới mở được danh sách đoạn" (cần mockup).
 
 - **Ghi chú:** push `main` thất bại — máy chưa đăng nhập GitHub cho git (không có `gh`). Minh tự push hoặc đăng nhập rồi bảo Claude push.
 
@@ -25,6 +22,7 @@
 
 ## Đã xong
 
+- 2026-11-05 · Tra nghĩa: chống tiêu cạn $9 (cỡ S) — trình duyệt gửi `start`/`end` thay cho `sentence`, server kiểm mẩu nguyên văn khớp chữ tra rồi tự `sentenceAt`; test `upstashStore` bằng client giả; e2e kiểm vị trí khi bật giải thích. Không làm bộ đếm nguyên tử (vượt rất nhỏ). vitest 365 / e2e 186. Merge vào main (chưa push)
 - 2026-11-05 · Gắn dịch vụ thật cho tra nghĩa (Task 6 của plan): Anthropic workspace `takeiteasy` (trần $9/tháng, auto-reload tắt, key hạn Never — gói Max tặng $100 credit/tháng nên số dư không phải trần); Upstash **Free** tạo trực tiếp trên upstash.com (`takeiteasy-lookup`, us-east-1, eviction tắt) vì Vercel Marketplace không có gói Free; Vercel env `ANTHROPIC_API_KEY`, `UPSTASH_REDIS_REST_URL/TOKEN`, `LOOKUP_BUDGET_USD=9` (Production + Preview), redeploy. Thử trên production: `lout`, `piled up`, `cheapskate` → 200, ~2s/lượt; `lookup:v1:spent_usd` = $0.00047 cho 3 lượt (~$0.00016/lượt → $9 ≈ 55k lượt). Vercel gợi ý lưu `UPSTASH_REDIS_REST_TOKEN` dạng Secret (chưa làm, không bắt buộc).
 - 2026-11-05 · Tra nghĩa ngay trong app thay Cambridge: thẻ trong popup desktop / thanh đáy mobile, Claude Haiku 5.5 qua `/api/lookup`, cache + giới hạn 30 lượt/giờ/IP + trần $9 trên Upstash (cỡ M · UI) — spec `2026-11-05-in-app-lookup-design.md`, plan `2026-11-05-in-app-lookup.md`; ⑥ sửa 16 mục (popup không nhảy, ✕ lên hàng nút, bấm lại = đóng thẻ, Safari cũ, timeout 9s×2/25s, cache không trừ lượt…). Test `e2e/lookup*.spec.ts`, vitest 359 / e2e 184. **Chưa gắn key thật (Task 6), chưa thử máy thật.** Merge vào main (chưa push)
 - 2026-11-05 · Nhảy nhanh tới đoạn bất kỳ: danh sách đoạn (bộ đếm / tiêu đề mobile / phím g), Home/End, ✓ đoạn đã đọc (`tie:read`) (cỡ M · UI) — spec `2026-11-05-passage-jump-design.md`, plan `2026-11-05-passage-jump.md`; ⑥ sửa 9 mục (viền focus, Tab ra ngoài, Shift+Home/End, mẹo lần đầu, tương phản `--accent-strong`, dòng 320px, focus tấm giải thích, câu mở đầu). Quyết định tự chọn: câu mở đầu tính ở trình duyệt; chọn đoạn/bấm chuột đóng → không giữ focus; Home/End ở đầu/cuối chương để trình duyệt cuộn. Test `e2e/passage-jump*.spec.ts`. Merge vào main (chưa push)
