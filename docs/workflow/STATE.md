@@ -7,14 +7,15 @@
 
 - **Task:** Hình phác thảo tự vẽ (sketch) minh hoạ đại ý mỗi đoạn — nét vẽ hiện dần, có bút chì chạy theo
 - **Cỡ:** M
-- **Trạm:** ⑥ Kiểm thử & soi — đã soi xong, chờ Minh chọn mục sửa
-- **Đang chờ:** Minh chọn mục trong danh sách dưới (tui khuyên: 1–8 + 10). Chọn xong → sửa (test trước) → `npm run verify` → ⑦.
-- **Nhánh:** task/passage-sketch (chưa push, chưa merge). `npm run verify` 2026-11-05 tại b1a8c3b: exit 0, unit 144/144, e2e 33/33.
-- **Spec:** docs/superpowers/specs/2026-11-05-passage-sketch-design.md (đã sửa tiêu chí 2, thêm tiêu chí 12) · **Plan:** docs/superpowers/plans/2026-11-05-passage-sketch.md (Task 0–6 xong hết)
-- **Minh đã duyệt:** ảnh tĩnh hình đoạn 2 và 3. Minh **chưa xem chuyển động** sau khi sửa (nét vẽ tuần tự sau bút chì) — cho xem ở ⑦.
+- **Trạm:** ⑦ Nghiệm thu — chờ Minh xem chuyển động và duyệt (⑥ xong 2026-11-05)
+- **Đang chờ:** Minh mở http://localhost:3000/read/the-subtle-art/ch01/1, bấm "↻ vẽ lại" để xem chuyển động (lần đầu Minh xem bản chuyển động). Minh "ok" → hỏi Minh trước khi merge `task/passage-sketch` vào `main` (chưa push), rồi chuyển task sang "Đã xong".
+- **Nhánh:** task/passage-sketch (chưa push, chưa merge). Commit sửa ⑥: 26aea6a (Enter sau khi bấm chuột), 463708f (các mục còn lại). `npm run verify` tại 463708f: exit 0, unit 158/158, e2e 36/36. 7 e2e mới đã thử trên code cũ: đỏ cả 7.
+- **Spec:** docs/superpowers/specs/2026-11-05-passage-sketch-design.md (sửa tiêu chí 2, thêm tiêu chí 12, chuỗi "cuộn tới hình để xem vẽ…") · **Plan:** docs/superpowers/plans/2026-11-05-passage-sketch.md (Task 0–6 xong hết)
+- **Minh đã duyệt:** ảnh tĩnh hình đoạn 2 và 3. Minh chọn sửa mục 1–8 + 10 của danh sách ⑥ (đã sửa xong).
 - **Minh đã chọn:** chờ bản dịch gõ xong VÀ hình lọt vào màn hình (≥ 90%) rồi mới vẽ; chưa vẽ xong thì chưa tính là đã xem.
+- **Tui tự chọn khi sửa (nói với Minh ở ⑦):** tổng thời gian vẽ 5,6s → 6s để vòng khoanh có 1,2s mà các nét khác chỉ nhanh hơn ~10%; bút chì nằm ngang dần khi vẽ sát mép trên; khoảng cách giữa tiêu đề và hình tăng từ 8px lên 24px; tone `muted` bị bỏ khỏi chữ trong hình.
 
-**Danh sách ⑥ (ui-review + /code-review, chưa sửa).** File chính: components/reader/PassageSketch.tsx, lib/sketch/timeline.ts, components/reader/PassageView.tsx
+**Danh sách ⑥ (ui-review + /code-review). Đã sửa: 1–8, 10. Để nguyên: 9, 11–14.** File chính: components/reader/PassageSketch.tsx, lib/sketch/timeline.ts, components/reader/PassageView.tsx
 1. [cao] Bấm chuột vào nút (giải thích/theme/← trước) xong, nút giữ focus → Enter làm việc của nút, không sang đoạn, không bỏ qua gõ chữ. PassageView.tsx:80. Sửa: chỉ nhường Enter cho nút khi focus đến từ bàn phím (:focus-visible), hoặc blur sau click chuột.
 2. [vừa] Bút chì che hàng tiêu đề suốt lúc vẽ ở mép trên hình (không chỉ lúc xuất phát); bấm trúng bút = bỏ qua vẽ. Sửa: đệm trên svg ~40 + `pointer-events: none` cho bút.
 3. [vừa] Vòng khoanh (cú chốt) bị trần 800ms trong drawMs nên chạy ~300ms, nhanh gấp 3–5 lần nét khác. Sửa: trần riêng cho nét chốt ~1500ms (tổng vẫn trong 8s của tiêu chí 2).
@@ -38,6 +39,8 @@ Nên đưa backlog (cả app, không riêng hình): footer bị đẩy dưới m
 1. **[S] `npm run lint` hỏng** — Next 16 đã bỏ `next lint`; chuyển sang ESLint CLI + flat config rồi đưa lint vào `verify`.
 2. **[M · UI] Reader chưa dùng được trên mobile** — lưới 4 cột cố định đẩy cột bản dịch ra ngoài màn hình, nguyên văn bị bóp còn ~10 ký tự/dòng, footer vỡ chữ (xem `npm run ui:snap`).
 3. **[S · UI] Nút "N" của Next dev che nút "giải thích"** ở góc dưới trái (chỉ khi dev) — dời `devIndicators` sang góc khác.
+4. **[S · UI] Footer màn đọc bị đẩy dưới mép màn hình** — ở 1440×900 khung phác thảo làm trang cao hơn, không thấy trọn footer (đoạn 3 vốn đã tràn).
+5. **[S · UI] Chưa có viền focus chung** — các nút dùng viền xanh mặc định của trình duyệt, lạc tông; thêm `focus-visible` theo token cho mọi nút.
 
 ## Đã xong
 
