@@ -116,12 +116,12 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
 
   const goTo = useCallback(
     (i: number) => {
-      if (i < 1 || i > passageCount) return;
+      if (i < 1 || i > passageCount || i === passageIndex) return;
       clearSelection();
       scrollTopOnChange.current = true;
       router.push(`/read/${book.id}/${chapterId}/${i}`);
     },
-    [book.id, chapterId, passageCount, router, clearSelection],
+    [book.id, chapterId, passageIndex, passageCount, router, clearSelection],
   );
 
   const openJump = useCallback(() => {
@@ -155,7 +155,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
     if (!jumpWasOpen.current) return;
     jumpWasOpen.current = false;
     if (jumpRestoreFocus.current) {
-      [jumpTriggerRef.current, jumpTriggerMobileRef.current].find((b) => b && b.getClientRects().length > 0)?.focus();
+      [jumpTriggerRef.current, jumpTriggerMobileRef.current].find((b) => b && b.getClientRects().length > 0)?.focus({ preventScroll: true }); // header mobile không dính: focus() thường sẽ kéo trang lên đầu
     } else if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
@@ -202,11 +202,14 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
         case "g":
           openJump();
           break;
+        // Đang ở đoạn đầu/cuối thì để Home/End là phím cuộn của trình duyệt
         case "Home":
+          if (passageIndex === 1) break;
           e.preventDefault();
           goTo(1);
           break;
         case "End":
+          if (passageIndex === passageCount) break;
           e.preventDefault();
           goTo(passageCount);
           break;

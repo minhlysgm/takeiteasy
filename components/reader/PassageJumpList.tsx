@@ -23,13 +23,34 @@ interface Props {
 export function PassageJumpList({ title, outline, current, read, onPick, onClose }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const sheet = useSheetBehavior(ref);
+  // Chỉ tính các đoạn có trong chương (localStorage có thể còn chỉ số cũ)
+  const readSet = new Set(outline.filter((o) => read.includes(o.index)).map((o) => o.index));
 
   // Khai báo SAU useSheetBehavior để chạy sau lần focus khung của hook: focus nhảy vào dòng hiện tại
   useEffect(() => {
     const row = ref.current?.querySelector<HTMLElement>('[aria-current="true"]');
     if (!row) return;
-    row.focus();
+    row.focus({ preventScroll: true });
     row.scrollIntoView?.({ block: "nearest" });
+  }, []);
+
+  // Popover desktop không khoá focus: focus rơi vào chỗ khác ngoài danh sách (Tab ra, kể cả vòng qua đầu trang)
+  // thì đóng như đóng bằng phím → focus về bộ đếm. Bấm chuột ra ngoài không đổi focus → backdrop lo.
+  // Kiểm lại SAU khi focus ổn định: StrictMode (dev) chạy cleanup của useSheetBehavior (trả focus) rồi focus lại khung.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+  useEffect(() => {
+    const onFocusIn = (e: FocusEvent) => {
+      if (!(e.target instanceof Node) || ref.current?.contains(e.target)) return;
+      queueMicrotask(() => {
+        const at = document.activeElement;
+        if (ref.current?.isConnected && at && at !== document.body && !ref.current.contains(at)) onCloseRef.current("key");
+      });
+    };
+    document.addEventListener("focusin", onFocusIn);
+    return () => document.removeEventListener("focusin", onFocusIn);
   }, []);
 
   // Mount ngoài màn hình rồi flip ở frame kế để transition chạy (giống ChunkDrawer)
@@ -81,7 +102,7 @@ export function PassageJumpList({ title, outline, current, read, onPick, onClose
           <div className="min-w-0">
             <div className="truncate text-[14px] text-bright">{title}</div>
             <div className="text-[13px] text-muted">
-              {read.length}/{outline.length} đoạn đã đọc
+              {readSet.size}/{outline.length} đoạn đã đọc
             </div>
           </div>
           <button
@@ -110,10 +131,13 @@ export function PassageJumpList({ title, outline, current, read, onPick, onClose
                 <span className="w-6 shrink-0 text-right text-[13px] text-muted">{o.index}</span>
                 <span className="min-w-0 flex-1 truncate">{o.firstSentence}</span>
                 {isCurrent && <span className="shrink-0 text-xs text-accent">đang đọc</span>}
-                {read.includes(o.index) && (
-                  <span aria-label="đã đọc" className="shrink-0 text-accent">
-                    ✓
-                  </span>
+                {readSet.has(o.index) && (
+                  <>
+                    <span aria-hidden="true" className="shrink-0 text-accent">
+                      ✓
+                    </span>
+                    <span className="sr-only">đã đọc</span>
+                  </>
                 )}
               </button>
             );

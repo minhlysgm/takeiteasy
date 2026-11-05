@@ -233,6 +233,38 @@ describe("PassageView — danh sách đoạn (g / Home / End)", () => {
     expect(push).toHaveBeenLastCalledWith(`/read/the-subtle-art/ch01/${passages.length}`);
   });
 
+  it("Home ở đoạn 1 / End ở đoạn cuối: không chuyển đoạn và không chặn phím cuộn của trình duyệt", () => {
+    const { unmount } = renderView();
+    skipTyping();
+    const home = new KeyboardEvent("keydown", { key: "Home", bubbles: true, cancelable: true });
+    act(() => {
+      window.dispatchEvent(home);
+    });
+    expect(push).not.toHaveBeenCalled();
+    expect(home.defaultPrevented).toBe(false);
+    unmount();
+    render(
+      <PassageView outline={outline} chapterTitle={chapterTitle} book={book} chapterId="ch01" passage={passages[passages.length - 1]} passageIndex={passages.length} passageCount={passages.length} />,
+    );
+    skipTyping();
+    const end = new KeyboardEvent("keydown", { key: "End", bubbles: true, cancelable: true });
+    act(() => {
+      window.dispatchEvent(end);
+    });
+    expect(push).not.toHaveBeenCalled();
+    expect(end.defaultPrevented).toBe(false);
+  });
+
+  it("Home/End khi đích khác đoạn hiện tại thì vẫn chặn phím mặc định", () => {
+    render(view2());
+    skipTyping();
+    const home = new KeyboardEvent("keydown", { key: "Home", bubbles: true, cancelable: true });
+    act(() => {
+      window.dispatchEvent(home);
+    });
+    expect(home.defaultPrevented).toBe(true);
+  });
+
   it("tấm giải thích đang mở: g/Home/End không làm gì", () => {
     render(view2());
     skipTyping();
@@ -285,6 +317,15 @@ describe("PassageView — danh sách đoạn (g / Home / End)", () => {
     fireEvent.click(screen.getAllByTestId("jump-row")[2]);
     expect(list()).toBeNull();
     expect(push).toHaveBeenCalledWith("/read/the-subtle-art/ch01/3");
+  });
+
+  it("chọn dòng 'đang đọc' → chỉ đóng danh sách, không đổi đoạn", () => {
+    render(view2());
+    skipTyping();
+    fireEvent.click(screen.getByTestId("jump-trigger"));
+    fireEvent.click(screen.getAllByTestId("jump-row")[1]);
+    expect(list()).toBeNull();
+    expect(push).not.toHaveBeenCalled();
   });
 
   it("mở đoạn thì ghi vào tie:read; danh sách hiện ✓ các đoạn đã mở", () => {

@@ -219,3 +219,44 @@ test.describe("focus sau khi đóng danh sách", () => {
     await expect(page.getByTestId("jump-trigger")).toBeFocused();
   });
 });
+
+// Màn hẹp (< 1024px): bộ đếm là tiêu đề ở header, header KHÔNG dính → đóng bằng phím không được kéo trang lên đầu.
+test.describe("màn hẹp 800×700", () => {
+  test.use({ viewport: { width: 800, height: 700 } });
+
+  test("Esc / g đóng danh sách thì focus về bộ đếm mà trang giữ nguyên chỗ cuộn", async ({ page }) => {
+    await open(page, 2);
+    await page.evaluate(() => window.scrollTo(0, 300));
+    const y0 = await page.evaluate(() => window.scrollY);
+    expect(y0).toBeGreaterThan(0);
+    const trigger = page.getByTestId("jump-trigger-mobile");
+    for (const key of ["Escape", "g"]) {
+      await page.keyboard.press("g");
+      await expect(list(page)).toBeVisible();
+      await page.keyboard.press(key);
+      await expect(list(page)).toHaveCount(0);
+      await expect(trigger).toBeFocused();
+      expect(await page.evaluate(() => window.scrollY)).toBe(y0);
+    }
+  });
+});
+
+test("Home ở đoạn 1 và End ở đoạn cuối vẫn là phím cuộn của trình duyệt", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 300 });
+  await open(page, 1);
+  await page.keyboard.press("End");
+  await expect(page).toHaveURL(/\/ch01\/1$/);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+  await page.keyboard.press("Home");
+  await expect(page).toHaveURL(/\/ch01\/1$/);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+});
+
+test("Popover desktop: Tab ra khỏi danh sách thì danh sách đóng và focus về bộ đếm", async ({ page }) => {
+  await open(page, 2);
+  await page.keyboard.press("g");
+  await expect(list(page)).toBeVisible();
+  for (let i = 0; i < 6 && (await list(page).count()) > 0; i++) await page.keyboard.press("Tab");
+  await expect(list(page)).toHaveCount(0);
+  await expect(page.getByTestId("jump-trigger")).toBeFocused();
+});

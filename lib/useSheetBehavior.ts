@@ -12,7 +12,7 @@ export function useSheetBehavior(ref: RefObject<HTMLElement | null>) {
   useEffect(() => {
     const prev = document.activeElement as HTMLElement | null;
     ref.current?.focus();
-    return () => prev?.focus();
+    return () => prev?.focus({ preventScroll: true });
   }, [ref]);
 
   // Mobile (< lg): tấm là modal — khoá cuộn trang phía sau + aria-modal. Theo dõi media query
