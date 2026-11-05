@@ -5,7 +5,7 @@
 
 ## Đang làm
 
-**Task:** Reader dùng được trên mobile · **Cỡ:** M · UI · **Trạm:** ③ Chốt spec — **chờ Minh duyệt** spec `docs/superpowers/specs/2026-11-05-reader-mobile-design.md` + mockup https://claude.ai/artifact/XQ614Aeyj2q32gYgmhd84L (file `2026-11-05-reader-mobile-mockup.html`)
+**Task:** Reader dùng được trên mobile · **Cỡ:** M · UI · **Trạm:** ④ Plan — **chờ Minh duyệt** plan `docs/superpowers/plans/2026-11-05-reader-mobile.md` (5 task con). Spec đã duyệt 2026-11-05: `docs/superpowers/specs/2026-11-05-reader-mobile-design.md`, mockup https://claude.ai/artifact/XQ614Aeyj2q32gYgmhd84L
 
 Ghi chú trạm ① (đọc code):
 - Toàn bộ layout ở `components/reader/PassageView.tsx`: lưới `grid-cols-[200px_1fr_200px_1fr]` (dòng ~150) = lề trái (ghi chú) · nguyên văn (+ hình phác thảo) · lề phải (ghi chú, có viền chia) · bản dịch. Không có breakpoint nào trong reader.
