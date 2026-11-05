@@ -36,6 +36,29 @@ async function advance(ms: number) {
 
 const sketchEl = () => screen.getByTestId("sketch");
 
+class FakeObserver {
+  static all: FakeObserver[] = [];
+  disconnected = false;
+  target: Element | null = null;
+  constructor(
+    private cb: (entries: { intersectionRatio: number }[]) => void,
+    public options: { threshold: number },
+  ) {
+    FakeObserver.all.push(this);
+  }
+  observe(el: Element) {
+    this.target = el;
+  }
+  disconnect() {
+    this.disconnected = true;
+  }
+  /** Trình duyệt báo tỉ lệ đang hiện của hình */
+  report(intersectionRatio: number) {
+    act(() => this.cb([{ intersectionRatio }]));
+  }
+}
+const lastObserver = () => FakeObserver.all[FakeObserver.all.length - 1];
+
 describe("PassageSketch", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -227,5 +250,121 @@ describe("PassageSketch", () => {
     expect(vi.getTimerCount()).toBe(0);
     await advance(10000);
     expect(err).not.toHaveBeenCalled();
+  });
+
+  describe("chỉ vẽ khi hình đã lọt vào màn hình", () => {
+    const SCROLL = "cuộn xuống để xem vẽ…";
+    const TYPING = "chờ bản dịch gõ xong…";
+
+    beforeEach(() => {
+      FakeObserver.all = [];
+      vi.stubGlobal("IntersectionObserver", FakeObserver);
+    });
+
+    it("đang gõ: chưa quan sát, chỉ có chữ chờ bản dịch", () => {
+      render(<PassageSketch sketch={sketch} passageId="p" start={false} />);
+      expect(FakeObserver.all).toHaveLength(0);
+      expect(screen.getByText(TYPING)).toBeTruthy();
+      expect(screen.queryByText(SCROLL)).toBeNull();
+    });
+
+    it("gõ xong: quan sát svg với ngưỡng 90%; chưa có kết quả đo thì chưa hiện chữ gì", () => {
+      render(<PassageSketch sketch={sketch} passageId="p" start={true} />);
+      expect(lastObserver().options.threshold).toBe(0.9);
+      expect(lastObserver().target).toBe(screen.getByRole("img"));
+      expect(screen.queryByText(TYPING)).toBeNull();
+      expect(screen.queryByText(SCROLL)).toBeNull();
+    });
+
+    it("gõ xong mà hình chưa lọt màn hình: đợi mãi, báo cuộn xuống, chưa tính là đã xem", async () => {
+      render(<PassageSketch sketch={sketch} passageId="p" start={true} />);
+      lastObserver().report(0);
+      expect(screen.getByText(SCROLL)).toBeTruthy();
+      await advance(10000);
+      expect(sketchEl().dataset.state).toBe("waiting");
+      expect(screen.queryByTestId("sketch-pencil")).toBeNull();
+      expect(localStorage.getItem("tie:sketch-seen:p")).toBeNull();
+    });
+
+    it("chỉ hiện một phần (dưới 90%) thì vẫn chưa vẽ", async () => {
+      render(<PassageSketch sketch={sketch} passageId="p" start={true} />);
+      lastObserver().report(0.5);
+      await advance(1000);
+      expect(sketchEl().dataset.state).toBe("waiting");
+      expect(screen.getByText(SCROLL)).toBeTruthy();
+    });
+
+    it("cuộn tới: 450ms tính từ lúc đủ 2 điều kiện, không hiện chữ gì trong lúc chờ, ngắt quan sát", async () => {
+      render(<PassageSketch sketch={sketch} passageId="p" start={true} />);
+      lastObserver().report(0);
+      await advance(3000);
+      lastObserver().report(0.95);
+      expect(lastObserver().disconnected).toBe(true);
+      expect(screen.queryByText(SCROLL)).toBeNull();
+      await advance(449);
+      expect(sketchEl().dataset.state).toBe("waiting");
+      await advance(1);
+      expect(sketchEl().dataset.state).toBe("drawing");
+    });
+
+    it("hình đã hiện từ lúc đang gõ rồi cuộn đi: gõ xong mà không còn trên màn hình thì chưa vẽ", async () => {
+      const { rerender } = render(<PassageSketch sketch={sketch} passageId="p" start={false} />);
+      await advance(1000);
+      rerender(<PassageSketch sketch={sketch} passageId="p" start={true} />);
+      lastObserver().report(0);
+      await advance(1000);
+      expect(sketchEl().dataset.state).toBe("waiting");
+      expect(screen.getByText(SCROLL)).toBeTruthy();
+    });
+
+    it("đã lọt màn hình thì khoá lại: cuộn đi lúc chờ delay hay lúc vẽ cũng không dừng", async () => {
+      render(<PassageSketch sketch={sketch} passageId="p" start={true} />);
+      const io = lastObserver();
+      io.report(1);
+      await advance(100);
+      io.report(0);
+      await advance(350);
+      expect(sketchEl().dataset.state).toBe("drawing");
+      io.report(0);
+      await advance(7000);
+      expect(sketchEl().dataset.state).toBe("done");
+      expect(FakeObserver.all).toHaveLength(1);
+    });
+
+    it("unmount khi đang chờ thì ngắt quan sát", () => {
+      const { unmount } = render(<PassageSketch sketch={sketch} passageId="p" start={true} />);
+      const io = lastObserver();
+      expect(io.disconnected).toBe(false);
+      unmount();
+      expect(io.disconnected).toBe(true);
+    });
+
+    it("cửa sổ quá thấp, không bao giờ chứa nổi 90% hình: hạ ngưỡng theo phần cửa sổ chứa được", () => {
+      vi.spyOn(SVGElement.prototype, "getBoundingClientRect").mockReturnValue({ height: 1536 } as DOMRect);
+      render(<PassageSketch sketch={sketch} passageId="p" start={true} />); // jsdom: innerHeight = 768
+      expect(lastObserver().options.threshold).toBeCloseTo(0.45);
+    });
+
+    it("đã xem hoặc giảm chuyển động: không cần quan sát, hiện sẵn", () => {
+      localStorage.setItem("tie:sketch-seen:p", "1");
+      render(<PassageSketch sketch={sketch} passageId="p" start={true} />);
+      expect(sketchEl().dataset.state).toBe("done");
+      expect(FakeObserver.all).toHaveLength(0);
+    });
+
+    it("vẽ lại không cần chờ lọt màn hình", () => {
+      localStorage.setItem("tie:sketch-seen:p", "1");
+      render(<PassageSketch sketch={sketch} passageId="p" start={true} />);
+      fireEvent.click(screen.getByRole("button", { name: "↻ vẽ lại" }));
+      expect(sketchEl().dataset.state).toBe("drawing");
+      expect(FakeObserver.all).toHaveLength(0);
+    });
+  });
+
+  it("trình duyệt không có IntersectionObserver: coi như đã thấy, vẽ sau 450ms", async () => {
+    expect("IntersectionObserver" in window).toBe(false);
+    render(<PassageSketch sketch={sketch} passageId="p" start={true} />);
+    await advance(450);
+    expect(sketchEl().dataset.state).toBe("drawing");
   });
 });

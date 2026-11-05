@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { Sketch, SketchStep, SketchTone } from "@/content/types";
-import { buildTimeline, drawMs, frameAt, locateOnSubpaths, SKETCH_START_DELAY_MS, type MeasuredStep, type Pt, type TimedStep } from "@/lib/sketch/timeline";
+import { buildTimeline, drawMs, frameAt, locateOnSubpaths, SKETCH_START_DELAY_MS, visibleThreshold, type MeasuredStep, type Pt, type TimedStep } from "@/lib/sketch/timeline";
 import { splitSubpaths, stepPaths } from "@/lib/sketch/paths";
 import { isSketchSeen, markSketchSeen } from "@/lib/sketchSeen";
 import { prefersReducedMotion } from "@/lib/motion";
@@ -49,6 +49,8 @@ function waitFonts(): { ready: Promise<unknown>; cancel: () => void } {
 export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sketch: Sketch; passageId: string; start: boolean; dimmed?: boolean }) {
   const [state, setState] = useState<State>("idle");
   const [reduced, setReduced] = useState(false);
+  // Hình có đang trên màn hình không. Chỉ đo sau khi bản dịch gõ xong; "yes" là chốt luôn, cuộn đi cũng không đổi.
+  const [onScreen, setOnScreen] = useState<"unknown" | "no" | "yes">("unknown");
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
 
   const { home, fullRect } = useMemo(() => {
@@ -85,6 +87,7 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
   const rects = useRef<(SVGRectElement | null)[]>([]);
   const live = useRef<Live[]>([]);
   const timeline = useRef<TimedStep[]>([]);
+  const svg = useRef<SVGSVGElement>(null);
   const pencil = useRef<SVGGElement>(null);
   const pencilBody = useRef<SVGGElement>(null);
 
@@ -167,9 +170,29 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
     markSketchSeen(passageId);
   }, [passageId, fullRect]);
 
-  // waiting + start → chờ delay → chờ font → đo và vẽ
+  const seen = onScreen === "yes";
+
+  // waiting + start → đợi hình lọt vào màn hình
   useEffect(() => {
-    if (state !== "waiting" || !start) return;
+    if (state !== "waiting" || !start || seen) return;
+    if (typeof IntersectionObserver === "undefined") return setOnScreen("yes");
+    const el = svg.current;
+    if (!el) return;
+    const threshold = visibleThreshold(el.getBoundingClientRect().height, window.innerHeight);
+    const io = new IntersectionObserver(
+      (entries) => {
+        const hit = entries[entries.length - 1].intersectionRatio >= threshold;
+        setOnScreen((prev) => (hit || prev === "yes" ? "yes" : "no"));
+      },
+      { threshold },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [state, start, seen]);
+
+  // đủ 2 điều kiện → chờ delay → chờ font → đo và vẽ
+  useEffect(() => {
+    if (state !== "waiting" || !start || !seen) return;
     let alive = true;
     let fonts: ReturnType<typeof waitFonts> | undefined;
     const timer = setTimeout(() => {
@@ -183,7 +206,7 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
       clearTimeout(timer);
       fonts?.cancel();
     };
-  }, [state, start, begin]);
+  }, [state, start, seen, begin]);
 
   // vòng rAF khi đang vẽ
   useEffect(() => {
@@ -228,7 +251,8 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
   }, [state, finish]);
 
   const hidden = state === "idle" || state === "waiting";
-  const status = state === "waiting" ? "chờ bản dịch gõ xong…" : state === "drawing" ? "đang vẽ…" : null;
+  const waitingFor = !start ? "chờ bản dịch gõ xong…" : onScreen === "no" ? "cuộn xuống để xem vẽ…" : null;
+  const status = state === "waiting" ? waitingFor : state === "drawing" ? "đang vẽ…" : null;
   const btn = "ml-auto px-1 py-0.5 text-xs text-muted transition-colors hover:text-ink motion-reduce:transition-none";
 
   return (
@@ -252,6 +276,7 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
         )}
       </div>
       <svg
+        ref={svg}
         viewBox={sketch.viewBox}
         role="img"
         aria-label={sketch.alt}

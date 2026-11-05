@@ -6,6 +6,7 @@ import {
   locateOnSubpaths,
   SKETCH_START_DELAY_MS,
   SKETCH_TOTAL_MS,
+  visibleThreshold,
   type MeasuredStep,
   type Pt,
 } from "@/lib/sketch/timeline";
@@ -120,5 +121,19 @@ describe("locateOnSubpaths", () => {
   it("độ dài toàn 0 hoặc không có đoạn nào: không chia cho 0", () => {
     expect(locateOnSubpaths([0, 0], 0.5)).toEqual({ index: 0, at: 0 });
     expect(locateOnSubpaths([], 0.5)).toEqual({ index: 0, at: 0 });
+  });
+});
+
+describe("visibleThreshold", () => {
+  it("cửa sổ đủ cao → 0,9", () => {
+    expect(visibleThreshold(358, 900)).toBe(0.9);
+    expect(visibleThreshold(358, 358)).toBe(0.9);
+  });
+  it("cửa sổ thấp hơn hình → hạ theo phần cửa sổ chứa được", () => {
+    expect(visibleThreshold(1000, 500)).toBeCloseTo(0.45);
+  });
+  it("chưa đo được kích thước → vẫn 0,9", () => {
+    expect(visibleThreshold(0, 900)).toBe(0.9);
+    expect(visibleThreshold(358, 0)).toBe(0.9);
   });
 });

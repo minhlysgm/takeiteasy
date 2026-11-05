@@ -33,9 +33,9 @@ test.describe("phác thảo đoạn 1", () => {
     await expect(page.getByText("đang gõ…")).toBeVisible();
   });
 
-  test("2. gõ xong thì bút chì vẽ rồi dừng ở done", async ({ page }) => {
+  test("2. gõ xong và hình trên màn hình thì bút chì vẽ rồi dừng ở done", async ({ page }) => {
     await page.goto(P1);
-    await finishTyping(page);
+    await startDrawing(page);
     const sketch = page.getByTestId("sketch");
     await expect(page.getByTestId("sketch-pencil")).toBeVisible();
     await expect(sketch).toHaveAttribute("data-state", "drawing");
@@ -46,7 +46,7 @@ test.describe("phác thảo đoạn 1", () => {
 
   test("3. bấm vào hình khi đang vẽ thì hiện hết ngay", async ({ page }) => {
     await page.goto(P1);
-    await finishTyping(page);
+    await startDrawing(page);
     const sketch = page.getByTestId("sketch");
     await expect(sketch).toHaveAttribute("data-state", "drawing");
     await page.getByRole("img", { name: /Charles Bukowski/ }).click();
@@ -55,7 +55,7 @@ test.describe("phác thảo đoạn 1", () => {
 
   test("4. nút ↻ vẽ lại vẽ lại từ đầu", async ({ page }) => {
     await page.goto(P1);
-    await finishTyping(page);
+    await startDrawing(page);
     const sketch = page.getByTestId("sketch");
     await page.getByRole("button", { name: "xem ngay ⏭" }).click();
     await expect(sketch).toHaveAttribute("data-state", "done");
@@ -65,7 +65,7 @@ test.describe("phác thảo đoạn 1", () => {
 
   test("5. quay lại đoạn đã xem thì hình hiện sẵn, không vẽ lại", async ({ page }) => {
     await page.goto(P1);
-    await finishTyping(page);
+    await startDrawing(page);
     await page.getByRole("button", { name: "xem ngay ⏭" }).click();
     await expect(page.getByTestId("sketch")).toHaveAttribute("data-state", "done");
     await page.keyboard.press("Enter");
@@ -88,7 +88,7 @@ test.describe("phác thảo đoạn 1", () => {
     /** Vẽ dở đoạn 1 rồi Enter sang đoạn 2. Phải gõ xong trước: lúc đang gõ, Enter chỉ bỏ qua hiệu ứng gõ chứ không chuyển đoạn. */
     async function enterMidDraw(page: Page) {
       await page.goto(P1);
-      await finishTyping(page);
+      await startDrawing(page);
       await expect(page.getByTestId("sketch")).toHaveAttribute("data-state", "drawing");
       await page.keyboard.press("Enter");
       await expect(page).toHaveURL(new RegExp(`/${CH}/2$`));
@@ -109,7 +109,7 @@ test.describe("phác thảo đoạn 1", () => {
       await expect(page.getByText("đang gõ…")).toBeVisible();
       await expect(sketch).toHaveAttribute("data-state", "waiting");
       await expect(page.getByTestId("sketch-pencil")).toHaveCount(0);
-      await finishTyping(page);
+      await startDrawing(page);
       await expect(sketch).toHaveAttribute("data-state", "drawing");
       await expect(page.getByTestId("sketch-pencil")).toBeVisible();
       expect(errors).toEqual([]);
@@ -148,6 +148,41 @@ test.describe("phác thảo đoạn 1", () => {
       expect(bad.filter((t) => /hydrat/i.test(t))).toEqual([]);
     });
   }
+});
+
+test.describe("12. chỉ vẽ khi hình đã lọt vào màn hình", () => {
+  const readSeen = (page: Page) => page.evaluate((k) => localStorage.getItem(k), `tie:sketch-seen:${getPassage(BOOK, CH, 1)!.id}`);
+
+  test("chưa lọt màn hình: chưa vẽ, báo cuộn xuống, chưa tính đã xem; cuộn tới thì vẽ", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 480 });
+    await page.goto(P1);
+    await finishTyping(page);
+    const sketch = page.getByTestId("sketch");
+    await expect(sketch.locator("svg")).not.toBeInViewport({ ratio: 0.9 });
+    await expect(sketch).toContainText("cuộn xuống để xem vẽ…");
+    await page.waitForTimeout(SKETCH_START_DELAY_MS + 300);
+    await expect(sketch).toHaveAttribute("data-state", "waiting");
+    await expect(page.getByTestId("sketch-pencil")).toHaveCount(0);
+    expect(await readSeen(page)).toBeNull();
+
+    await revealSketch(page);
+    await expect(sketch).toHaveAttribute("data-state", "drawing");
+    await expect(sketch).not.toContainText("cuộn xuống để xem vẽ…");
+    await expect(page.getByTestId("sketch-pencil")).toBeVisible();
+  });
+
+  test("đã bắt đầu thì cuộn đi vẫn vẽ tiếp tới xong", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 480 });
+    await page.goto(P1);
+    await startDrawing(page);
+    const sketch = page.getByTestId("sketch");
+    await expect(sketch).toHaveAttribute("data-state", "drawing");
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await expect(sketch.locator("svg")).not.toBeInViewport({ ratio: 0.9 });
+    await expect(sketch).toHaveAttribute("data-state", "drawing");
+    await expect(sketch).toHaveAttribute("data-state", "done", { timeout: 8000 });
+    expect(await readSeen(page)).toBe("1");
+  });
 });
 
 type DrawSample = {

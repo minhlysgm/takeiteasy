@@ -2,6 +2,8 @@ export type Pt = [number, number];
 
 export const SKETCH_TOTAL_MS = 5600;
 export const SKETCH_START_DELAY_MS = 450;
+/** Hình phải lọt vào màn hình ít nhất chừng này thì mới bắt đầu vẽ */
+export const SKETCH_VISIBLE_RATIO = 0.9;
 
 export interface MeasuredStep {
   kind: "path" | "text" | "pause";
@@ -20,6 +22,12 @@ export interface TimedStep extends MeasuredStep {
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+
+/** Ngưỡng để quan sát hình. Cửa sổ quá thấp (hay zoom lớn) không chứa nổi 90% hình thì hạ ngưỡng, kẻo chờ mãi không vẽ. */
+export function visibleThreshold(height: number, viewportHeight: number): number {
+  if (height <= 0 || viewportHeight <= 0) return SKETCH_VISIBLE_RATIO;
+  return Math.min(SKETCH_VISIBLE_RATIO, (viewportHeight / height) * SKETCH_VISIBLE_RATIO);
+}
 
 /** path: size = độ dài nét; text: size = số ký tự. `plain` chỉ ảnh hưởng mức tối thiểu của path. */
 export function drawMs(kind: "path" | "text", size: number, plain = false): number {
