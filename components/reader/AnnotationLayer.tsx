@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { annotate, annotationGroup } from "rough-notation";
 import type { Chunk } from "@/content/types";
 import { buildArrowPath, layoutNotes } from "@/lib/annotate";
+import { MOBILE_QUERY } from "@/lib/breakpoints";
 import { prefersReducedMotion } from "@/lib/motion";
 
 const NOTE_H = 56;
@@ -53,10 +54,16 @@ export function AnnotationLayer({ containerRef, chunks, onChunkClick }: Props) {
   // cùng một commit, layout effect của con chạy TRƯỚC bước attach ref của
   // cha (post-order), nên containerRef.current vẫn là null nếu đo ở layout
   // effect. useEffect chạy sau khi toàn cây đã commit nên ref đã sẵn sàng.
+  // Mobile ẩn ghi chú lề (đã có danh sách ghi chú riêng) → khỏi đo; gạch chân ở effect 1 vẫn chạy.
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
+    const mq = typeof window.matchMedia === "function" ? window.matchMedia(MOBILE_QUERY) : null;
     const compute = () => {
+      if (mq?.matches) {
+        setNotes((prev) => (prev.length ? [] : prev));
+        return;
+      }
       const cRect = container.getBoundingClientRect();
       // Chia ghi chú hai bên theo vị trí thật của chunk trong cột nguyên văn:
       // chunk ở nửa trái → ghi chú lề trái, nửa phải → ghi chú rãnh phải.
@@ -105,7 +112,11 @@ export function AnnotationLayer({ containerRef, chunks, onChunkClick }: Props) {
     };
     compute();
     window.addEventListener("resize", compute);
-    return () => window.removeEventListener("resize", compute);
+    mq?.addEventListener("change", compute);
+    return () => {
+      window.removeEventListener("resize", compute);
+      mq?.removeEventListener("change", compute);
+    };
   }, [chunks, containerRef]);
 
   return (
