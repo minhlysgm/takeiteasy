@@ -59,9 +59,12 @@ describe("PassageView", () => {
     expect(push).toHaveBeenCalledWith("/read/the-subtle-art/ch01/2");
   });
 
-  it("nút theme vẫn tìm được theo tên (chữ chỉ ẩn bằng CSS trên mobile)", () => {
+  it("có 2 nút theme tìm được theo tên: header (mobile) và footer (desktop) — CSS ẩn một trong hai", () => {
     renderView();
-    expect(screen.getByRole("button", { name: /theme/ })).toBeTruthy();
+    const buttons = screen.getAllByRole("button", { name: /theme/ });
+    expect(buttons).toHaveLength(2);
+    expect(buttons[0].closest("header")).toBeTruthy();
+    expect(buttons[1].closest("footer")).toBeTruthy();
   });
 
   it("nút '← trước' disabled ở đoạn 1, nút 'tiếp →' điều hướng sang đoạn 2", () => {

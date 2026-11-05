@@ -136,7 +136,9 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="flex h-11 shrink-0 items-center gap-4 border-b border-line bg-surface px-4 lg:sticky lg:top-0 lg:z-[15] lg:px-5">
+      <header className="flex h-11 shrink-0 items-center border-b border-line bg-surface lg:sticky lg:top-0 lg:z-[15] lg:gap-4 lg:px-5">
+        {/* Mobile: ô trống trái cân với nút theme bên phải để tiêu đề nằm giữa */}
+        <div className="w-11 shrink-0 lg:hidden" aria-hidden="true" />
         <div className="hidden gap-2 lg:flex" aria-hidden="true">
           <span className="block h-3 w-3 rounded-full bg-danger opacity-70" />
           <span className="block h-3 w-3 rounded-full bg-ink opacity-70" />
@@ -147,6 +149,18 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
           {explainOn && <span className="text-ink"> · explain</span>}
         </div>
         <div className="hidden w-14 shrink-0 lg:block" />
+        {/* Mobile: theme ở header cho footer đủ chỗ ở 320px; desktop vẫn ở footer (phím t) */}
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="flex h-11 w-11 shrink-0 items-center justify-center text-muted transition-colors hover:text-bright motion-reduce:transition-none focus-visible:outline-offset-[-4px] lg:hidden"
+        >
+          <svg aria-hidden viewBox="0 0 16 16" width="16" height="16">
+            <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" strokeWidth="1.5" />
+            <path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor" />
+          </svg>
+          <span className="sr-only">theme</span>
+        </button>
       </header>
 
       <div ref={readerRef} data-testid="reader" className="relative flex grow flex-col overflow-x-clip px-4 py-6 lg:grid lg:grid-cols-[200px_1fr_200px_1fr] lg:px-8 lg:py-12">
@@ -209,8 +223,9 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
         <footer className="relative flex [&_button:focus-visible]:outline-offset-1 h-[60px] shrink-0 items-center justify-between gap-1.5 border-t border-line bg-bg px-2 text-[13px] text-muted lg:h-14 lg:gap-0 lg:px-8">
           <div
             aria-hidden
-            className="absolute -top-px left-0 h-0.5 bg-accent transition-[width] duration-500 motion-reduce:transition-none lg:hidden"
-            style={{ width: `${(passageIndex / passageCount) * 100}%` }}
+            data-testid="mobile-progress"
+            className="absolute -top-px left-0 h-0.5 w-full origin-left bg-accent transition-transform duration-300 ease-out motion-reduce:transition-none lg:hidden"
+            style={{ transform: `scaleX(${passageIndex / passageCount})` }}
           />
           <div className="flex items-center gap-1.5 lg:gap-2.5">
             <button
@@ -232,13 +247,9 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
             <button
               type="button"
               onClick={toggleTheme}
-              className="flex h-[38px] items-center gap-2 whitespace-nowrap border border-line px-2 transition-colors motion-reduce:transition-none hover:border-accent hover:text-bright lg:h-auto lg:px-3 lg:py-1.5"
+              className="hidden items-center gap-2 whitespace-nowrap border border-line px-3 py-1.5 transition-colors motion-reduce:transition-none hover:border-accent hover:text-bright lg:flex"
             >
-              <svg aria-hidden viewBox="0 0 16 16" width="16" height="16" className="lg:hidden">
-                <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" strokeWidth="1.5" />
-                <path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor" />
-              </svg>
-              <Kbd className="max-lg:hidden">t</Kbd> <span className="sr-only lg:not-sr-only">theme</span>
+              <Kbd>t</Kbd> theme
             </button>
             <button
               type="button"
@@ -257,12 +268,12 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
           </div>
           <div className="flex items-center gap-4">
             <span className="hidden lg:inline">{chapterLabel(chapterId)} · {passageIndex}/{passageCount}</span>
-            <div className="flex gap-1.5 lg:gap-2">
+            <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => goTo(passageIndex - 1)}
                 disabled={passageIndex <= 1}
-                className="h-[38px] whitespace-nowrap border border-line px-2 transition-colors motion-reduce:transition-none hover:border-accent hover:text-bright disabled:opacity-40 disabled:hover:border-line disabled:hover:text-muted lg:h-auto lg:px-3 lg:py-1.5"
+                className="h-[38px] min-w-11 whitespace-nowrap border border-line px-2 transition-colors motion-reduce:transition-none hover:border-accent hover:text-bright disabled:opacity-40 disabled:hover:border-line disabled:hover:text-muted lg:h-auto lg:min-w-0 lg:px-3 lg:py-1.5"
               >
                 ← <span className="sr-only lg:not-sr-only">trước</span>
               </button>
