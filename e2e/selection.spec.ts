@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { P, charBoxes, finishTyping, installSpies, selectText } from "./selection-helpers";
+import { P, charBoxes, finishTyping, installSpies, selectText, type Spy } from "./selection-helpers";
 
 // Tiêu chí nghiệm thu 10–12 + RF5 — spec docs/superpowers/specs/2026-11-05-touch-selection-design.md.
 // Desktop 1440×900, chuột.
@@ -78,4 +78,34 @@ test("Khi đổi cỡ từ 1280px xuống 390px lúc đang chọn thì popup nh�
   await expect(page.getByTestId("selection-dock")).toBeVisible();
   await expect(popup(page)).toHaveCount(0);
   expect(await page.evaluate(() => (window as unknown as { __both: boolean }).__both)).toBe(false);
+});
+
+test('Khi chọn "chronic" rồi Shift+→ nới tới "chronic gambler" thì vẫn ở đoạn 1, popup còn và giữ chữ mới', async ({ page }) => {
+  await page.goto(P(1));
+  await finishTyping(page, "click");
+  await dragOver(page, "chronic");
+  await page.mouse.up();
+  await expect(popup(page)).toBeVisible();
+  for (let i = 0; i < " gambler".length; i++) await page.keyboard.press("Shift+ArrowRight");
+  expect(await page.evaluate(() => window.getSelection()!.toString())).toBe("chronic gambler");
+  await page.waitForTimeout(400); // > 250ms chờ ổn định
+  await expect(page).toHaveURL(new RegExp(`${P(1)}$`));
+  await expect(popup(page)).toBeVisible();
+  // Popup chỉ có nút, không in chữ: "nghe" đọc đúng chữ popup đang giữ.
+  await popup(page).getByRole("button", { name: /nghe/ }).click();
+  await expect
+    .poll(() => page.evaluate(() => (window as unknown as Spy).__spoken))
+    .toEqual(["chronic gambler"]);
+  await expect(popup(page)).toBeVisible();
+});
+
+test("Khi popup đang hiện mà nhấn Escape thì popup tắt, vùng chọn bị bỏ", async ({ page }) => {
+  await page.goto(P(1));
+  await finishTyping(page, "click");
+  await dragOver(page, "chronic gambler");
+  await page.mouse.up();
+  await expect(popup(page)).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(popup(page)).toHaveCount(0);
+  expect(await page.evaluate(() => window.getSelection()!.toString())).toBe("");
 });

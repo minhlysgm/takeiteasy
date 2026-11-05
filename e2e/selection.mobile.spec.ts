@@ -6,6 +6,7 @@ import { P, dismissFirstTimeHint, finishTyping, installSpies, selectText, type S
 // Tiêu chí nghiệm thu 1–9 + RF4 — spec docs/superpowers/specs/2026-11-05-touch-selection-design.md.
 // Máy giả lập Pixel 7 (390×844, cảm ứng, pointer: coarse). Vùng chọn tạo bằng script.
 
+const PASSAGE_1 = getPassage("the-subtle-art", "ch01", 1)!;
 const PASSAGE_2 = getPassage("the-subtle-art", "ch01", 2)!;
 const dock = (page: Page) => page.getByTestId("selection-dock");
 const spy = <K extends keyof Spy>(page: Page, key: K) =>
@@ -71,6 +72,16 @@ test.describe("mẹo lần đầu đã tắt (thanh nằm ngay trên footer)", (
   test("Khi bôi đen chữ trong bản dịch thì không hiện thanh", async ({ page }) => {
     await selectText(page, "translation-col", "con bạc kinh niên");
     expect(await page.evaluate(() => window.getSelection()!.toString())).toBe("con bạc kinh niên");
+    await page.waitForTimeout(600); // > 250ms chờ ổn định
+    await expect(dock(page)).toHaveCount(0);
+  });
+
+  test("Khi bôi đen chữ trong ghi chú tay (cùng cột với nguyên văn) thì không hiện thanh", async ({ page }) => {
+    await page.getByRole("button", { name: /giải thích/ }).tap();
+    await expect(page.getByTestId("mobile-notes")).toBeVisible();
+    const needle = PASSAGE_1.chunks[0].label.split("\n")[0].trim();
+    await selectText(page, "mobile-notes", needle);
+    expect(await page.evaluate(() => window.getSelection()!.toString())).toBe(needle);
     await page.waitForTimeout(600); // > 250ms chờ ổn định
     await expect(dock(page)).toHaveCount(0);
   });

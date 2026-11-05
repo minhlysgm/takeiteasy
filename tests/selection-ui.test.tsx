@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createRef } from "react";
 import { SelectionDock } from "@/components/reader/SelectionDock";
@@ -58,6 +58,20 @@ describe("SelectionDock", () => {
     expect(onKeep).toHaveBeenCalled();
   });
 
+  it("chuột bấm nút / nền dock → không gọi onKeep (onMouseDown đã giữ vùng chọn); chạm thì gọi", () => {
+    const onKeep = vi.fn();
+    render(<SelectionDock selection={sel("chronic gambler")} onKeep={onKeep} />);
+    fireEvent.pointerDown(screen.getByRole("button", { name: /nghe/ }), { pointerType: "mouse" });
+    fireEvent.pointerDown(screen.getByRole("button", { name: /tra nghĩa/ }), { pointerType: "mouse" });
+    fireEvent.pointerDown(screen.getByText("chronic gambler"), { pointerType: "mouse" });
+    expect(onKeep).not.toHaveBeenCalled();
+    fireEvent.pointerDown(screen.getByRole("button", { name: /nghe/ }), { pointerType: "touch" });
+    expect(onKeep).toHaveBeenCalled();
+    onKeep.mockClear();
+    fireEvent.pointerDown(screen.getByRole("button", { name: /tra nghĩa/ }), { pointerType: "pen" });
+    expect(onKeep).toHaveBeenCalled();
+  });
+
   it("pointerdown trên dòng chữ của dock cũng gọi onKeep", () => {
     const onKeep = vi.fn();
     render(<SelectionDock selection={sel("chronic gambler")} onKeep={onKeep} />);
@@ -75,11 +89,11 @@ describe("SelectionDock", () => {
 });
 
 describe("SelectionPopup", () => {
-  function renderPopup(onKeep = () => {}) {
+  function renderPopup(onKeep = () => {}, text = "chronic gambler") {
     const ref = createRef<HTMLDivElement>();
     render(
       <div ref={ref} style={{ position: "relative" }}>
-        <SelectionPopup selection={sel("chronic gambler")} containerRef={ref} onKeep={onKeep} />
+        <SelectionPopup selection={sel(text)} containerRef={ref} onKeep={onKeep} />
       </div>,
     );
     return screen.getByTestId("selection-popup");
@@ -94,9 +108,28 @@ describe("SelectionPopup", () => {
     expect(popup.className).not.toContain("invisible");
   });
 
-  it("popup: pointerdown trên nền popup gọi onKeep", () => {
+  it("popup: chạm (touch) nền popup gọi onKeep; chuột thì không", () => {
     const onKeep = vi.fn();
-    fireEvent.pointerDown(renderPopup(onKeep));
+    const popup = renderPopup(onKeep);
+    fireEvent.pointerDown(popup, { pointerType: "mouse" });
+    fireEvent.pointerDown(screen.getByRole("button", { name: /nghe/ }), { pointerType: "mouse" });
+    expect(onKeep).not.toHaveBeenCalled();
+    fireEvent.pointerDown(popup, { pointerType: "touch" });
     expect(onKeep).toHaveBeenCalled();
+  });
+
+  it("popup: role='toolbar', aria-label='chữ đang chọn' như dock", () => {
+    const popup = renderPopup();
+    expect(popup.getAttribute("role")).toBe("toolbar");
+    expect(popup.getAttribute("aria-label")).toBe("chữ đang chọn");
+  });
+
+  it("popup: có 'tra nghĩa' thì 'nghe' có đường kẻ ngăn; 6 từ (không 'tra nghĩa') thì không", () => {
+    renderPopup(undefined, "chronic gambler");
+    expect(screen.getByRole("button", { name: /nghe/ }).className).toContain("border-r");
+    cleanup();
+    renderPopup(undefined, "one two three four five six");
+    expect(screen.queryByRole("button", { name: /tra nghĩa/ })).toBeNull();
+    expect(screen.getByRole("button", { name: /nghe/ }).className).not.toContain("border-r");
   });
 });

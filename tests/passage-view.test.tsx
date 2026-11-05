@@ -27,6 +27,12 @@ function renderView() {
   );
 }
 
+function view2() {
+  return (
+    <PassageView book={book} chapterId="ch01" passage={passages[1]} passageIndex={2} passageCount={passages.length} />
+  );
+}
+
 describe("PassageView", () => {
   beforeEach(() => {
     localStorage.clear();
@@ -154,6 +160,16 @@ describe("PassageView", () => {
     expect(push).toHaveBeenCalledTimes(1);
   });
 
+  it("Shift+←/→ là để nới vùng chọn của trình duyệt: không chuyển đoạn", () => {
+    render(view2());
+    fireEvent.keyDown(window, { key: "x" }); // skip typing
+    fireEvent.keyDown(window, { key: "ArrowRight", shiftKey: true });
+    fireEvent.keyDown(window, { key: "ArrowLeft", shiftKey: true });
+    expect(push).not.toHaveBeenCalled();
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+    expect(push).toHaveBeenCalledWith("/read/the-subtle-art/ch01/3");
+  });
+
   it("đoạn 1 có hình phác thảo", () => {
     renderView();
     expect(screen.getByTestId("sketch")).toBeTruthy();
@@ -236,6 +252,34 @@ describe("PassageView — chọn chữ khi chuyển đoạn", () => {
     expect(push).toHaveBeenCalledWith("/read/the-subtle-art/ch01/2");
     expect(screen.queryByTestId("selection-popup")).toBeNull();
     expect(window.getSelection()!.toString()).toBe("");
+  });
+
+  it("Escape tắt popup và bỏ vùng chọn", () => {
+    render(view(1));
+    fireEvent.keyDown(window, { key: "x" });
+    selectChronicGambler();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryByTestId("selection-popup")).toBeNull();
+    expect(window.getSelection()!.toString()).toBe("");
+  });
+
+  it("bôi đen chữ trong ghi chú tay (ngoài nguyên văn nhưng cùng cột) → không có popup", () => {
+    render(view(1));
+    fireEvent.keyDown(window, { key: "x" });
+    fireEvent.keyDown(window, { key: "e" }); // bật giải thích → hiện ghi chú tay
+    const label = screen.getByTestId("mobile-notes").querySelector("li span:last-child")!.firstChild as Text;
+    act(() => {
+      const range = document.createRange();
+      range.setStart(label, 0);
+      range.setEnd(label, Math.min(5, label.data.length));
+      const sel = window.getSelection()!;
+      sel.removeAllRanges();
+      sel.addRange(range);
+      document.dispatchEvent(new Event("selectionchange"));
+    });
+    act(() => void vi.advanceTimersByTime(300));
+    expect(window.getSelection()!.toString()).not.toBe("");
+    expect(screen.queryByTestId("selection-popup")).toBeNull();
   });
 
   it("đổi đoạn không qua goTo (back/forward) thì đoạn mới không có popup của đoạn cũ", () => {
