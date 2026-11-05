@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { PassageView } from "@/components/reader/PassageView";
 import type { Chunk } from "@/content/types";
-import { books, getPassages } from "@/lib/content";
+import { books, firstSentence, getPassages } from "@/lib/content";
 
 // PassageView sống xuyên các đoạn (layout của chương): state của đoạn cũ không được lọt sang
 // lần vẽ ĐẦU TIÊN của đoạn mới, kể cả một khung hình. Các con được thay bằng bản ghi lại props.
@@ -30,8 +30,9 @@ vi.mock("@/components/reader/SelectionPopup", () => ({
 
 const book = books[0];
 const passages = getPassages(book.id, "ch01")!;
+const outline = passages.map((p, i) => ({ index: i + 1, firstSentence: firstSentence(p.original) }));
 const view = (i: number) => (
-  <PassageView book={book} chapterId="ch01" passage={passages[i - 1]} passageIndex={i} passageCount={passages.length} />
+  <PassageView outline={outline} chapterTitle="Chương 1 · Don't Try" book={book} chapterId="ch01" passage={passages[i - 1]} passageIndex={i} passageCount={passages.length} />
 );
 
 describe("PassageView — chuyển đoạn không remount", () => {

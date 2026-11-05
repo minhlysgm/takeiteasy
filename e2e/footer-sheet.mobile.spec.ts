@@ -46,7 +46,8 @@ test("Khi ở 320px và bật giải thích thì header vẫn không cắt chữ
   await page.goto(P(1));
   await finishTyping(page);
   await page.getByRole("button", { name: /giải thích/ }).tap();
-  const title = page.locator("header > div.truncate");
+  // phần chữ tự cắt "…" của nút tiêu đề (nút mở danh sách đoạn)
+  const title = page.locator('[data-testid="jump-trigger-mobile"] > span:first-child');
   await expect(title).toContainText("· explain");
   expect(await title.evaluate((e) => e.scrollWidth <= e.clientWidth)).toBe(true);
 });

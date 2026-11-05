@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mockup nhảy đoạn và tra nghĩa</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: mỗi việc một khối; trong khối, desktop (dải rộng) trước rồi khung điện thoại 390/320 cạnh nhau. Dark-first như app. */
+:root {
+  color-scheme: dark;
+  --bg: #0f1317; --surface: #141a21; --text: #d6dee6; --bright: #e6edf3; --muted: #7d8590;
+  --line: #1f262e; --accent: #3fb950; --ink: #e3b341; --sel: #24415e; --danger: #f85149;
+  --page: #0a0d10; --frame: #2a323c; --scrim: rgba(2, 6, 10, 0.55); --soft: rgba(63, 185, 80, 0.12);
+  --mono: "IBM Plex Mono", "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) {
+  color-scheme: light;
+  --bg: #f6f3ec; --surface: #efeadf; --text: #44403c; --bright: #1c1917; --muted: #6f6862;
+  --line: #e2dccd; --accent: #b45309; --ink: #b45309; --sel: #d3e3f5; --danger: #b91c1c;
+  --page: #ebe6da; --frame: #cfc7b5; --scrim: rgba(41, 37, 36, 0.35); --soft: rgba(180, 83, 9, 0.10);
+} }
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f6f3ec; --surface: #efeadf; --text: #44403c; --bright: #1c1917; --muted: #6f6862;
+  --line: #e2dccd; --accent: #b45309; --ink: #b45309; --sel: #d3e3f5; --danger: #b91c1c;
+  --page: #ebe6da; --frame: #cfc7b5; --scrim: rgba(41, 37, 36, 0.35); --soft: rgba(180, 83, 9, 0.10);
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--page); color: var(--text); font: 13px/1.5 var(--mono);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 56px;
+}
+.wrap { max-width: 1120px; margin: 0 auto; display: grid; gap: 48px; }
+h1 { font-size: 20px; font-weight: 500; color: var(--bright); margin: 0; text-wrap: balance; }
+h2 { font-size: 16px; font-weight: 500; color: var(--bright); margin: 0; text-wrap: balance; }
+h3 { font-size: 13px; font-weight: 500; color: var(--bright); margin: 0; }
+.lead { color: var(--muted); margin: 6px 0 0; max-width: 76ch; }
+section { display: grid; gap: 20px; }
+.tag { display: inline-block; font-size: 11px; color: var(--accent); border: 1px solid var(--accent); padding: 1px 6px; margin-right: 8px; vertical-align: 2px; }
+.grid { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+.card { display: grid; gap: 8px; max-width: 100%; }
+.why { color: var(--muted); font-size: 12px; max-width: 390px; }
+.why b { color: var(--bright); font-weight: 500; }
+kbd { font: 11px var(--mono); border: 1px solid var(--line); padding: 0 4px; color: var(--muted); }
+
+/* desktop frame */
+.desk { width: 100%; max-width: 1040px; border: 1px solid var(--frame); background: var(--bg); position: relative; overflow: hidden; }
+.hdr { height: 44px; display: flex; align-items: center; justify-content: center; gap: 6px; border-bottom: 1px solid var(--line); background: var(--surface); color: var(--muted); }
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; padding: 36px 32px 40px; min-height: 300px; }
+.cols p { margin: 0; font-size: 17px; line-height: 1.95; color: var(--bright); }
+.cols .vi { color: var(--text); font-size: 15px; line-height: 2; }
+u.ch { text-decoration: underline 2px var(--ink); text-underline-offset: 5px; }
+mark { background: var(--sel); color: var(--bright); }
+.dft { height: 56px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); padding: 0 32px; color: var(--muted); position: relative; }
+.dft .g { display: flex; gap: 10px; align-items: center; }
+.b { height: 34px; padding: 0 10px; display: inline-flex; gap: 6px; align-items: center; border: 1px solid var(--line); white-space: nowrap; color: var(--muted); background: var(--bg); }
+.b.on { color: var(--bright); border-color: var(--accent); }
+.bar { width: 176px; height: 4px; background: var(--line); border-radius: 2px; }
+.bar i { display: block; height: 100%; width: 66%; background: var(--accent); border-radius: 2px; }
+
+/* jump list */
+.jl { border: 1px solid var(--line); background: var(--surface); box-shadow: 0 14px 40px rgba(0,0,0,.35); display: grid; }
+.jl .top { padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.jl .top small { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.row { display: grid; grid-template-columns: 22px 1fr 16px; gap: 10px; align-items: center; min-height: 48px; padding: 0 16px; border-bottom: 1px solid var(--line); color: var(--text); }
+.row:last-child { border-bottom: 0; }
+.row .n { color: var(--muted); font-variant-numeric: tabular-nums; }
+.row .t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row .ok { color: var(--accent); }
+.row.cur { background: var(--soft); color: var(--bright); box-shadow: inset 2px 0 0 var(--accent); }
+.row.cur .t::after { content: none; }
+.row .now { display: block; font-size: 11px; color: var(--accent); }
+.row.kb { outline: 1px dashed var(--muted); outline-offset: -3px; }
+.pop-jl { position: absolute; right: 120px; bottom: 64px; width: 430px; }
+.foot-hint { color: var(--muted); font-size: 11.5px; padding: 8px 16px; border-top: 1px solid var(--line); display: flex; gap: 14px; flex-wrap: wrap; }
+.cnt { color: var(--bright); border: 1px solid var(--accent); }
+
+/* phones */
+.phone { border: 1px solid var(--frame); background: var(--bg); position: relative; overflow: hidden; display: flex; flex-direction: column; max-width: 100%; }
+.w390 { width: 392px; height: 640px; } .w320 { width: 322px; height: 640px; }
+.mh { height: 44px; flex-shrink: 0; display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; border-bottom: 1px solid var(--line); background: var(--surface); color: var(--muted); }
+.mh .ttl { justify-self: center; display: inline-flex; align-items: center; gap: 6px; height: 44px; padding: 0 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; color: var(--bright); }
+.mh .ttl span { overflow: hidden; text-overflow: ellipsis; }
+.mh .ic { text-align: center; }
+.read { flex: 1; padding: 22px 16px; overflow: hidden; position: relative; }
+.read p { margin: 0; font-size: 17px; line-height: 1.85; color: var(--bright); }
+.mft { height: 60px; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); background: var(--bg); padding: 0 8px; color: var(--muted); }
+.mft .g { display: flex; gap: 6px; }
+.scrim { position: absolute; inset: 0; background: var(--scrim); }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); display: grid; }
+.sheet .top { padding: 4px 4px 4px 16px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sheet .top div { display: grid; }
+.sheet .top small { color: var(--muted); font-size: 12px; }
+.x { width: 44px; height: 44px; display: grid; place-items: center; font-size: 18px; color: var(--bright); }
+
+/* lookup */
+.sp { position: absolute; display: flex; border: 1px solid var(--line); background: var(--surface); box-shadow: 0 10px 30px rgba(0,0,0,.35); font-size: 13.5px; }
+.sp span { padding: 10px 14px; display: inline-flex; gap: 8px; align-items: center; color: var(--bright); white-space: nowrap; }
+.sp span + span { border-left: 1px solid var(--line); }
+.sp span.act { box-shadow: inset 0 -2px 0 var(--ink); }
+.tri { color: var(--accent); } .lens { color: var(--ink); }
+.lk { width: 360px; max-width: 100%; border: 1px solid var(--line); background: var(--surface); box-shadow: 0 14px 40px rgba(0,0,0,.35); display: grid; }
+.lk .bt { display: flex; border-bottom: 1px solid var(--line); }
+.lk .bt span { padding: 10px 14px; display: inline-flex; gap: 8px; align-items: center; color: var(--bright); }
+.lk .bt span + span { border-left: 1px solid var(--line); }
+.lk .bt span.act { box-shadow: inset 0 -2px 0 var(--ink); }
+.lk .body { padding: 14px 16px 12px; display: grid; gap: 10px; }
+.hw { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.hw b { font-size: 18px; font-weight: 500; color: var(--bright); }
+.ipa { color: var(--text); }
+.pos { font-size: 11px; color: var(--muted); border: 1px solid var(--line); padding: 0 6px; }
+.play { margin-left: auto; width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid var(--line); color: var(--accent); }
+.lbl { font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+.mean { color: var(--bright); font-size: 14px; }
+.ex { border-left: 2px solid var(--ink); padding-left: 10px; display: grid; gap: 2px; }
+.ex .en { color: var(--bright); }
+.ex .vi { color: var(--muted); }
+.more { font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; border-top: 1px solid var(--line); padding: 8px 16px; }
+.more a { color: var(--muted); }
+.sk { display: grid; gap: 8px; padding: 14px 16px; }
+.sk i { display: block; height: 12px; background: var(--line); border-radius: 2px; }
+@media (prefers-reduced-motion: no-preference) { .sk i { animation: pulse 1.4s ease-in-out infinite; } }
+@keyframes pulse { 50% { opacity: .45; } }
+.msg { padding: 14px 16px; display: grid; gap: 6px; }
+.msg b { color: var(--bright); font-weight: 500; }
+.msg .m { color: var(--muted); }
+.hint { padding: 10px 14px; color: var(--muted); font-size: 12.5px; }
+.dock { flex-shrink: 0; border-top: 1px solid var(--line); background: var(--surface); display: grid; }
+.dock .q { color: var(--muted); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 8px 16px 0; }
+.dock .q b { color: var(--bright); font-weight: 400; }
+.dock .acts { display: flex; gap: 8px; padding: 6px 8px; align-items: center; }
+.act44 { min-height: 44px; display: inline-flex; align-items: center; gap: 8px; padding: 0 14px; border: 1px solid var(--line); color: var(--bright); background: var(--bg); }
+.act44.on { border-color: var(--ink); }
+.dock .x { margin-left: auto; }
+.dock .body { padding: 4px 16px 12px; display: grid; gap: 10px; border-top: 1px solid var(--line); padding-top: 12px; }
+.states { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; align-items: start; }
+.states .lk { width: auto; }
+.alt { opacity: .9; }
+.side { position: absolute; top: 44px; right: 0; bottom: 56px; width: 380px; border-left: 1px solid var(--line); background: var(--surface); }
+@media (max-width: 760px) {
+  .cols { grid-template-columns: 1fr; } .cols .vi { display: none; }
+  .pop-jl { right: 16px; left: 16px; width: auto; }
+  .side { width: 70%; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Nhảy tới đoạn bất kỳ · Tra nghĩa ngay trong app</h1>
+    <p class="lead">Mockup cho 2 việc đang chốt spec. Dữ liệu lấy từ chương 1 của <i>The Subtle Art</i>. Màu theo theme của app; đổi theme sáng/tối của trình duyệt để xem cả hai.</p>
+  </header>
+
+  <!-- ============ VIỆC A ============ -->
+  <section>
+    <div>
+      <h2><span class="tag">Việc A</span>Danh sách đoạn để nhảy nhanh</h2>
+      <p class="lead">Bấm bộ đếm "chương 1 · 2/3 ▾" (hoặc phím <kbd>g</kbd>) để mở. Mỗi dòng có số đoạn, câu mở đầu tiếng Anh, dấu ✓ nếu đã mở. Đoạn đang đọc được tô nổi.</p>
+    </div>
+
+    <div class="card">
+      <h3>Desktop: ô nổi ngay trên bộ đếm</h3>
+      <div class="desk" style="height: 470px;">
+        <div class="hdr">The Subtle Art of Not Giving a F*ck</div>
+        <div class="cols">
+          <p>Bukowski wanted to be a writer. But for decades his work was rejected by almost every magazine, newspaper, journal, agent, and publisher he <u class="ch">submitted to</u>.</p>
+          <p class="vi">Bukowski muốn trở thành nhà văn. Nhưng suốt nhiều thập kỷ, tác phẩm của ông bị gần như mọi tạp chí, tờ báo, tập san, người đại diện và nhà xuất bản mà ông gửi tới từ chối.</p>
+        </div>
+        <div class="scrim" style="background: transparent;"></div>
+        <div class="jl pop-jl">
+          <div class="top"><h3>Chương 1 · Don't Try</h3><small>2/3 đoạn đã đọc</small></div>
+          <div class="row"><span class="n">1</span><span class="t">Charles Bukowski was an alcoholic, a womanizer, a chronic gambler, a lout…</span><span class="ok">✓</span></div>
+          <div class="row cur"><span class="n">2</span><span class="t">Bukowski wanted to be a writer.<span class="now">đang đọc</span></span><span class="ok">✓</span></div>
+          <div class="row kb"><span class="n">3</span><span class="t">See, despite the book sales and the fame, Bukowski was a loser.</span><span></span></div>
+          <div class="foot-hint"><span><kbd>↑</kbd><kbd>↓</kbd> chọn</span><span><kbd>enter</kbd> mở đoạn</span><span><kbd>esc</kbd> đóng</span><span><kbd>home</kbd>/<kbd>end</kbd> đoạn đầu/cuối</span></div>
+        </div>
+        <div class="dft" style="position: absolute; left: 0; right: 0; bottom: 0; background: var(--bg);">
+          <div class="g"><span class="b"><kbd>e</kbd> giải thích</span><span class="b"><kbd>s</kbd> đọc to</span><span class="b"><kbd>t</kbd> theme</span><span class="b"><kbd>enter</kbd> đoạn tiếp</span></div>
+          <div class="bar"><i></i></div>
+          <div class="g"><span class="b cnt"><kbd>g</kbd> chương 1 · 2/3 ▾</span><span class="b">← trước</span><span class="b">tiếp →</span></div>
+        </div>
+      </div>
+      <p class="why">Viền nét đứt ở dòng 3 là dòng đang chọn bằng phím <kbd>↑</kbd>/<kbd>↓</kbd>. <b>Bấm ra ngoài thì đóng</b>, không phủ mờ cả trang vì đây chỉ là ô nhỏ.</p>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h3>Mobile 390px: chạm tiêu đề header</h3>
+        <div class="phone w390">
+          <div class="mh"><span></span><span class="ttl"><span>chương 1 · đoạn 2/3</span> ▾</span><span class="ic">◐</span></div>
+          <div class="read"><p>Bukowski wanted to be a writer. But for decades his work was rejected by almost every magazine…</p>
+            <div class="scrim"></div>
+          </div>
+          <div class="sheet" style="bottom: 0;">
+            <div class="top"><div><h3>Chương 1 · Don't Try</h3><small>2/3 đoạn đã đọc</small></div><span class="x" aria-label="đóng">✕</span></div>
+            <div class="row"><span class="n">1</span><span class="t">Charles Bukowski was an alcoholic, a womanizer…</span><span class="ok">✓</span></div>
+            <div class="row cur"><span class="n">2</span><span class="t">Bukowski wanted to be a writer.<span class="now">đang đọc</span></span><span class="ok">✓</span></div>
+            <div class="row"><span class="n">3</span><span class="t">See, despite the book sales and the fame…</span><span></span></div>
+            <div style="height: 12px;"></div>
+          </div>
+        </div>
+        <p class="why">Tấm trượt từ dưới lên giống tấm giải thích. <b>Không thêm nút vào footer</b> vì footer đã chật ở 320px. Mỗi dòng cao 48px.</p>
+      </div>
+
+      <div class="card">
+        <h3>Mobile 320px: tiêu đề khi đóng</h3>
+        <div class="phone w320" style="height: 300px;">
+          <div class="mh"><span></span><span class="ttl"><span>chương 1 · đoạn 2/3</span> ▾</span><span class="ic">◐</span></div>
+          <div class="read"><p>Bukowski wanted to be a writer. But for decades his work was rejected…</p></div>
+          <div class="mft"><div class="g"><span class="b">giải thích</span><span class="b">đọc to</span></div><div class="g"><span class="b">←</span><span class="b">tiếp →</span></div></div>
+        </div>
+        <p class="why">Dấu ▾ báo hiệu bấm được. Tiêu đề vẫn vừa một dòng ở 320px, dài hơn thì cắt "…".</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ VIỆC B ============ -->
+  <section>
+    <div>
+      <h2><span class="tag">Việc B</span>Tra nghĩa ngay trong app</h2>
+      <p class="lead">Bôi đen một từ/cụm (≤ 10 từ) rồi bấm "tra nghĩa": popup mở rộng thành thẻ có dạng gốc, phiên âm, nghĩa trong câu này, 1 ví dụ đời thường. Cụm đã gạch chân thì mở luôn tấm giải thích có sẵn.</p>
+    </div>
+
+    <div class="card">
+      <h3>Desktop (khuyên dùng): thẻ mở ngay tại vùng chọn</h3>
+      <div class="desk" style="height: 520px;">
+        <div class="hdr">The Subtle Art of Not Giving a F*ck</div>
+        <div class="cols">
+          <p>Charles Bukowski was an alcoholic, a womanizer, a <u class="ch">chronic</u> gambler, a <mark>lout</mark>, a cheapskate, a deadbeat, and <u class="ch">on his worst days</u>, a poet.</p>
+          <p class="vi">Charles Bukowski là một gã nghiện rượu, một tay sát gái, một con bạc kinh niên, một kẻ thô lỗ, một đứa keo kiệt…</p>
+        </div>
+        <div class="lk" style="position: absolute; left: 150px; top: 168px;">
+          <div class="bt"><span><b class="tri">▶</b> nghe</span><span class="act"><b class="lens">⌕</b> tra nghĩa</span></div>
+          <div class="body">
+            <div class="hw"><b>lout</b><span class="ipa">/laʊt/</span><span class="pos">danh từ</span><span class="play" aria-label="nghe">▶</span></div>
+            <div><div class="lbl">nghĩa trong câu này</div><div class="mean">kẻ thô lỗ, cục cằn, cư xử khó coi</div></div>
+            <div class="ex"><span class="en">Don't be a lout. Say thank you to the waiter.</span><span class="vi">Đừng có thô lỗ thế, cảm ơn người phục vụ đi.</span></div>
+          </div>
+          <div class="more"><span>AI soạn · có thể chưa chuẩn</span><a href="https://dictionary.cambridge.org/dictionary/english/lout">xem thêm ở Cambridge ↗</a></div>
+        </div>
+      </div>
+      <p class="why">Thẻ mọc ra từ chính popup "nghe · tra nghĩa", mắt không phải rời chỗ đang đọc. <b>Esc / bấm ra ngoài / bỏ chọn</b> thì đóng. Dòng "AI soạn" nhắc người học là kết quả tự sinh.</p>
+    </div>
+
+    <div class="states">
+      <div class="card">
+        <h3>Đang chờ (~1–2 giây)</h3>
+        <div class="lk">
+          <div class="bt"><span><b class="tri">▶</b> nghe</span><span class="act"><b class="lens">⌕</b> tra nghĩa</span></div>
+          <div class="sk" aria-label="đang tra"><i style="width: 45%;"></i><i style="width: 80%;"></i><i style="width: 92%;"></i><i style="width: 70%;"></i></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Hết tiền / lỗi / tra quá nhiều</h3>
+        <div class="lk">
+          <div class="bt"><span><b class="tri">▶</b> nghe</span><span class="act"><b class="lens">⌕</b> tra nghĩa</span></div>
+          <div class="msg"><b>Tạm chưa tra được, thử lại sau nhé.</b><span class="m">Trong lúc chờ, bạn có thể tra từ điển ngoài.</span></div>
+          <div class="more"><span></span><a href="https://dictionary.cambridge.org/dictionary/english/lout">mở Cambridge ↗</a></div>
+        </div>
+        <p class="why">Một thông báo chung cho cả 3 trường hợp: người dùng không cần biết lý do là gì.</p>
+      </div>
+      <div class="card">
+        <h3>Bôi đen quá 10 từ</h3>
+        <div class="lk">
+          <div class="bt"><span><b class="tri">▶</b> nghe</span></div>
+          <div class="hint">dài quá để tra · xem bản dịch bên cạnh</div>
+        </div>
+        <p class="why">Thay vì giấu nút như bây giờ, nói rõ lý do và chỉ chỗ xem.</p>
+      </div>
+      <div class="card">
+        <h3>Bôi đen cụm đã gạch chân</h3>
+        <div class="lk">
+          <div class="bt"><span><b class="tri">▶</b> nghe</span><span class="act"><b class="lens">⌕</b> tra nghĩa</span></div>
+          <div class="hint">→ mở tấm giải thích của cụm "chronic" (dữ liệu soạn sẵn, không gọi AI)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h3>Mobile 390px: thanh đáy mở rộng thành thẻ</h3>
+        <div class="phone w390">
+          <div class="mh"><span></span><span class="ttl"><span>chương 1 · đoạn 1/3</span> ▾</span><span class="ic">◐</span></div>
+          <div class="read"><p>Charles Bukowski was an alcoholic, a womanizer, a <u class="ch">chronic</u> gambler, a <mark>lout</mark>, a cheapskate, a deadbeat, and on his worst days, a poet.</p></div>
+          <div class="dock">
+            <div class="q">"<b>lout</b>"</div>
+            <div class="acts"><span class="act44"><b class="tri">▶</b> nghe</span><span class="act44 on"><b class="lens">⌕</b> tra nghĩa</span><span class="x" aria-label="đóng">✕</span></div>
+            <div class="body">
+              <div class="hw"><b>lout</b><span class="ipa">/laʊt/</span><span class="pos">danh từ</span><span class="play" style="width: 44px; height: 44px;" aria-label="nghe">▶</span></div>
+              <div><div class="lbl">nghĩa trong câu này</div><div class="mean">kẻ thô lỗ, cục cằn, cư xử khó coi</div></div>
+              <div class="ex"><span class="en">Don't be a lout. Say thank you to the waiter.</span><span class="vi">Đừng có thô lỗ thế, cảm ơn người phục vụ đi.</span></div>
+            </div>
+            <div class="more"><span>AI soạn</span><a href="https://dictionary.cambridge.org/dictionary/english/lout">Cambridge ↗</a></div>
+          </div>
+          <div class="mft"><div class="g"><span class="b">giải thích</span><span class="b">đọc to</span></div><div class="g"><span class="b">←</span><span class="b">tiếp →</span></div></div>
+        </div>
+        <p class="why">Vẫn dính ngay trên footer như thanh "nghe / tra nghĩa" hiện tại, cao tối đa ~50% màn hình, có ✕. Không bao giờ đụng menu Copy của điện thoại.</p>
+      </div>
+
+      <div class="card alt">
+        <h3>Phương án khác (không khuyên): ngăn bên phải</h3>
+        <div class="desk" style="width: 560px; height: 360px;">
+          <div class="hdr">The Subtle Art…</div>
+          <div class="cols" style="grid-template-columns: 1fr; padding-right: 220px;">
+            <p style="font-size: 15px;">…a chronic gambler, a <mark>lout</mark>, a cheapskate…</p>
+          </div>
+          <div class="side" style="width: 220px;">
+            <div class="body" style="padding: 14px; display: grid; gap: 8px;">
+              <div class="hw"><b>lout</b><span class="ipa">/laʊt/</span></div>
+              <div class="mean" style="font-size: 13px;">kẻ thô lỗ, cục cằn</div>
+            </div>
+          </div>
+          <div class="dft" style="position: absolute; left: 0; right: 0; bottom: 0; height: 56px; padding: 0 16px;"><span>…</span></div>
+        </div>
+        <p class="why">Dùng chung chỗ với tấm giải thích nên quen tay hơn, nhưng mắt phải nhảy sang mép phải và che bản dịch. Hợp với nội dung dài, còn kết quả tra thì ngắn.</p>
+      </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>

@@ -1,8 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import type { Chunk } from "@/content/types";
-import { MOBILE_QUERY } from "@/lib/breakpoints";
 import { isSpeechAvailable, speak } from "@/lib/speech";
+import { useSheetBehavior } from "@/lib/useSheetBehavior";
 import { Kbd } from "./Kbd";
 
 interface Props {
@@ -24,11 +24,7 @@ export function ChunkDrawer({ chunks, index, closing = false, onNavigate, onClos
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
   }, [index]);
 
-  useEffect(() => {
-    const prev = document.activeElement as HTMLElement | null;
-    ref.current?.focus();
-    return () => prev?.focus();
-  }, []);
+  const sheet = useSheetBehavior(ref);
 
   // Còn nội dung bên dưới vùng cuộn? (cho dải mờ ở đáy). ResizeObserver báo ngay khi bắt đầu theo dõi,
   // và mỗi khi nội dung đổi cỡ (sang cụm khác, xoay máy); cuộn thì nghe sự kiện scroll.
@@ -55,43 +51,6 @@ export function ChunkDrawer({ chunks, index, closing = false, onNavigate, onClos
     return () => cancelAnimationFrame(id);
   }, []);
 
-  // Mobile (< lg): tấm là modal — khoá cuộn trang phía sau + aria-modal. Theo dõi media query
-  // để xoay máy / đổi cỡ cửa sổ qua 1024px khi tấm đang mở vẫn đúng.
-  useEffect(() => {
-    if (typeof window.matchMedia !== "function") return;
-    const mq = window.matchMedia(MOBILE_QUERY);
-    const body = document.body;
-    const prevOverflow = body.style.overflow;
-    const apply = () => {
-      body.style.overflow = mq.matches ? "hidden" : prevOverflow;
-      if (mq.matches) ref.current?.setAttribute("aria-modal", "true");
-      else ref.current?.removeAttribute("aria-modal");
-    };
-    apply();
-    mq.addEventListener("change", apply);
-    return () => {
-      mq.removeEventListener("change", apply);
-      body.style.overflow = prevOverflow;
-    };
-  }, []);
-
-  // Mobile: Tab / Shift+Tab quanh quẩn trong tấm (footer phía sau bị vùng mờ che)
-  const trapTab = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key !== "Tab" || !window.matchMedia?.(MOBILE_QUERY).matches) return;
-    const items = Array.from(ref.current?.querySelectorAll<HTMLElement>("button:not(:disabled)") ?? []);
-    if (items.length === 0) return;
-    const first = items[0];
-    const last = items[items.length - 1];
-    const active = document.activeElement;
-    if (e.shiftKey && (active === first || active === ref.current)) {
-      e.preventDefault();
-      last.focus();
-    } else if (!e.shiftKey && active === last) {
-      e.preventDefault();
-      first.focus();
-    }
-  };
-
   if (!chunk) return null;
   const speechOk = isSpeechAvailable();
   const offscreen = closing || !entered;
@@ -110,7 +69,7 @@ export function ChunkDrawer({ chunks, index, closing = false, onNavigate, onClos
         tabIndex={-1}
         role="dialog"
         aria-label={chunk.headword}
-        onKeyDown={trapTab}
+        onKeyDown={sheet.onKeyDown}
         className={`fixed inset-x-0 bottom-0 z-40 flex h-[85dvh] flex-col rounded-t-2xl border-t border-line bg-surface shadow-2xl outline-none transition-transform duration-300 ease-out motion-reduce:transition-none lg:bottom-14 lg:left-auto lg:right-0 lg:top-11 lg:z-20 lg:h-auto lg:w-[500px] lg:rounded-none lg:border-l lg:border-t-0 ${offscreen ? "translate-y-full lg:translate-x-full lg:translate-y-0" : "translate-x-0 translate-y-0"}`}
       >
         <div ref={scrollRef} data-testid="sheet-scroll" className="flex flex-1 flex-col gap-6 overflow-y-auto overscroll-contain px-5 pb-5 lg:px-10 lg:pb-0 lg:pt-10">
