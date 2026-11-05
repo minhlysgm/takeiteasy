@@ -11,6 +11,16 @@ export function useTypingText(text: string, { charMs = 25, enabled = true }: Opt
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const total = text.length;
 
+  // Đổi text (sang đoạn mới mà không remount): đặt lại ngay trong lúc vẽ, để không lần vẽ nào
+  // mang text mới với số chữ đã gõ của text cũ (effect bên dưới chạy sau khi đã vẽ, trễ một khung).
+  const [shownText, setShownText] = useState(text);
+  let typed = count;
+  if (shownText !== text) {
+    typed = enabled ? 0 : text.length;
+    setShownText(text);
+    setCount(typed);
+  }
+
   useEffect(() => {
     if (!enabled) {
       setCount(text.length);
@@ -37,5 +47,5 @@ export function useTypingText(text: string, { charMs = 25, enabled = true }: Opt
     setCount(total);
   }, [total]);
 
-  return { display: text.slice(0, count), done: count >= total, skip };
+  return { display: text.slice(0, typed), done: typed >= total, skip };
 }

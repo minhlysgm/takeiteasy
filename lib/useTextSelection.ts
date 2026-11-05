@@ -35,10 +35,19 @@ function sameSelection(a: TextSelection | null, b: TextSelection | null): boolea
  */
 export function useTextSelection(
   containerRef: RefObject<HTMLElement | null>,
-  opts?: { settleMs?: number },
+  opts?: { settleMs?: number; resetKey?: string },
 ): { selection: TextSelection | null; clear: () => void } {
   const settleMs = opts?.settleMs ?? DEFAULT_SETTLE_MS;
   const [selection, setSelection] = useState<TextSelection | null>(null);
+  // `resetKey` đổi (sang đoạn mới) → bỏ selection ngay trong lúc vẽ; vùng chọn của trình duyệt thì
+  // người gọi bỏ bằng `clear()` trong effect.
+  const [shownKey, setShownKey] = useState(opts?.resetKey);
+  let current = selection;
+  if (shownKey !== opts?.resetKey) {
+    current = null;
+    setShownKey(opts?.resetKey);
+    setSelection(null);
+  }
   const keepUntil = useRef(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mouseDown = useRef(false);
@@ -138,5 +147,5 @@ export function useTextSelection(
     };
   }, [containerRef, settleMs, cancelTimer, publish]);
 
-  return { selection, clear };
+  return { selection: current, clear };
 }

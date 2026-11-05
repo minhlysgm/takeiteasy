@@ -1,6 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Book, Passage } from "@/content/types";
 import { DOCK_QUERY } from "@/lib/breakpoints";
 import { chapterLabel } from "@/lib/content";
@@ -42,7 +42,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
   const typing = useTypingText(passage.translation);
   const { toggle: toggleTheme } = useTheme();
   // Chỉ chữ nguyên văn mới tính: nhãn, ghi chú tay, hình minh hoạ cùng cột thì không.
-  const { selection, clear: clearSelection } = useTextSelection(originalTextRef);
+  const { selection, clear: clearSelection } = useTextSelection(originalTextRef, { resetKey: passage.id });
   // Màn hẹp hoặc cảm ứng → thanh dính trên footer; còn lại → popup nổi cạnh vùng chọn.
   const docked = useMediaQuery(DOCK_QUERY);
   // Tấm/ngăn giải thích đang mở thì không hiện thanh/popup chọn chữ.
@@ -51,21 +51,34 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
   const [speechOk, setSpeechOk] = useState(false);
   useEffect(() => setSpeechOk(isSpeechAvailable()), []);
 
-  // Chuyển đoạn (không remount — PassageView nằm ở layout của chương): reset state đọc, tắt speech,
-  // về đầu trang (Next chỉ tự cuộn khi dựng lại page), và với user reduced-motion thì hiện đủ bản dịch
-  // ngay (cũng giữ SSR/client khớp nhau).
-  const firstPassage = useRef(true);
-  useEffect(() => {
-    if (firstPassage.current) firstPassage.current = false;
-    else window.scrollTo(0, 0);
+  // Chuyển đoạn: PassageView nằm ở layout của chương nên KHÔNG remount. State của đoạn được đặt lại
+  // ngay trong lúc vẽ (không đợi effect) để đoạn mới không vẽ lần nào với tấm giải thích / chế độ
+  // giải thích của đoạn cũ.
+  const [shownId, setShownId] = useState(passage.id);
+  if (shownId !== passage.id) {
+    setShownId(passage.id);
     setExplainOn(false);
     setDrawerIndex(null);
     setDrawerClosing(false);
+  }
+
+  // Việc ngoài React khi chuyển đoạn: huỷ hẹn giờ đóng tấm, tắt speech, bỏ vùng chọn của trình duyệt
+  // (cả khi chuyển bằng back/forward), và với user reduced-motion thì hiện đủ bản dịch ngay.
+  useEffect(() => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
     stopSpeech();
-    clearSelection(); // cả khi chuyển đoạn bằng nút back/forward của trình duyệt
+    clearSelection();
     if (prefersReducedMotion()) typing.skip();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [passage.id]);
+
+  // Sang đoạn bằng nút/phím của app → về đầu trang trước khi vẽ (Next chỉ tự cuộn khi dựng lại page).
+  // Back/forward thì để trình duyệt khôi phục chỗ đang đọc.
+  const scrollTopOnChange = useRef(false);
+  useLayoutEffect(() => {
+    if (!scrollTopOnChange.current) return;
+    scrollTopOnChange.current = false;
+    window.scrollTo(0, 0);
   }, [passage.id]);
 
   useEffect(() => {
@@ -89,6 +102,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
     (i: number) => {
       if (i < 1 || i > passageCount) return;
       clearSelection();
+      scrollTopOnChange.current = true;
       router.push(`/read/${book.id}/${chapterId}/${i}`);
     },
     [book.id, chapterId, passageCount, router, clearSelection],
