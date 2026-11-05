@@ -5,10 +5,7 @@
 
 ## Đang làm
 
-- **Task:** Viền focus chung theo token (cỡ S · UI) — nhánh `task/focus-ring`
-- **Trạm:** ⑦ Nghiệm thu — chờ Minh duyệt. ⑥ đã sửa cả 9 mục; #4 chọn B: token `--focus` (tối #3fb950, sáng #1c1917). Verify xanh (tsc+lint, 178 unit, 98 e2e). Ảnh: `.ui-snaps/focus/` (lưu ý `npm run ui:snap` xoá cả thư mục `.ui-snaps/`).
-- **Đã chốt:** 1 luật `:focus-visible` trong `app/globals.css`: outline 2px `var(--focus)`, offset 2px; dialog ChunkDrawer giữ `outline-none`.
-- **Test:** `e2e/focus-ring.spec.ts`
+_(trống — chờ Minh chọn task tiếp)_
 
 ## Backlog
 
@@ -20,6 +17,7 @@
 
 ## Đã xong
 
+- 2026-11-05 · Viền focus bàn phím chung, token `--focus` (tối xanh accent, sáng gần đen) + sửa 9 mục soi UI (viền ✕/▶ mobile, hình phác thảo rõ lại khi focus, kệ sách mobile hết tràn ngang…) (cỡ S · UI) — test `e2e/focus-ring.spec.ts`, `theme-contrast.test.ts`. Merge vào main (chưa push)
 - 2026-11-05 · Desktop: header + footer dính, ngăn giải thích nằm giữa (cỡ S · UI) — test `e2e/desktop-bars.spec.ts`. Merge vào main (chưa push)
 - 2026-11-05 · Dời nút "N" của Next dev sang góc trên phải (cỡ S · UI) — test `e2e/dev-indicator.spec.ts`. Merge vào main (chưa push)
 - 2026-11-05 · Chữ xám `--muted` theme sáng đủ tương phản 4.6:1 (cỡ S · UI) — test `theme-contrast.test.ts`. Merge vào main (chưa push)
