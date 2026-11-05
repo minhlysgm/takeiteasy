@@ -1,17 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { arrowPath, ellipsePath, splitSubpaths, stepPaths } from "@/lib/sketch/paths";
+import { arrowPath, splitSubpaths, stepPaths } from "@/lib/sketch/paths";
 
 describe("arrowPath", () => {
   it("vẽ đường cong rồi đầu mũi tên quay về điểm cuối", () => {
     const d = arrowPath([0, 0, 10, 0, 20, 0, 30, 0]);
     expect(d.startsWith("M0,0 C")).toBe(true);
     expect(d).toContain("L30,0");
-  });
-});
-
-describe("ellipsePath", () => {
-  it("bắt đầu ở mép trái của hình elip", () => {
-    expect(ellipsePath({ cx: 50, cy: 50, w: 40, h: 20 }).startsWith("M30,50")).toBe(true);
   });
 });
 

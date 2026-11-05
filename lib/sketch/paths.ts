@@ -7,10 +7,6 @@ export type ArrowPoints = [number, number, number, number, number, number, numbe
 const DEFAULT_SEED = 1; // roughjs: seed 0 = ngẫu nhiên, nên không bao giờ dùng 0
 const generator = rough.generator();
 
-export function ellipsePath({ cx, cy, w, h }: { cx: number; cy: number; w: number; h: number }): string {
-  return `M${cx - w / 2},${cy} a${w / 2},${h / 2} 0 1,0 ${w},0 a${w / 2},${h / 2} 0 1,0 ${-w},0`;
-}
-
 export function arrowPath([x1, y1, c1x, c1y, c2x, c2y, x2, y2]: ArrowPoints): string {
   const n = Math.hypot(x2 - c2x, y2 - c2y) || 1;
   const bx = (-(x2 - c2x) / n) * 8;
