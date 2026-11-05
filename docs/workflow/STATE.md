@@ -5,7 +5,11 @@
 
 ## Đang làm
 
-_(trống — chờ Minh chọn task tiếp)_
+- **Task:** Bôi đen để nghe / tra nghĩa trên cảm ứng (cỡ M · UI) — chưa tạo nhánh
+- **Trạm:** ③ Chốt spec — chờ Minh duyệt spec `docs/superpowers/specs/2026-11-05-touch-selection-design.md` + mockup https://claude.ai/artifact/JMHD9gLiYx6Jd58SF1jWNu
+- **Đã chốt ở ②:** mobile dùng thanh dính đáy (trên footer); ẩn "tra nghĩa" khi > 5 từ.
+- **Hiện trạng:** `SpeechTooltip` chỉ nghe `mouseup` → chạm/giữ để bôi đen trên điện thoại không hiện gì; popup đặt phía trên vùng chọn, không kẹp mép màn hình; trên iPhone menu Copy/Tra cứu cũng hiện phía trên vùng chọn → đụng nhau.
+- **Ghi chú:** push `main` thất bại — máy chưa đăng nhập GitHub cho git (không có `gh`). Minh tự push hoặc đăng nhập rồi bảo Claude push.
 
 ## Backlog
 
