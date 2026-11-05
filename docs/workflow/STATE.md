@@ -5,11 +5,19 @@
 
 ## Đang làm
 
-**Task:** Reader dùng được trên mobile · **Cỡ:** M · UI · **Trạm:** ⑤ Build — **đang làm**. Plan đã duyệt 2026-11-05: `docs/superpowers/plans/2026-11-05-reader-mobile.md` (5 task con). Spec đã duyệt: `docs/superpowers/specs/2026-11-05-reader-mobile-design.md`, mockup https://claude.ai/artifact/XQ614Aeyj2q32gYgmhd84L
+**Task:** Reader dùng được trên mobile · **Cỡ:** M · UI · **Trạm:** ⑥ Kiểm thử & soi — **chưa bắt đầu** (⑤ Build xong 2026-11-05). Plan đã duyệt 2026-11-05: `docs/superpowers/plans/2026-11-05-reader-mobile.md` (5 task con). Spec đã duyệt: `docs/superpowers/specs/2026-11-05-reader-mobile-design.md`, mockup https://claude.ai/artifact/XQ614Aeyj2q32gYgmhd84L
 
-Bước kế: tạo nhánh `task/reader-mobile` từ `main`, chạy plan bằng `superpowers:subagent-driven-development`, bắt đầu Task 1. Cập nhật dòng tiến độ dưới đây sau mỗi task con.
+Bước kế (trạm ⑥): trên nhánh `task/reader-mobile` (HEAD 89e1bf1, chưa merge, chưa push) chạy `npm run verify` và dán kết quả → skill `ui-review` (mobile 390 + 360, sáng/tối, có bật giải thích + mở tấm) → `/code-review`. Agent build báo verify xanh: vitest 166, playwright 62 (desktop 37 + mobile 25) — trạm ⑥ phải tự chạy lại.
 
-Tiến độ build (nhánh `task/reader-mobile` đã tạo, ledger ở `.superpowers/sdd/2026-11-05-reader-mobile/progress.md`): Task 1 ✅ · Task 2 ✅ · Task 3 ✅ · Task 4 ✅ · Task 5 ✅ · review toàn nhánh: đang sửa 2 lỗi chính + 4 lỗi nhỏ
+Tiến độ build: Task 1–5 ✅ · review toàn nhánh (opus) ✅ · 1 lượt sửa sau review ✅ (commit 608ae6c, 89e1bf1).
+
+Tui tự quyết khi build (báo Minh ở ⑦):
+- Test "chuyển đoạn khi tấm đang mở" đổi từ tải lại trang sang chuyển đoạn phía client (bấm "← trước" rồi Back) — vì tải lại trang thì test luôn qua, không kiểm được gì.
+- Màn hẹp (<1024px) dùng chuột cũng ẩn gợi ý phím ở footer (không chỉ máy cảm ứng) — để chữ nút không xuống dòng ở 360px. Tên nút trên mobile mất chữ phím (vd "giải thích" thay vì "e giải thích"); desktop giữ nguyên.
+- Desktop: cụm có nội dung dài thì phần nội dung cuộn bên trong ngăn kéo, hàng nút ← chunk trước / chunk sau → luôn ghim đáy (trước đây cả ngăn cuộn).
+- Nút "nghe" trong tấm: vùng chạm 44px bằng padding âm, nhưng bên phải bị khối chữ cạnh đè ~8px (thực ~36px) — mức thấp, chưa sửa.
+
+Còn để lại (mức thấp, cho ⑥ cân nhắc): khoá cuộn chỉ quyết lúc mở tấm (xoay tablet qua 1024px khi đang mở thì không đổi); số ①②③ cạnh cụm vùng chạm ~38px và có thể bị bôi đen dính vào; test sticky footer không kiểm trang đã cuộn thật; dòng trống thừa trong `e2e/mobile.spec.ts`; `shrink-0` thừa ở footer.
 
 Ghi chú trạm ① (đọc code):
 - Toàn bộ layout ở `components/reader/PassageView.tsx`: lưới `grid-cols-[200px_1fr_200px_1fr]` (dòng ~150) = lề trái (ghi chú) · nguyên văn (+ hình phác thảo) · lề phải (ghi chú, có viền chia) · bản dịch. Không có breakpoint nào trong reader.
