@@ -216,6 +216,42 @@ describe("PassageSketch", () => {
     expect(sketchEl().dataset.state).toBe("done");
   });
 
+  it("đo hình bị lỗi (getBBox ném): hiện đủ hình thay vì ẩn mãi, không có lời hứa bị bỏ rơi", async () => {
+    const rejections: unknown[] = [];
+    const onRejection = (e: unknown) => rejections.push(e);
+    process.on("unhandledRejection", onRejection);
+    try {
+      (SVGElement.prototype as unknown as Record<string, unknown>).getBBox = vi.fn(() => {
+        throw new Error("InvalidStateError");
+      });
+      const { container } = render(<PassageSketch sketch={sketch} passageId="p" start={true} />);
+      await advance(450);
+      expect(sketchEl().dataset.state).toBe("done");
+      expect(screen.queryByTestId("sketch-pencil")).toBeNull();
+      expect(screen.getByTestId("sketch-art").style.opacity).toBe("");
+      expect(screen.queryByText("đang vẽ…")).toBeNull();
+      // nét đã kịp đặt dash trước khi đo chữ ném lỗi cũng phải được trả lại nguyên vẹn
+      const path = container.querySelector("path")!;
+      expect(path.style.strokeDasharray).toBe("");
+      expect(path.style.strokeDashoffset).toBe("");
+      expect(localStorage.getItem("tie:sketch-seen:p")).toBe("1");
+      await advance(0);
+      expect(rejections).toEqual([]);
+    } finally {
+      process.off("unhandledRejection", onRejection);
+    }
+  });
+
+  it("vẽ lại mà đo bị lỗi: vẫn ở done, hình đủ", () => {
+    localStorage.setItem("tie:sketch-seen:p", "1");
+    (SVGElement.prototype as unknown as Record<string, unknown>).getBBox = vi.fn(() => {
+      throw new Error("InvalidStateError");
+    });
+    render(<PassageSketch sketch={sketch} passageId="p" start={false} />);
+    fireEvent.click(screen.getByRole("button", { name: "↻ vẽ lại" }));
+    expect(sketchEl().dataset.state).toBe("done");
+  });
+
   it("localStorage bị chặn (Review Focus 4) → vẫn vẽ, xem ngay không ném lỗi", async () => {
     const proto = Object.getPrototypeOf(localStorage) as Storage;
     vi.spyOn(proto, "getItem").mockImplementation(() => {

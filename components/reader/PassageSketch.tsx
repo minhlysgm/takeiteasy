@@ -109,10 +109,28 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
     if (l.kind === "text" && l.rect) l.rect.setAttribute("width", String(l.w * p));
   };
 
-  /** Đo DOM, dựng timeline, xoá trắng hình rồi chuyển sang "drawing" */
+  /** Hiện đủ hình (bỏ dash, mở clip hết cỡ) → "done" + nhớ đã xem */
+  const finish = useCallback(() => {
+    live.current.forEach((l) => {
+      if (l.kind === "path") {
+        for (const { el } of l.subs) {
+          if (!el) continue;
+          el.style.strokeDasharray = "";
+          el.style.strokeDashoffset = "";
+        }
+      }
+      if (l.kind === "text" && l.rect) {
+        for (const [k, v] of Object.entries(fullRect)) l.rect.setAttribute(k, String(v));
+      }
+    });
+    setState("done");
+    markSketchSeen(passageId);
+  }, [passageId, fullRect]);
+
+  /** Đo DOM, dựng timeline, xoá trắng hình rồi chuyển sang "drawing". Đo lỗi thì hiện đủ hình, đừng để hình ẩn mãi. */
   const begin = useCallback(() => {
     const measured: MeasuredStep[] = [];
-    live.current = items.map((it, i): Live => {
+    const measure = (it: Item, i: number): Live => {
       if (it.kind === "pause") {
         measured.push({ kind: "pause", rawMs: it.ms, start: [0, 0], end: [0, 0] });
         return { kind: "pause" };
@@ -146,29 +164,19 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
         end: pointOn(last?.el ?? null, last?.len ?? 0),
       });
       return { kind: "path", subs };
-    });
-    timeline.current = buildTimeline(measured, home);
-    live.current.forEach((l) => setP(l, 0));
-    setState("drawing");
-  }, [items, home]);
-
-  /** Hiện đủ hình (bỏ dash, mở clip hết cỡ) → "done" + nhớ đã xem */
-  const finish = useCallback(() => {
-    live.current.forEach((l) => {
-      if (l.kind === "path") {
-        for (const { el } of l.subs) {
-          if (!el) continue;
-          el.style.strokeDasharray = "";
-          el.style.strokeDashoffset = "";
-        }
-      }
-      if (l.kind === "text" && l.rect) {
-        for (const [k, v] of Object.entries(fullRect)) l.rect.setAttribute(k, String(v));
-      }
-    });
-    setState("done");
-    markSketchSeen(passageId);
-  }, [passageId, fullRect]);
+    };
+    // Gán trước khi đo: lỗi giữa chừng thì finish vẫn dọn được các item đã đo
+    const next: Live[] = [];
+    live.current = next;
+    try {
+      items.forEach((it, i) => next.push(measure(it, i)));
+      timeline.current = buildTimeline(measured, home);
+      next.forEach((l) => setP(l, 0));
+      setState("drawing");
+    } catch {
+      finish();
+    }
+  }, [items, home, finish]);
 
   const seen = onScreen === "yes";
 
@@ -195,11 +203,12 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
     if (state !== "waiting" || !start || !seen) return;
     let alive = true;
     let fonts: ReturnType<typeof waitFonts> | undefined;
+    const go = () => {
+      if (alive) begin();
+    };
     const timer = setTimeout(() => {
       fonts = waitFonts();
-      fonts.ready.then(() => {
-        if (alive) begin();
-      });
+      fonts.ready.then(go, go);
     }, SKETCH_START_DELAY_MS);
     return () => {
       alive = false;
