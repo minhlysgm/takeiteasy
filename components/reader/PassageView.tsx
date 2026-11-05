@@ -2,10 +2,13 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Book, Passage } from "@/content/types";
+import { DOCK_QUERY } from "@/lib/breakpoints";
 import { chapterLabel } from "@/lib/content";
 import { prefersReducedMotion } from "@/lib/motion";
 import { saveProgress } from "@/lib/progress";
 import { isSpeechAvailable, speak, stopSpeech } from "@/lib/speech";
+import { useMediaQuery } from "@/lib/useMediaQuery";
+import { useTextSelection } from "@/lib/useTextSelection";
 import { useTheme } from "@/lib/useTheme";
 import { useTypingText } from "@/lib/useTypingText";
 import { AnnotationLayer } from "./AnnotationLayer";
@@ -16,7 +19,8 @@ import { Kbd } from "./Kbd";
 import { MobileNoteList } from "./MobileNoteList";
 import { OriginalText } from "./OriginalText";
 import { PassageSketch } from "./PassageSketch";
-import { SpeechTooltip } from "./SpeechTooltip";
+import { SelectionDock } from "./SelectionDock";
+import { SelectionPopup } from "./SelectionPopup";
 
 interface Props {
   book: Book;
@@ -36,6 +40,11 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
   const originalColRef = useRef<HTMLDivElement>(null);
   const typing = useTypingText(passage.translation);
   const { toggle: toggleTheme } = useTheme();
+  const { selection, keep, clear: clearSelection } = useTextSelection(originalColRef);
+  // Màn hẹp hoặc cảm ứng → thanh dính trên footer; còn lại → popup nổi cạnh vùng chọn.
+  const docked = useMediaQuery(DOCK_QUERY);
+  // Tấm/ngăn giải thích đang mở thì không hiện thanh/popup chọn chữ.
+  const showSel = selection !== null && drawerIndex === null;
   // Đọc khả năng speech sau mount để SSR và client render lần đầu khớp nhau.
   const [speechOk, setSpeechOk] = useState(false);
   useEffect(() => setSpeechOk(isSpeechAvailable()), []);
@@ -48,6 +57,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
     setDrawerClosing(false);
     if (closeTimer.current) clearTimeout(closeTimer.current);
     stopSpeech();
+    clearSelection(); // cả khi chuyển đoạn bằng nút back/forward của trình duyệt
     if (prefersReducedMotion()) typing.skip();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [passage.id]);
@@ -71,9 +81,11 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
 
   const goTo = useCallback(
     (i: number) => {
-      if (i >= 1 && i <= passageCount) router.push(`/read/${book.id}/${chapterId}/${i}`);
+      if (i < 1 || i > passageCount) return;
+      clearSelection();
+      router.push(`/read/${book.id}/${chapterId}/${i}`);
     },
-    [book.id, chapterId, passageCount, router],
+    [book.id, chapterId, passageCount, router, clearSelection],
   );
 
   // Bấm chuột vào nút xong thì nhả focus: nút còn giữ focus thì Enter lại bấm nút đó thay vì sang đoạn.
@@ -173,7 +185,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
           </div>
           <OriginalText passage={passage} explainOn={explainOn} onChunkClick={openChunk} />
           {explainOn && <MobileNoteList chunks={passage.chunks} onChunkClick={openChunk} />}
-          <SpeechTooltip containerRef={originalColRef} />
+          {showSel && !docked && <SelectionPopup selection={selection} containerRef={originalColRef} onKeep={keep} />}
           {passage.sketch && (
             <PassageSketch key={passage.id} sketch={passage.sketch} passageId={passage.id} start={typing.done} dimmed={explainOn} />
           )}
@@ -220,6 +232,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
 
       {/* Footer dính đáy màn hình ở mọi cỡ; desktop nằm trên vùng mờ của ngăn giải thích nên vẫn bấm được */}
       <div className="sticky bottom-0 z-[5] lg:z-[15]">
+        {showSel && docked && <SelectionDock selection={selection} onKeep={keep} />}
         <FirstTimeHint explainOn={explainOn} />
         <footer className="relative flex [&_button:focus-visible]:outline-offset-1 h-[60px] shrink-0 items-center justify-between gap-1.5 border-t border-line bg-bg px-2 text-[13px] text-muted lg:h-14 lg:gap-0 lg:px-8">
           <div

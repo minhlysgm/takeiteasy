@@ -111,7 +111,7 @@ test.describe("320px", () => {
     const buttons = dock(page).getByRole("button");
     expect(await buttons.count()).toBe(2);
     for (const b of await buttons.all()) {
-      expect((await b.boundingBox())!.height, await b.textContent()).toBeGreaterThanOrEqual(44);
+      expect((await b.boundingBox())!.height, (await b.textContent()) ?? "").toBeGreaterThanOrEqual(44);
     }
 
     const footerButtons = await page.locator("footer button:visible").evaluateAll((els) =>

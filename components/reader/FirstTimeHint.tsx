@@ -24,7 +24,7 @@ export function FirstTimeHint({ explainOn }: { explainOn: boolean }) {
   return (
     <div className="flex items-center justify-between gap-4 border-t border-line bg-surface px-4 py-2.5 lg:px-8 text-[13px]">
       <span className="text-ink">
-        <span className="lg:hidden">{'// mẹo: chạm "giải thích" để xem các cụm đáng học'}</span>
+        <span className="lg:hidden">{'// mẹo: chạm "giải thích" để xem các cụm đáng học, giữ tay lên chữ để bôi đen và nghe phát âm'}</span>
         <span className="hidden lg:inline">
           {'// mẹo: bấm nút "giải thích" để xem các cụm đáng học được gạch chân và phân tích — tô đen cụm bất kỳ trong nguyên văn để nghe phát âm'}
         </span>
