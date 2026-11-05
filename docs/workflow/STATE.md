@@ -5,7 +5,10 @@
 
 ## Đang làm
 
-_(trống — chờ Minh chọn task tiếp)_
+**Task:** Footer màn đọc bị đẩy dưới mép màn hình ở desktop (backlog 1) · **Cỡ:** S · UI · **Trạm:** ⑦ Nghiệm thu — chờ Minh duyệt.
+Minh chọn ở ②: footer dính đáy (không làm "vừa khít màn hình", không thu hình). Tui tự chọn thêm: header cũng dính trên desktop; ngăn giải thích desktop `fixed` giữa header (top-11) và footer (bottom-14); footer/header z-15 trên vùng mờ (z-10) nên vẫn bấm được khi ngăn mở.
+Nhánh `task/desktop-footer`. Test `e2e/desktop-bars.spec.ts` (1440×900, 1280×800; đầu/cuối trang; có ngăn mở). Verify xanh: vitest 172 · playwright 88.
+Bước kế: Minh "ok" → merge vào main (chưa push), bỏ mục 1 khỏi backlog, ghi "Đã xong".
 
 ## Backlog
 
