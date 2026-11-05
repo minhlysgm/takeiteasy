@@ -31,7 +31,7 @@ test('Khi bôi đen "lout" rồi bấm "tra nghĩa" thì thẻ hiện khung xư�
   await openCard(page, "lout");
   const skeleton = page.getByTestId("lookup-skeleton");
   await expect(skeleton).toBeVisible();
-  await expect(skeleton).toHaveAttribute("aria-busy", "true");
+  await expect(card(page).getByTestId("lookup-body")).toHaveAttribute("aria-busy", "true");
 
   // Trang mới: lần này server trả kết quả.
   const calls: unknown[] = [];

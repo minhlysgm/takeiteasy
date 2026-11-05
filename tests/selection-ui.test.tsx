@@ -27,8 +27,8 @@ describe("SelectionDock", () => {
   it("dock: hiện chữ trong ngoặc kép, bấm 'nghe' gọi speak với đúng chữ", () => {
     render(<SelectionDock selection={sel("chronic gambler")} speechOk {...lk()} />);
     const dock = screen.getByTestId("selection-dock");
-    expect(dock.getAttribute("role")).toBe("toolbar");
-    expect(dock.getAttribute("aria-label")).toBe("chữ đang chọn");
+    const bar = screen.getByRole("toolbar", { name: "chữ đang chọn" });
+    expect(dock.contains(bar)).toBe(true);
     expect(dock.textContent).toContain('"chronic gambler"');
     fireEvent.click(screen.getByRole("button", { name: /nghe/ }));
     expect(speak).toHaveBeenCalledWith("chronic gambler");
@@ -57,14 +57,36 @@ describe("SelectionDock", () => {
     expect(screen.getByTestId("selection-dock").textContent).toContain("dài quá để tra · xem bản dịch bên cạnh");
   });
 
-  it("dock có lookup → thẻ nằm trong dock, 'tra nghĩa' aria-expanded, ✕ 'đóng thẻ' gọi onCloseLookup", () => {
+  it("dock có lookup → thẻ nằm trong dock (ngoài toolbar), 'tra nghĩa' aria-expanded + aria-controls trỏ vào thẻ", () => {
     const props = lk({ phase: "loading" });
     render(<SelectionDock selection={sel("lout")} speechOk {...props} />);
     const dock = screen.getByTestId("selection-dock");
-    expect(dock.contains(screen.getByTestId("lookup-card"))).toBe(true);
-    expect(screen.getByRole("button", { name: /tra nghĩa/ }).getAttribute("aria-expanded")).toBe("true");
-    fireEvent.click(screen.getByRole("button", { name: "đóng thẻ" }));
+    const card = screen.getByTestId("lookup-card");
+    expect(dock.contains(card)).toBe(true);
+    expect(screen.getByRole("toolbar").contains(card)).toBe(false);
+    const btn = screen.getByRole("button", { name: /tra nghĩa/ });
+    expect(btn.getAttribute("aria-expanded")).toBe("true");
+    expect(card.id).not.toBe("");
+    expect(btn.getAttribute("aria-controls")).toBe(card.id);
+  });
+
+  it("dock có lookup → ✕ 'đóng thẻ' nằm cùng hàng nút (đẩy sang phải), có hover, gọi onCloseLookup", () => {
+    const props = lk({ phase: "loading" });
+    render(<SelectionDock selection={sel("lout")} speechOk {...props} />);
+    const x = screen.getByRole("button", { name: "đóng thẻ" });
+    expect(screen.getByRole("toolbar").contains(x)).toBe(true);
+    expect(screen.getByTestId("lookup-card").contains(x)).toBe(false);
+    for (const c of ["ml-auto", "hover:bg-bg", "transition-colors", "motion-reduce:transition-none", "h-11", "w-11"]) {
+      expect(x.className.split(" ")).toContain(c);
+    }
+    fireEvent.click(x);
     expect(props.onCloseLookup).toHaveBeenCalledTimes(1);
+  });
+
+  it("dock chưa mở thẻ → không có ✕, 'tra nghĩa' không có aria-controls", () => {
+    render(<SelectionDock selection={sel("lout")} speechOk {...lk()} />);
+    expect(screen.queryByRole("button", { name: "đóng thẻ" })).toBeNull();
+    expect(screen.getByRole("button", { name: /tra nghĩa/ }).hasAttribute("aria-controls")).toBe(false);
   });
 
   it("dock không có lookup → không có thẻ", () => {
@@ -118,10 +140,9 @@ describe("SelectionPopup", () => {
     expect(screen.getByRole("button", { name: /nghe/ }).className).toContain("hover:");
   });
 
-  it("popup: role='toolbar', aria-label='chữ đang chọn' như dock", () => {
+  it("popup: hàng nút là role='toolbar', aria-label='chữ đang chọn' như dock", () => {
     const popup = renderPopup();
-    expect(popup.getAttribute("role")).toBe("toolbar");
-    expect(popup.getAttribute("aria-label")).toBe("chữ đang chọn");
+    expect(popup.contains(screen.getByRole("toolbar", { name: "chữ đang chọn" }))).toBe(true);
   });
 
   it("popup: 'nghe' có đường kẻ ngăn với 'tra nghĩa' (hoặc với chữ 'dài quá để tra' khi 11 từ)", () => {
@@ -134,11 +155,31 @@ describe("SelectionPopup", () => {
     expect(screen.getByRole("button", { name: /nghe/ }).className).toContain("border-r");
   });
 
-  it("popup có lookup → thẻ nằm trong popup, popup rộng 360px, không có ✕", () => {
+  it("popup có lookup → thẻ nằm trong popup (ngoài toolbar), popup rộng 360px, aria-controls trỏ vào thẻ", () => {
     const popup = renderPopup("lout", lk({ phase: "loading" }));
-    expect(popup.contains(screen.getByTestId("lookup-card"))).toBe(true);
+    const card = screen.getByTestId("lookup-card");
+    expect(popup.contains(card)).toBe(true);
+    expect(screen.getByRole("toolbar").contains(card)).toBe(false);
     expect(popup.className).toContain("w-[360px]");
-    expect(screen.getByRole("button", { name: /tra nghĩa/ }).getAttribute("aria-expanded")).toBe("true");
+    const btn = screen.getByRole("button", { name: /tra nghĩa/ });
+    expect(btn.getAttribute("aria-expanded")).toBe("true");
+    expect(btn.getAttribute("aria-controls")).toBe(card.id);
+  });
+
+  it("popup có lookup → ✕ 'đóng thẻ' ở hàng nút, đẩy sang phải, có hover, gọi onCloseLookup", () => {
+    const props = lk({ phase: "ok", result: { headword: "lout", ipa: "/laʊt/", pos: "danh từ", meaning: "m", example: { en: "e", vi: "v" } } });
+    renderPopup("lout", props);
+    const x = screen.getByRole("button", { name: "đóng thẻ" });
+    expect(screen.getByRole("toolbar").contains(x)).toBe(true);
+    for (const c of ["ml-auto", "hover:bg-bg", "transition-colors", "motion-reduce:transition-none"]) {
+      expect(x.className.split(" ")).toContain(c);
+    }
+    fireEvent.click(x);
+    expect(props.onCloseLookup).toHaveBeenCalledTimes(1);
+  });
+
+  it("popup chưa mở thẻ → không có ✕", () => {
+    renderPopup("lout");
     expect(screen.queryByRole("button", { name: "đóng thẻ" })).toBeNull();
   });
 
