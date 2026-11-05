@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { PassageView } from "@/components/reader/PassageView";
 import { books, getPassages } from "@/lib/content";
 import { getProgress } from "@/lib/progress";
@@ -24,6 +24,12 @@ function renderView() {
       passageIndex={1}
       passageCount={passages.length}
     />,
+  );
+}
+
+function view2() {
+  return (
+    <PassageView book={book} chapterId="ch01" passage={passages[1]} passageIndex={2} passageCount={passages.length} />
   );
 }
 
@@ -154,6 +160,16 @@ describe("PassageView", () => {
     expect(push).toHaveBeenCalledTimes(1);
   });
 
+  it("Shift+←/→ là để nới vùng chọn của trình duyệt: không chuyển đoạn", () => {
+    render(view2());
+    fireEvent.keyDown(window, { key: "x" }); // skip typing
+    fireEvent.keyDown(window, { key: "ArrowRight", shiftKey: true });
+    fireEvent.keyDown(window, { key: "ArrowLeft", shiftKey: true });
+    expect(push).not.toHaveBeenCalled();
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+    expect(push).toHaveBeenCalledWith("/read/the-subtle-art/ch01/3");
+  });
+
   it("đoạn 1 có hình phác thảo", () => {
     renderView();
     expect(screen.getByTestId("sketch")).toBeTruthy();
@@ -171,5 +187,107 @@ describe("PassageView", () => {
       />,
     );
     expect(screen.queryByTestId("sketch")).toBeNull();
+  });
+});
+
+// RF4: chuyển đoạn thì thanh/popup chọn chữ biến mất ngay, không mang chữ của đoạn cũ sang đoạn mới.
+// (Trên app thật Next remount PassageView khi đổi đoạn nên e2e không bắt được nếu bỏ clear();
+// ở đây PassageView sống tiếp qua rerender — đúng ý đồ "không remount" của page.tsx.)
+describe("PassageView — chọn chữ khi chuyển đoạn", () => {
+  const original = Range.prototype.getBoundingClientRect;
+  beforeAll(() => {
+    Range.prototype.getBoundingClientRect = () =>
+      ({ left: 40, top: 200, width: 120, height: 20, right: 160, bottom: 220, x: 40, y: 200, toJSON() {} }) as DOMRect;
+  });
+  afterAll(() => {
+    Range.prototype.getBoundingClientRect = original;
+  });
+  beforeEach(() => {
+    localStorage.clear();
+    push.mockClear();
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    window.getSelection()?.removeAllRanges();
+    vi.useRealTimers();
+  });
+
+  function view(i: number) {
+    return (
+      <PassageView book={book} chapterId="ch01" passage={passages[i - 1]} passageIndex={i} passageCount={passages.length} />
+    );
+  }
+
+  /** Bôi đen "chronic gambler" trong nguyên văn rồi chờ quá 250ms → popup hiện (jsdom không có matchMedia → desktop). */
+  function selectChronicGambler() {
+    const root = screen.getByTestId("original-text");
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let node: Text | null = null;
+    while (walker.nextNode()) {
+      const t = walker.currentNode as Text;
+      if (t.data.includes("chronic")) node = t;
+      if (node) break;
+    }
+    // "chronic" là span cụm riêng; " gambler" nằm ở text node kế tiếp
+    const next = node!.parentNode!.nextSibling as Text;
+    act(() => {
+      const range = document.createRange();
+      range.setStart(node!, 0);
+      range.setEnd(next, " gambler".length);
+      const sel = window.getSelection()!;
+      sel.removeAllRanges();
+      sel.addRange(range);
+      document.dispatchEvent(new Event("selectionchange"));
+    });
+    act(() => void vi.advanceTimersByTime(300));
+    expect(window.getSelection()!.toString()).toBe("chronic gambler");
+    expect(screen.getByTestId("selection-popup")).toBeTruthy();
+  }
+
+  it("bấm Enter sang đoạn kế (goTo) thì popup tắt ngay, vùng chọn bị bỏ", () => {
+    render(view(1));
+    fireEvent.keyDown(window, { key: "x" }); // skip typing
+    selectChronicGambler();
+    fireEvent.keyDown(window, { key: "Enter" });
+    expect(push).toHaveBeenCalledWith("/read/the-subtle-art/ch01/2");
+    expect(screen.queryByTestId("selection-popup")).toBeNull();
+    expect(window.getSelection()!.toString()).toBe("");
+  });
+
+  it("Escape tắt popup và bỏ vùng chọn", () => {
+    render(view(1));
+    fireEvent.keyDown(window, { key: "x" });
+    selectChronicGambler();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryByTestId("selection-popup")).toBeNull();
+    expect(window.getSelection()!.toString()).toBe("");
+  });
+
+  it("bôi đen chữ trong ghi chú tay (ngoài nguyên văn nhưng cùng cột) → không có popup", () => {
+    render(view(1));
+    fireEvent.keyDown(window, { key: "x" });
+    fireEvent.keyDown(window, { key: "e" }); // bật giải thích → hiện ghi chú tay
+    const label = screen.getByTestId("mobile-notes").querySelector("li span:last-child")!.firstChild as Text;
+    act(() => {
+      const range = document.createRange();
+      range.setStart(label, 0);
+      range.setEnd(label, Math.min(5, label.data.length));
+      const sel = window.getSelection()!;
+      sel.removeAllRanges();
+      sel.addRange(range);
+      document.dispatchEvent(new Event("selectionchange"));
+    });
+    act(() => void vi.advanceTimersByTime(300));
+    expect(window.getSelection()!.toString()).not.toBe("");
+    expect(screen.queryByTestId("selection-popup")).toBeNull();
+  });
+
+  it("đổi đoạn không qua goTo (back/forward) thì đoạn mới không có popup của đoạn cũ", () => {
+    const { rerender } = render(view(1));
+    fireEvent.keyDown(window, { key: "x" });
+    selectChronicGambler();
+    rerender(view(2));
+    expect(screen.getByTestId("original-text").textContent).toContain("Bukowski wanted to be a writer");
+    expect(screen.queryByTestId("selection-popup")).toBeNull();
   });
 });

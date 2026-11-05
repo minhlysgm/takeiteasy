@@ -91,15 +91,6 @@ test("không thấy gợi ý phím ở footer", async ({ page }) => {
   await expect(page.locator("footer kbd:visible")).toHaveCount(0);
 });
 
-test("mẹo lần đầu không nhắc tô đen", async ({ page }) => {
-  await page.goto(P1);
-  // span ngoài chứa cả hai câu; span trong cùng (cuối DOM) là câu đang hiển thị
-  const hint = page.locator("span:visible", { hasText: /\/\/ mẹo/ }).last();
-  await expect(hint).toBeVisible();
-  await expect(hint).toContainText('chạm "giải thích"');
-  await expect(hint).not.toContainText("tô đen");
-});
-
 test.describe("360px", () => {
   test.use({ viewport: { width: 360, height: 780 } });
   test("footer một hàng, không cuộn ngang", async ({ page }) => {

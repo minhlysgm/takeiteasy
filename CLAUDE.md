@@ -26,8 +26,8 @@ gạch chân, ghi chú tay và drawer giải thích. Next.js 16 (App Router) · 
 ## Cấu trúc
 
 - `app/` — route: `/` (kệ sách), `/read/[bookId]/[chapterId]/[passageIndex]`
-- `components/reader/` — PassageView (màn đọc, phím tắt), AnnotationLayer, ChunkDrawer, SpeechTooltip
-- `components/shelf/` — BookShelf · `lib/` — content, progress (localStorage `tie:*`), theme, speech
+- `components/reader/` — PassageView (màn đọc, phím tắt), AnnotationLayer, ChunkDrawer, SelectionPopup / SelectionDock
+- `components/shelf/` — BookShelf · `lib/` — content, progress (localStorage `tie:*`), theme, speech, selection, useTextSelection, useMediaQuery
 - `content/books/<book>/` — dữ liệu sách (passage, chunk, ví dụ)
 - `docs/superpowers/specs|plans/` — spec & plan đã duyệt · `docs/workflow/STATE.md` — trạng thái + backlog
 

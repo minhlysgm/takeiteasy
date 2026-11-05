@@ -2,10 +2,13 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Book, Passage } from "@/content/types";
+import { DOCK_QUERY } from "@/lib/breakpoints";
 import { chapterLabel } from "@/lib/content";
 import { prefersReducedMotion } from "@/lib/motion";
 import { saveProgress } from "@/lib/progress";
 import { isSpeechAvailable, speak, stopSpeech } from "@/lib/speech";
+import { useMediaQuery } from "@/lib/useMediaQuery";
+import { useTextSelection } from "@/lib/useTextSelection";
 import { useTheme } from "@/lib/useTheme";
 import { useTypingText } from "@/lib/useTypingText";
 import { AnnotationLayer } from "./AnnotationLayer";
@@ -16,7 +19,8 @@ import { Kbd } from "./Kbd";
 import { MobileNoteList } from "./MobileNoteList";
 import { OriginalText } from "./OriginalText";
 import { PassageSketch } from "./PassageSketch";
-import { SpeechTooltip } from "./SpeechTooltip";
+import { SelectionDock } from "./SelectionDock";
+import { SelectionPopup } from "./SelectionPopup";
 
 interface Props {
   book: Book;
@@ -34,8 +38,15 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const readerRef = useRef<HTMLDivElement>(null);
   const originalColRef = useRef<HTMLDivElement>(null);
+  const originalTextRef = useRef<HTMLDivElement>(null);
   const typing = useTypingText(passage.translation);
   const { toggle: toggleTheme } = useTheme();
+  // Chỉ chữ nguyên văn mới tính: nhãn, ghi chú tay, hình minh hoạ cùng cột thì không.
+  const { selection, clear: clearSelection } = useTextSelection(originalTextRef);
+  // Màn hẹp hoặc cảm ứng → thanh dính trên footer; còn lại → popup nổi cạnh vùng chọn.
+  const docked = useMediaQuery(DOCK_QUERY);
+  // Tấm/ngăn giải thích đang mở thì không hiện thanh/popup chọn chữ.
+  const showSel = selection !== null && drawerIndex === null;
   // Đọc khả năng speech sau mount để SSR và client render lần đầu khớp nhau.
   const [speechOk, setSpeechOk] = useState(false);
   useEffect(() => setSpeechOk(isSpeechAvailable()), []);
@@ -48,6 +59,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
     setDrawerClosing(false);
     if (closeTimer.current) clearTimeout(closeTimer.current);
     stopSpeech();
+    clearSelection(); // cả khi chuyển đoạn bằng nút back/forward của trình duyệt
     if (prefersReducedMotion()) typing.skip();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [passage.id]);
@@ -71,9 +83,11 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
 
   const goTo = useCallback(
     (i: number) => {
-      if (i >= 1 && i <= passageCount) router.push(`/read/${book.id}/${chapterId}/${i}`);
+      if (i < 1 || i > passageCount) return;
+      clearSelection();
+      router.push(`/read/${book.id}/${chapterId}/${i}`);
     },
-    [book.id, chapterId, passageCount, router],
+    [book.id, chapterId, passageCount, router, clearSelection],
   );
 
   // Bấm chuột vào nút xong thì nhả focus: nút còn giữ focus thì Enter lại bấm nút đó thay vì sang đoạn.
@@ -91,6 +105,8 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
+      // Shift+←/→ là phím nới vùng chọn của trình duyệt, không phải chuyển đoạn
+      if (e.shiftKey && (e.key === "ArrowLeft" || e.key === "ArrowRight")) return;
       // Enter trên nút đang focus là việc của nút đó, phím tắt không xen vào
       if (e.key === "Enter" && e.target instanceof Element && e.target.closest("button")) return;
       if (!typing.done && e.key !== "Escape") {
@@ -123,16 +139,20 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
           break;
         case "Escape":
           setExplainOn(false);
+          clearSelection();
           break;
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [typing, drawerIndex, drawerClosing, passageIndex, goTo, passage, toggleTheme, requestCloseDrawer]);
+  }, [typing, drawerIndex, drawerClosing, passageIndex, goTo, passage, toggleTheme, requestCloseDrawer, clearSelection]);
 
   const openChunk = (chunkId: string) => {
     const i = passage.chunks.findIndex((c) => c.id === chunkId);
-    if (i >= 0) setDrawerIndex(i);
+    if (i < 0) return;
+    // Bấm vào cụm cũng có thể vừa bôi đen chữ (nhấp đúp): bỏ luôn, kẻo đóng tấm lại hiện popup cũ.
+    clearSelection();
+    setDrawerIndex(i);
   };
 
   return (
@@ -171,9 +191,9 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
             {"// nguyên văn"}
             {explainOn && <span className="ml-3 text-ink">{passage.chunks.length} chunks đáng học</span>}
           </div>
-          <OriginalText passage={passage} explainOn={explainOn} onChunkClick={openChunk} />
+          <OriginalText ref={originalTextRef} passage={passage} explainOn={explainOn} onChunkClick={openChunk} />
           {explainOn && <MobileNoteList chunks={passage.chunks} onChunkClick={openChunk} />}
-          <SpeechTooltip containerRef={originalColRef} />
+          {showSel && !docked && <SelectionPopup selection={selection} containerRef={originalColRef} speechOk={speechOk} />}
           {passage.sketch && (
             <PassageSketch key={passage.id} sketch={passage.sketch} passageId={passage.id} start={typing.done} dimmed={explainOn} />
           )}
@@ -219,8 +239,11 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
       </div>
 
       {/* Footer dính đáy màn hình ở mọi cỡ; desktop nằm trên vùng mờ của ngăn giải thích nên vẫn bấm được */}
-      <div className="sticky bottom-0 z-[5] lg:z-[15]">
-        <FirstTimeHint explainOn={explainOn} />
+      {/* Nền surface: khe lẻ pixel giữa các dải không lộ nội dung phía sau */}
+      <div className="sticky bottom-0 z-[5] bg-surface lg:z-[15]">
+        {showSel && docked && <SelectionDock selection={selection} speechOk={speechOk} />}
+        {/* Thanh đang hiện thì mẹo tạm nhường chỗ (màn nhỏ: mẹo + thanh + footer chiếm gần nửa màn) */}
+        <FirstTimeHint explainOn={explainOn} hidden={showSel && docked} />
         <footer className="relative flex [&_button:focus-visible]:outline-offset-1 h-[60px] shrink-0 items-center justify-between gap-1.5 border-t border-line bg-bg px-2 text-[13px] text-muted lg:h-14 lg:gap-0 lg:px-8">
           <div
             aria-hidden
