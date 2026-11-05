@@ -32,6 +32,23 @@ export function ChunkDrawer({ chunks, index, closing = false, onNavigate, onClos
     return () => prev?.focus();
   }, []);
 
+  // Còn nội dung bên dưới vùng cuộn? (cho dải mờ ở đáy). ResizeObserver báo ngay khi bắt đầu theo dõi,
+  // và mỗi khi nội dung đổi cỡ (sang cụm khác, xoay máy); cuộn thì nghe sự kiện scroll.
+  const [more, setMore] = useState(false);
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const update = () => setMore(el.scrollHeight - el.scrollTop - el.clientHeight > 4);
+    const ro = typeof ResizeObserver === "function" ? new ResizeObserver(update) : null;
+    ro?.observe(el);
+    for (const child of Array.from(el.children)) ro?.observe(child);
+    el.addEventListener("scroll", update, { passive: true });
+    return () => {
+      ro?.disconnect();
+      el.removeEventListener("scroll", update);
+    };
+  }, [index]);
+
   // Mount ở vị trí ngoài màn hình rồi flip sang frame kế tiếp để CSS transition
   // chạy hiệu ứng trượt vào (kiểu drawer mobile).
   const [entered, setEntered] = useState(false);
@@ -87,7 +104,7 @@ export function ChunkDrawer({ chunks, index, closing = false, onNavigate, onClos
         aria-hidden="true"
         data-testid="drawer-backdrop"
         onClick={onClose}
-        className={`fixed inset-0 z-30 bg-scrim transition-opacity duration-300 motion-reduce:transition-none lg:absolute lg:z-10 ${offscreen ? "opacity-0" : "opacity-100"}`}
+        className={`fixed inset-0 z-30 bg-scrim transition-opacity duration-300 ease-out motion-reduce:transition-none lg:absolute lg:z-10 ${offscreen ? "opacity-0" : "opacity-100"}`}
       />
       {/* Mobile: tấm trượt từ dưới lên (85% màn hình). Desktop (lg): ngăn 500px bên phải, cố định giữa header (h-11) và footer (h-14) dính. */}
       <div
@@ -98,10 +115,8 @@ export function ChunkDrawer({ chunks, index, closing = false, onNavigate, onClos
         onKeyDown={trapTab}
         className={`fixed inset-x-0 bottom-0 z-40 flex h-[85dvh] flex-col rounded-t-2xl border-t border-line bg-surface shadow-2xl outline-none transition-transform duration-300 ease-out motion-reduce:transition-none lg:bottom-14 lg:left-auto lg:right-0 lg:top-11 lg:z-20 lg:h-auto lg:w-[500px] lg:rounded-none lg:border-l lg:border-t-0 ${offscreen ? "translate-y-full lg:translate-x-full lg:translate-y-0" : "translate-x-0 translate-y-0"}`}
       >
-        <div aria-hidden="true" className="mx-auto mt-2 h-1 w-9 shrink-0 rounded-full bg-line lg:hidden" />
-
         <div ref={scrollRef} data-testid="sheet-scroll" className="flex flex-1 flex-col gap-6 overflow-y-auto overscroll-contain px-5 pb-5 lg:px-10 lg:pb-0 lg:pt-10">
-          <div className="flex items-center justify-between text-[13px] text-muted">
+          <div className="flex items-center justify-between text-[13px] text-muted max-lg:-mb-4 max-lg:pt-1">
             <span>{`// chunk ${index + 1}/${chunks.length}`}</span>
             <button
               type="button"
@@ -109,7 +124,7 @@ export function ChunkDrawer({ chunks, index, closing = false, onNavigate, onClos
               aria-label="đóng"
               className="-mr-3 flex min-h-11 min-w-11 items-center justify-center hover:text-bright max-lg:focus-visible:outline-offset-[-8px] lg:mr-0 lg:block lg:min-h-0 lg:min-w-0"
             >
-              <span className="lg:hidden">✕</span>
+              <span className="text-[19px] leading-none text-text lg:hidden">✕</span>
               <span className="hidden lg:inline">
                 đóng <Kbd>esc</Kbd>
               </span>
@@ -168,6 +183,13 @@ export function ChunkDrawer({ chunks, index, closing = false, onNavigate, onClos
 
           {chunk.note && <p className="text-[13.5px] leading-relaxed text-muted">{chunk.note}</p>}
         </div>
+
+        {/* Mobile: dải mờ ở đáy vùng cuộn báo "còn nội dung bên dưới"; cuộn tới cuối thì ẩn */}
+        <div
+          aria-hidden="true"
+          data-testid="sheet-fade"
+          className={`pointer-events-none absolute inset-x-0 bottom-14 h-12 bg-gradient-to-b from-transparent to-surface transition-opacity duration-200 ease-out motion-reduce:transition-none lg:hidden ${more ? "opacity-100" : "opacity-0"}`}
+        />
 
         {/* Hàng chuyển cụm ghim đáy, ngoài vùng cuộn — luôn thấy được trên mobile */}
         <div className="flex h-14 shrink-0 items-center justify-between border-t border-line px-2 text-[13px] text-muted lg:h-auto lg:border-0 lg:px-10 lg:pb-10 lg:pt-6">
