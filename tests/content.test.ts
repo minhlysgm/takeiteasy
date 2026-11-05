@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { books, findChunkRange, getPassages } from "@/lib/content";
+import { books, findChunkRange, firstSentence, getPassages } from "@/lib/content";
 
 describe("content validation", () => {
   it("có ít nhất 1 sách", () => {
@@ -51,5 +51,28 @@ describe("passageIndexOf", () => {
     expect(passageIndexOf("abc", 3)).toBe(1);
     expect(passageIndexOf("1.5", 3)).toBe(1);
     expect(passageIndexOf("", 3)).toBe(1);
+  });
+});
+
+describe("firstSentence", () => {
+  it("firstSentence: cắt tới dấu chấm đầu tiên", () => {
+    expect(firstSentence("Bukowski wanted to be a writer. But for decades…")).toBe("Bukowski wanted to be a writer.");
+    expect(firstSentence("See, despite the fame, he was a loser. He knew it.")).toBe("See, despite the fame, he was a loser.");
+  });
+  it("firstSentence: chỉ xét dòng đầu; không có dấu chấm thì lấy cả dòng", () => {
+    expect(firstSentence("Which is why\n\nhe's the perfect place")).toBe("Which is why");
+    expect(firstSentence("  no punctuation here  ")).toBe("no punctuation here");
+  });
+  it("firstSentence: giữ dấu hỏi/chấm than và ngoặc kép đóng", () => {
+    expect(firstSentence('He said "Don\'t try." Then left.')).toBe('He said "Don\'t try."');
+    expect(firstSentence("Why? Because.")).toBe("Why?");
+  });
+  it("firstSentence: dấu chấm giữa số không phải hết câu", () => {
+    expect(firstSentence("It cost 3.5 dollars. Cheap.")).toBe("It cost 3.5 dollars.");
+  });
+  it("firstSentence của 3 đoạn ch01 khớp mockup", () => {
+    const ps = getPassages("the-subtle-art", "ch01")!;
+    expect(firstSentence(ps[1].original)).toBe("Bukowski wanted to be a writer.");
+    expect(firstSentence(ps[2].original)).toBe("See, despite the book sales and the fame, Bukowski was a loser.");
   });
 });

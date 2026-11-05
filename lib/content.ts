@@ -51,3 +51,12 @@ export function findChunkRanges(original: string, chunks: Chunk[]): ChunkRange[]
   }
   return out.sort((a, b) => a.start - b.start);
 }
+
+export interface PassageOutline { index: number; firstSentence: string } // index 1-based
+
+/** Câu đầu của đoạn: chỉ xét dòng đầu, cắt tới dấu . ? ! đầu tiên đứng cuối từ (không phải "3.5"). */
+export function firstSentence(original: string): string {
+  const line = original.split("\n")[0];
+  const m = line.match(/^.*?[.?!]["”]?(?=\s|$)/);
+  return (m ? m[0] : line).trim();
+}
