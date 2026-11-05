@@ -133,6 +133,7 @@ test("Đang bôi đen chữ mà nhấn g thì popup chọn chữ tắt", async (
   await page.keyboard.press("g");
   await expect(list(page)).toBeVisible();
   await expect(page.getByTestId("selection-popup")).toHaveCount(0);
+  expect(await page.evaluate(() => window.getSelection()!.toString())).toBe("");
 });
 
 test("12. reduced-motion: danh sách không có transition; đổi theme thì nền danh sách đổi theo token", async ({ page }) => {
@@ -158,4 +159,63 @@ test("12. reduced-motion: danh sách không có transition; đổi theme thì n�
   const bg1 = await list(page).evaluate((e) => getComputedStyle(e).backgroundColor);
   expect(bg1).not.toBe("rgba(0, 0, 0, 0)");
   expect(bg1).not.toBe(bg0);
+});
+
+// Sau khi chọn đoạn / đóng bằng chuột thì không giữ focus trên bộ đếm: enter lại là "đoạn tiếp".
+// reduced-motion để bản dịch hiện đủ ngay (đang gõ thì phím nào cũng chỉ bỏ qua hiệu ứng gõ).
+test.describe("focus sau khi đóng danh sách", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+  });
+  const typed = (page: Page) => expect(page.getByText("đang gõ…")).toBeHidden();
+  const activeTestId = (page: Page) =>
+    page.evaluate(() => (document.activeElement as HTMLElement | null)?.dataset.testid ?? document.activeElement?.tagName);
+
+  test("Chuột: mở danh sách, bấm dòng 1, nhấn enter → sang đoạn 2 (không mở lại danh sách)", async ({ page }) => {
+    await open(page, 2);
+    await page.getByTestId("jump-trigger").click();
+    await row(page, 1).click();
+    await expect(page).toHaveURL(/\/ch01\/1$/);
+    await typed(page);
+    expect(await activeTestId(page)).toBe("BODY");
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(/\/ch01\/2$/);
+    await expect(list(page)).toHaveCount(0);
+  });
+
+  test("Phím: g ↑ enter sang đoạn 1, rồi enter → sang đoạn 2", async ({ page }) => {
+    await open(page, 2);
+    await page.keyboard.press("g");
+    await page.keyboard.press("ArrowUp");
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(/\/ch01\/1$/);
+    await typed(page);
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(/\/ch01\/2$/);
+    await expect(list(page)).toHaveCount(0);
+  });
+
+  test("Chuột: mở rồi bấm ra ngoài → không còn focus trên bộ đếm, enter sang đoạn tiếp", async ({ page }) => {
+    await open(page, 2);
+    await page.getByTestId("jump-trigger").click();
+    await expect(list(page)).toBeVisible();
+    await page.mouse.click(700, 300);
+    await expect(list(page)).toHaveCount(0);
+    expect(await activeTestId(page)).toBe("BODY");
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(/\/ch01\/3$/);
+  });
+
+  test("Ngăn giải thích mở (từ ghi chú tay) → bấm bộ đếm → Esc: focus về bộ đếm, không về ghi chú", async ({ page }) => {
+    await open(page, 2);
+    await page.keyboard.press("e");
+    await page.getByTestId("reader").locator("button.font-hand").first().click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await page.getByTestId("jump-trigger").click();
+    await expect(list(page)).toBeVisible();
+    await expect(page.getByRole("dialog")).toHaveCount(1);
+    await page.keyboard.press("Escape");
+    await expect(list(page)).toHaveCount(0);
+    await expect(page.getByTestId("jump-trigger")).toBeFocused();
+  });
 });

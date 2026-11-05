@@ -4,9 +4,14 @@ import { PassageView } from "@/components/reader/PassageView";
 import { books, firstSentence, getPassages } from "@/lib/content";
 import { getProgress } from "@/lib/progress";
 import { getReadPassages } from "@/lib/readPassages";
+import { speak } from "@/lib/speech";
 
 const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
+vi.mock("@/lib/speech", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/speech")>()),
+  speak: vi.fn(),
+}));
 // nút "giải thích" mount AnnotationLayer → cần mock rough-notation (jsdom không vẽ SVG được)
 vi.mock("rough-notation", () => ({
   annotate: () => ({ remove: () => {} }),
@@ -250,12 +255,14 @@ describe("PassageView — danh sách đoạn (g / Home / End)", () => {
     expect(list()).toBeTruthy();
   });
 
-  it("danh sách mở: ArrowRight/Enter/e không chuyển đoạn, không bật giải thích", () => {
+  it("danh sách mở: ArrowRight/Enter/e/s không chuyển đoạn, không bật giải thích, không đọc to", () => {
+    vi.mocked(speak).mockClear();
     render(view2());
     skipTyping();
     fireEvent.keyDown(window, { key: "g" });
-    for (const key of ["ArrowRight", "Enter", "e", "ArrowLeft"]) fireEvent.keyDown(window, { key });
+    for (const key of ["ArrowRight", "Enter", "e", "s", "ArrowLeft"]) fireEvent.keyDown(window, { key });
     expect(push).not.toHaveBeenCalled();
+    expect(speak).not.toHaveBeenCalled();
     expect(screen.queryByText(/chunks đáng học/)).toBeNull();
     expect(list()).toBeTruthy();
   });

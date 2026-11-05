@@ -46,7 +46,8 @@ test("header không cắt chữ \"· explain\" khi bật giải thích", async (
   await page.goto(P1);
   await finishTyping(page);
   await page.getByRole("button", { name: /giải thích/ }).tap();
-  const title = page.locator("header > div.truncate");
+  // phần chữ tự cắt "…" của nút tiêu đề (nút mở danh sách đoạn)
+  const title = page.locator('[data-testid="jump-trigger-mobile"] > span:first-child');
   await expect(title).toContainText("· explain");
   expect(await title.evaluate((e) => e.scrollWidth <= e.clientWidth)).toBe(true);
 });

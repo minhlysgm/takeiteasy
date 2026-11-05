@@ -65,4 +65,16 @@ describe("PassageJumpList", () => {
     fireEvent.click(screen.getByRole("button", { name: "đóng" }));
     expect(props.onClose).toHaveBeenCalledTimes(2);
   });
+
+  it("onClose cho biết đóng bằng gì: chuột/chạm → 'pointer', phím (Esc, Enter/Space trên ✕) → 'key'", () => {
+    const props = setup();
+    fireEvent.click(screen.getByTestId("jump-backdrop"), { detail: 1 });
+    expect(props.onClose).toHaveBeenLastCalledWith("pointer");
+    fireEvent.click(screen.getByRole("button", { name: "đóng" }), { detail: 1 });
+    expect(props.onClose).toHaveBeenLastCalledWith("pointer");
+    fireEvent.click(screen.getByRole("button", { name: "đóng" }), { detail: 0 });
+    expect(props.onClose).toHaveBeenLastCalledWith("key");
+    fireEvent.keyDown(screen.getByTestId("jump-list"), { key: "Escape" });
+    expect(props.onClose).toHaveBeenLastCalledWith("key");
+  });
 });

@@ -46,6 +46,9 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
   const [read, setRead] = useState<number[]>([]);
   const jumpTriggerRef = useRef<HTMLButtonElement>(null);
   const jumpTriggerMobileRef = useRef<HTMLButtonElement>(null);
+  // Đóng bằng phím (g / Esc) → focus về bộ đếm. Còn lại (chọn đoạn, bấm chuột ra ngoài / ✕, back/forward)
+  // → bỏ focus, để enter lại là "đoạn tiếp" (cùng luật "bấm chuột vào nút xong thì nhả focus").
+  const jumpRestoreFocus = useRef(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const readerRef = useRef<HTMLDivElement>(null);
   const originalColRef = useRef<HTMLDivElement>(null);
@@ -131,10 +134,33 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
     setJumpOpen(true);
   }, [book.id, chapterId, clearSelection]);
 
-  const pickPassage = (i: number) => {
+  const closeJump = useCallback((restoreFocus: boolean) => {
+    jumpRestoreFocus.current = restoreFocus;
     setJumpOpen(false);
+  }, []);
+
+  const pickPassage = (i: number) => {
+    closeJump(false);
     goTo(i);
   };
+
+  // Chạy SAU cleanup của danh sách (useSheetBehavior đã trả focus về chỗ cũ — có thể là ghi chú tay
+  // nếu lúc mở ngăn giải thích vừa đóng) → đặt lại cho đúng: bộ đếm, hoặc không gì cả.
+  const jumpWasOpen = useRef(false);
+  useEffect(() => {
+    if (jumpOpen) {
+      jumpWasOpen.current = true;
+      return;
+    }
+    if (!jumpWasOpen.current) return;
+    jumpWasOpen.current = false;
+    if (jumpRestoreFocus.current) {
+      [jumpTriggerRef.current, jumpTriggerMobileRef.current].find((b) => b && b.getClientRects().length > 0)?.focus();
+    } else if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    jumpRestoreFocus.current = false;
+  }, [jumpOpen]);
 
   // Bấm chuột vào nút xong thì nhả focus: nút còn giữ focus thì Enter lại bấm nút đó thay vì sang đoạn.
   // Bấm bằng bàn phím (detail = 0) thì giữ nguyên để người dùng bàn phím không mất chỗ.
@@ -169,19 +195,13 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
       // Danh sách đoạn đang mở: chỉ g / Esc (đóng). Phím khác để danh sách tự lo (↑/↓/enter),
       // không chuyển đoạn hay tắt giải thích phía sau.
       if (jumpOpen) {
-        if (e.key === "g" || e.key === "Escape") setJumpOpen(false);
+        if (e.key === "g" || e.key === "Escape") closeJump(true);
         return;
       }
       switch (e.key) {
-        case "g": {
-          // Focus bộ đếm đang hiện trước khi mở: đóng danh sách thì focus trả về đúng nút này.
-          const trigger = [jumpTriggerRef.current, jumpTriggerMobileRef.current].find(
-            (b) => b && b.getClientRects().length > 0,
-          );
-          trigger?.focus();
+        case "g":
           openJump();
           break;
-        }
         case "Home":
           e.preventDefault();
           goTo(1);
@@ -214,7 +234,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [typing, drawerIndex, drawerClosing, jumpOpen, openJump, passageIndex, passageCount, goTo, passage, toggleTheme, requestCloseDrawer, clearSelection]);
+  }, [typing, drawerIndex, drawerClosing, jumpOpen, openJump, closeJump, passageIndex, passageCount, goTo, passage, toggleTheme, requestCloseDrawer, clearSelection]);
 
   const openChunk = (chunkId: string) => {
     const i = passage.chunks.findIndex((c) => c.id === chunkId);
@@ -243,13 +263,14 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
             aria-haspopup="dialog"
             aria-expanded={jumpOpen}
             onClick={openJump}
-            className="inline-flex h-11 max-w-full items-center gap-1.5 px-2.5 align-top text-bright focus-visible:outline-offset-[-4px] lg:hidden"
+            className="inline-flex h-11 max-w-full items-center gap-1.5 px-0.5 align-top text-bright focus-visible:outline-offset-[-4px] lg:hidden"
           >
             <span className="truncate">
               {chapterLabel(chapterId)} · đoạn {passageIndex}/{passageCount}
               {explainOn && <span className="text-ink"> · explain</span>}
             </span>
-            <span aria-hidden="true" className="shrink-0 text-muted">▾</span>
+            {/* < 360px mà bật giải thích thì không đủ chỗ cho cả "· explain" lẫn ▾ (font mono 13px): nhường cho chữ */}
+            <span aria-hidden="true" className={`shrink-0 text-muted ${explainOn ? "max-[359.98px]:hidden" : ""}`}>▾</span>
           </button>
           <span className="hidden lg:inline">
             takeiteasy — {book.id} / {chapterLabel(chapterId)} · đoạn {passageIndex}/{passageCount}
@@ -394,7 +415,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
           current={passageIndex}
           read={read}
           onPick={pickPassage}
-          onClose={() => setJumpOpen(false)}
+          onClose={(how) => closeJump(how === "key")}
         />
       )}
     </div>

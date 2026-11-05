@@ -72,6 +72,7 @@ test("11. Ở 320px tiêu đề vừa một dòng, vùng chạm ≥ 44px; các d
   expect(m.sw).toBeLessThanOrEqual(m.cw);
   expect(m.labelH).toBeLessThan(2 * m.lineH);
   expect(m.right).toBeLessThanOrEqual(320);
+  await expect(t.locator("> span").last()).toBeVisible(); // ▾ vẫn hiện (chỉ nhường chỗ khi bật giải thích)
   await t.tap();
   await expect(list(page)).toBeVisible();
   const heights = await page.getByTestId("jump-row").evaluateAll((els) => els.map((e) => e.getBoundingClientRect().height));

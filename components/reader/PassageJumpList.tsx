@@ -12,7 +12,8 @@ interface Props {
   /** các đoạn (1-based) đã đọc */
   read: number[];
   onPick: (index: number) => void;
-  onClose: () => void;
+  /** how: đóng bằng chuột/chạm ("pointer") hay phím ("key") — để màn đọc quyết định trả focus hay không */
+  onClose: (how: "pointer" | "key") => void;
 }
 
 /**
@@ -42,7 +43,7 @@ export function PassageJumpList({ title, outline, current, read, onPick, onClose
     sheet.onKeyDown(e);
     if (e.key === "Escape") {
       e.preventDefault();
-      onClose();
+      onClose("key");
       return;
     }
     const rows = Array.from(ref.current?.querySelectorAll<HTMLElement>('[data-testid="jump-row"]') ?? []);
@@ -64,7 +65,7 @@ export function PassageJumpList({ title, outline, current, read, onPick, onClose
       <div
         aria-hidden="true"
         data-testid="jump-backdrop"
-        onClick={onClose}
+        onClick={() => onClose("pointer")}
         className={`fixed inset-0 z-30 bg-scrim transition-opacity duration-300 ease-out motion-reduce:transition-none lg:bg-transparent ${entered ? "opacity-100" : "opacity-0"}`}
       />
       <div
@@ -85,7 +86,7 @@ export function PassageJumpList({ title, outline, current, read, onPick, onClose
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={(e) => onClose(e.detail === 0 ? "key" : "pointer")}
             aria-label="đóng"
             className="-mr-3 flex min-h-11 min-w-11 shrink-0 items-center justify-center text-text hover:text-bright max-lg:focus-visible:outline-offset-[-8px] lg:hidden"
           >
