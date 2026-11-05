@@ -5,19 +5,24 @@
 
 ## Đang làm
 
-**Bước kế:** Task B trạm ⑤ Build — tạo nhánh `task/in-app-lookup` từ `main`, làm theo plan bằng `superpowers:subagent-driven-development` (load skill `claude-api` trước). Task 6 của plan (gắn Anthropic/Vercel/Upstash) làm cùng Minh qua trình duyệt, Minh tự dán key. Mockup chung: `docs/superpowers/specs/2026-11-05-jump-lookup-mockup.html` (artifact https://claude.ai/artifact/6gSVNRTKtsfG2j9WH6gi1Z).
+**Bước kế:** Task B trạm ⑥ Kiểm thử & soi — nhánh `task/in-app-lookup` (đã build xong 5 task code, head `82dc23c`). Làm: `npm run verify` dán kết quả thật → skill `ui-review` (popup thẻ desktop + thanh đáy mobile, sáng/tối, 320/360/390px) → `/code-review` → gom danh sách cho Minh chọn. Task 6 (gắn Anthropic/Vercel/Upstash, Minh tự dán key) làm SAU khi merge, theo plan. Mockup: `docs/superpowers/specs/2026-11-05-jump-lookup-mockup.html` (artifact https://claude.ai/artifact/6gSVNRTKtsfG2j9WH6gi1Z).
 
-- **Task B — Tra nghĩa ngay trong app (thay Cambridge)** · cỡ **M · UI** · trạm **⑤ Build — LÀM TIẾP Ở ĐÂY** (④ Minh duyệt 2026-11-05) plan `docs/superpowers/plans/2026-11-05-in-app-lookup.md` (5 task code + Task 6 gắn dịch vụ cùng Minh) · spec `docs/superpowers/specs/2026-11-05-in-app-lookup-design.md`
-  - Ý: vùng chọn trùng chunk → mở ChunkDrawer; không trùng → API route gọi AI với cụm + câu chứa nó → IPA, nghĩa trong câu, 1 ví dụ đời thường + dịch, 🔊; link "xem thêm ở Cambridge" làm lối thoát.
-  - Code: hiện `window.open(lookupUrl)` (SelectionActions.tsx:47, lib/selection.ts). `useTextSelection` chỉ trả `{text, rect}`, bỏ Range → cần giữ offset để lấy câu. Giới hạn ≤5 từ (quá thì ẩn nút). **Chưa có server code nào** (không api route, env, SDK, KV). Test phải sửa: e2e/selection.mobile.spec.ts:59-63, tests/selection-ui.test.tsx:36-40, tests/selection.test.ts:14-15. Giọng đọc en-US → IPA giọng Mỹ.
-  - ② Minh chốt: Claude Haiku 5.5 (Minh có key, nạp $10 → khoá tính năng ở $9 để chống spam/hack); ≤10 từ. Minh muốn Claude mở trình duyệt để Minh đăng nhập rồi Claude thao tác (Vercel env, Anthropic Console) — Minh tự dán key.
-  - Minh duyệt dùng Upstash Redis (free, Vercel Marketplace) cho bộ đếm $, rate limit, cache.
-  - Trước khi plan/build B: load skill `claude-api`.
+- **Task B — Tra nghĩa ngay trong app (thay Cambridge)** · cỡ **M · UI** · trạm **⑥ Kiểm thử & soi — LÀM TIẾP Ở ĐÂY** (⑤ xong 2026-11-05) plan `docs/superpowers/plans/2026-11-05-in-app-lookup.md` · spec `docs/superpowers/specs/2026-11-05-in-app-lookup-design.md`
+  - Đã có: `lib/selection.ts` (sentenceAt, chunkAt, ≤10 từ), `lib/useTextSelection.ts` (start/end), `lib/lookupTypes.ts`, `lib/server/{handleLookup,lookupStore,claudeLookup}.ts` (server-only), `app/api/lookup/route.ts`, `lib/lookupClient.ts`, `components/reader/LookupCard.tsx`, `.env.example`. Test: `tests/{handle-lookup,lookup-store,claude-lookup,lookup-route,lookup-card,lookup-client}.test.*`, `e2e/lookup*.spec.ts`. Agent báo verify xanh: vitest 343, e2e 174, `npm run build` OK.
+  - **Quyết định tui tự chọn khi build** (báo Minh ở ⑦): (1) Anthropic hết credit (402) → "tạm ngưng" theo spec #13, lỗi khác → "lỗi" (thẻ hiện cùng một câu); (2) gọi Claude bằng `messages.create` rồi tự kiểm JSON thay vì `messages.parse` — để JSON hỏng/thiếu trường vẫn cộng tiền token; (3) `LOOKUP_BUDGET_USD` rỗng/sai → dùng 9; (4) kho Redis lỗi mạng → 503 chứ không 500; AI trả xong mà ghi cache/ghi tiền lỗi thì vẫn trả kết quả; (5) log lỗi phía server `[lookup] <loại>` (không log key); timeout Claude 15s/1 lần thử lại, trình duyệt chờ tối đa 20s; (6) bấm ✕ khi đang chờ thì huỷ luôn request.
+  - **Danh sách cho ⑥** (từ các lượt soát, mức thấp trừ khi ghi khác):
+    - **[đáng sửa]** `lib/lookupClient.ts`: `AbortSignal.any/timeout` gọi ngoài `try` → iPhone Safari < 17.4 bị lỗi, thẻ kẹt khung xương. Sửa: dời vào `try` + dự phòng khi không có `AbortSignal.any`.
+    - Thanh đáy mobile: thẻ có thể che chữ đang chọn trên màn thấp (đã thêm cuộn lại khi thẻ đổi trạng thái — kiểm lại); ✕ nằm trong thẻ chứ không ở hàng nút như mockup; chân thẻ xuống 2 dòng ở 360px; ✕ không có hover.
+    - Hỏi Minh: bấm "tra nghĩa" lần 2 khi thẻ đang mở → nên đóng thẻ (bật/tắt) thay vì tra lại? Popup desktop chặn bôi đen/copy chữ trong thẻ — có cần copy không?
+    - a11y: `aria-busy` nên đặt trên vùng `aria-live`; `aria-expanded` thiếu `aria-controls`; popup `role="toolbar"` mà chứa chữ + link.
+    - `sentenceAt`: bôi đen kèm dấu chấm cuối câu thì kéo luôn câu sau; chưa xử lý `."`/viết tắt (nội dung hiện chưa có).
+    - Test: chưa test bấm "tra nghĩa" 2 lần cùng vùng chọn; e2e "không mở tab mới" chỉ dựa spy `window.open`; `e2e/selection.spec.ts:113` từng hỏng 1 lần (có thể chập chờn).
 
 - **Ghi chú:** push `main` thất bại — máy chưa đăng nhập GitHub cho git (không có `gh`). Minh tự push hoặc đăng nhập rồi bảo Claude push.
 
 ## Backlog
 
+0. **[S] Tra nghĩa: chống tiêu cạn $9** (từ soát cuối task B): server tự tính câu chuẩn (tìm chữ tra trong đoạn rồi `sentenceAt`) thay vì tin câu trình duyệt gửi → số khoá cache giới hạn theo nội dung sách; `chunkAt` nhận cả trường hợp chữ khớp `chunk.match` ở chỗ khác trong đoạn (spec ghi "hoặc chữ khớp"); test `upstashStore` bằng client giả; bộ đếm tiền/giới hạn lượt chưa nguyên tử (vượt nhẹ khi nhiều request cùng lúc).
 0. **[S · UI] Header mobile không dính → phải cuộn lên mới mở được danh sách đoạn** (từ ⑥ task A): cho header mobile dính, hoặc thêm nút "≡ 2/3" ở footer — cần mockup cho Minh chọn trước.
 0. **[S · UI] Vụn vặt danh sách đoạn** (từ ⑥ task A, mức thấp): tấm mobile đóng không trượt xuống (ChunkDrawer có `closing`); ô nổi desktop hiện bụp (fade 150ms); hover dòng gần như không thấy; gợi ý phím chân ô xuống 2 dòng; "Chương" hoa vs "chương" thường; ô nổi neo mép phải chứ không trên bộ đếm; 320px + explain chỉ dư 2px (mất ▾); readAll lặp logic `lib/progress.ts`.
 
