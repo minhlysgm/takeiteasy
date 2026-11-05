@@ -490,9 +490,9 @@ test.describe("mobile 390px", () => {
   test("hàng tiêu đề hình không vỡ chữ, hình không xê dịch khi bắt đầu vẽ và khi vẽ xong", async ({ page }) => {
     await page.goto(P1);
     const sketch = page.getByTestId("sketch");
-    // Bỏ qua gõ chữ bằng phím: ở 390px cột dịch nằm ngoài màn hình (backlog: reader chưa dùng được trên mobile)
+    // Bỏ qua gõ chữ: ở 390px cột dịch xếp dưới cột gốc, chạm vào là hiện luôn
     await expect(sketch).toHaveAttribute("data-state", "waiting");
-    await page.keyboard.press("Shift");
+    await page.getByTestId("translation-col").click();
     await expect(page.getByText("đang gõ…")).toBeHidden();
     const svg = sketch.locator("svg");
     const label = sketch.getByText("// phác thảo");
