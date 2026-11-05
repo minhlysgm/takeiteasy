@@ -5,7 +5,9 @@
 
 ## Đang làm
 
-_(trống — chờ Minh chọn task tiếp)_
+- **Task:** Dọn code reader (cỡ S) — nhánh `task/reader-cleanup`
+- **Trạm:** ⑦ Nghiệm thu — chờ Minh duyệt. Commit `611c6c9`; verify xanh (tsc+lint, 179 unit, 113 e2e); code review không lỗi; footer chụp trước/sau: mobile khớp từng pixel, desktop chỉ lệch chữ dưới 1px.
+- **Đã làm:** `FooterButton` (6 nút footer), `lib/breakpoints.ts` (`MOBILE_QUERY`), AnnotationLayer bỏ đo ghi chú lề trên mobile (gạch chân giữ). Số thứ tự cụm: không gom (đều theo thứ tự `passage.chunks`), thay bằng test `e2e/chunk-numbers.mobile.spec.ts` chốt 3 nơi khớp nhau.
 
 ## Backlog
 
