@@ -24,7 +24,7 @@ lại phải rời trang. Người dùng chủ yếu là người Việt, cần:
    - Mobile: thanh dính đáy **mở rộng lên thành thẻ** (cao tối đa ~50% màn hình, cuộn được), có ✕.
    - Đang chờ: khung xương (skeleton); bỏ chọn / bấm ra ngoài / Esc thì đóng.
 4. **Giới hạn độ dài: ≤ 10 từ** (Minh chọn ở ②). Quá 10 từ: thay nút "tra nghĩa" bằng chữ mờ
-   "dài quá để tra — xem bản dịch bên cạnh" (không ẩn trơn như hiện nay).
+   "dài quá để tra · xem bản dịch bên cạnh" (không ẩn trơn như hiện nay).
 5. **Hàng rào chi phí & chống spam** (Minh yêu cầu: nạp $10, tới $9 thì khoá tính năng):
    - **Đếm tiền phía server**: mỗi lượt gọi AI cộng chi phí thật (tính từ số token Anthropic trả về) vào
      bộ đếm chung. Tổng ≥ **$9** (biến môi trường `LOOKUP_BUDGET_USD=9`) → API ngừng gọi AI, trả "tạm ngưng".
@@ -68,7 +68,7 @@ Desktop (1440×900), `/api/lookup` giả lập:
 2. Khi bôi đen "chronic" (thuộc cụm soạn sẵn) rồi bấm "tra nghĩa" thì mở tấm giải thích của cụm "chronic",
    không gọi `/api/lookup`.
 3. Khi bấm ▶ trong thẻ thì máy đọc dạng gốc (giả lập `speechSynthesis`).
-4. Khi bôi đen 10 từ thì còn nút "tra nghĩa"; 11 từ thì thay bằng chữ "dài quá để tra — xem bản dịch bên cạnh".
+4. Khi bôi đen 10 từ thì còn nút "tra nghĩa"; 11 từ thì thay bằng chữ "dài quá để tra · xem bản dịch bên cạnh".
 5. Khi API trả "tạm ngưng" hoặc lỗi thì thẻ hiện "Tạm chưa tra được, thử lại sau" + link Cambridge.
 6. Khi bấm Esc / bấm ra ngoài thì thẻ đóng.
 
