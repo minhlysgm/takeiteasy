@@ -2,7 +2,7 @@
 import { useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { placePopup } from "@/lib/selection";
 import type { TextSelection } from "@/lib/useTextSelection";
-import { SelectionActions } from "./SelectionActions";
+import { SelectionActions, keepOnTouch } from "./SelectionActions";
 
 interface Props {
   selection: TextSelection;
@@ -40,9 +40,11 @@ export function SelectionPopup({ selection, containerRef, onKeep }: Props) {
     <div
       ref={popupRef}
       data-testid="selection-popup"
+      role="toolbar"
+      aria-label="chữ đang chọn"
       className={`absolute z-10 flex border border-line bg-surface text-[13.5px] shadow-xl ${pos ? "" : "invisible"}`}
       style={{ left: pos?.left ?? 0, top: pos?.top ?? 0 }}
-      onPointerDown={onKeep}
+      onPointerDown={keepOnTouch(onKeep)}
       onMouseDown={(e) => e.preventDefault()}
     >
       <SelectionActions text={text} onKeep={onKeep} size="popup" />

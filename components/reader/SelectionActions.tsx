@@ -1,10 +1,11 @@
 "use client";
+import type { PointerEvent } from "react";
 import { canLookUp, lookupUrl } from "@/lib/selection";
 import { isSpeechAvailable, speak } from "@/lib/speech";
 
 interface Props {
   text: string;
-  /** Gọi ở pointerdown để vùng chọn không bị coi là đã bỏ khi chạm nút. */
+  /** Gọi ở pointerdown (chạm/bút) để vùng chọn không bị coi là đã bỏ khi chạm nút. */
   onKeep: () => void;
   size: "popup" | "dock";
 }
@@ -15,18 +16,30 @@ const SIZE_CLASS = {
   dock: "min-h-11 border border-line bg-bg px-3.5",
 } as const;
 
+/**
+ * onPointerDown chỉ gọi `onKeep` khi chạm/bút. Chuột thì `onMouseDown` preventDefault đã giữ vùng chọn;
+ * gọi keep() thêm chỉ làm cú click ra ngoài trong 800ms sau đó không tắt được thanh/popup.
+ */
+export function keepOnTouch(onKeep: () => void) {
+  return (e: PointerEvent) => {
+    if (e.pointerType !== "mouse") onKeep();
+  };
+}
+
 export function SelectionActions({ text, onKeep, size }: Props) {
   const speechOk = isSpeechAvailable();
+  const lookUp = canLookUp(text);
+  const onPointerDown = keepOnTouch(onKeep);
   const cls = `${BASE} ${SIZE_CLASS[size]}`;
-  // Popup: hai nút chung một khung, ngăn cách bằng đường kẻ giữa.
-  const nghe = size === "popup" ? `${cls} border-r border-line` : cls;
+  // Popup: hai nút chung một khung, ngăn cách bằng đường kẻ giữa (chỉ khi có nút thứ hai).
+  const nghe = size === "popup" && lookUp ? `${cls} border-r border-line` : cls;
 
   return (
     <>
       <button
         type="button"
         onClick={() => speak(text)}
-        onPointerDown={onKeep}
+        onPointerDown={onPointerDown}
         onMouseDown={(e) => e.preventDefault()}
         disabled={!speechOk}
         title={speechOk ? undefined : "trình duyệt không hỗ trợ đọc"}
@@ -37,11 +50,11 @@ export function SelectionActions({ text, onKeep, size }: Props) {
         </svg>
         nghe
       </button>
-      {canLookUp(text) && (
+      {lookUp && (
         <button
           type="button"
           onClick={() => window.open(lookupUrl(text), "_blank", "noopener")}
-          onPointerDown={onKeep}
+          onPointerDown={onPointerDown}
           onMouseDown={(e) => e.preventDefault()}
           className={cls}
         >

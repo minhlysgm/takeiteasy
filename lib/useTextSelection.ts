@@ -27,8 +27,9 @@ function sameSelection(a: TextSelection | null, b: TextSelection | null): boolea
  * Theo dõi vùng chọn chữ trong `containerRef` (chuột lẫn cảm ứng).
  * - Đợi `selectionchange` lặng `settleMs` rồi mới đọc (chạm: tay còn kéo handle thì chưa công bố).
  * - Chuột đang giữ thì chưa công bố; nhả chuột thì đọc ngay.
- * - `keep()`: gọi ở `onPointerDown` của nút trên thanh — trình duyệt hay bỏ chọn lúc chạm,
- *   nên 800ms kế tiếp vùng chọn xẹp không làm mất `selection`.
+ * - `keep()`: gọi ở `onPointerDown` (chạm/bút, không phải chuột) của nút trên thanh — trình duyệt
+ *   hay bỏ chọn lúc chạm, nên 800ms kế tiếp vùng chọn xẹp không làm mất `selection`.
+ *   Chuột không cần: `onMouseDown` preventDefault của nút đã giữ vùng chọn.
  */
 export function useTextSelection(
   containerRef: RefObject<HTMLElement | null>,
@@ -102,7 +103,9 @@ export function useTextSelection(
         return;
       }
       // Chạm ngoài khi vùng chọn đã xẹp (và hết hạn keep) → thanh biến mất.
-      // Nút trên thanh gọi keep() ở onPointerDown của React — chạy ở root, trước listener này (bubble).
+      // Nút trên thanh gọi keep() ở onPointerDown của React. App Router lấy chính `document` làm root
+      // của React (next/dist/client/app-index.js), nên cả hai listener cùng nằm trên `document`, chạy theo
+      // thứ tự đăng ký: React đăng ký lúc hydrateRoot, trước mọi effect → keep() chạy trước listener này.
       if (hasSelection.current && !isKeeping() && isCollapsed()) {
         cancelTimer();
         publish(null);

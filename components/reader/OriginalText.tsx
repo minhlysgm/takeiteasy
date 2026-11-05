@@ -1,4 +1,5 @@
 "use client";
+import type { Ref } from "react";
 import type { Passage } from "@/content/types";
 import { findChunkRanges } from "@/lib/content";
 
@@ -6,9 +7,10 @@ interface Props {
   passage: Passage;
   explainOn: boolean;
   onChunkClick: (chunkId: string) => void;
+  ref?: Ref<HTMLDivElement>;
 }
 
-export function OriginalText({ passage, explainOn, onChunkClick }: Props) {
+export function OriginalText({ passage, explainOn, onChunkClick, ref }: Props) {
   const ranges = findChunkRanges(passage.original, passage.chunks);
   const parts: React.ReactNode[] = [];
   let cursor = 0;
@@ -43,5 +45,5 @@ export function OriginalText({ passage, explainOn, onChunkClick }: Props) {
     cursor = r.end;
   }
   if (cursor < passage.original.length) parts.push(passage.original.slice(cursor));
-  return <div data-testid="original-text" className="whitespace-pre-line text-[17px] leading-[1.9] text-bright">{parts}</div>;
+  return <div ref={ref} data-testid="original-text" className="whitespace-pre-line text-[17px] leading-[1.9] text-bright">{parts}</div>;
 }

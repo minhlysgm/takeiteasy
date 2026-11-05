@@ -38,9 +38,11 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const readerRef = useRef<HTMLDivElement>(null);
   const originalColRef = useRef<HTMLDivElement>(null);
+  const originalTextRef = useRef<HTMLDivElement>(null);
   const typing = useTypingText(passage.translation);
   const { toggle: toggleTheme } = useTheme();
-  const { selection, keep, clear: clearSelection } = useTextSelection(originalColRef);
+  // Chỉ chữ nguyên văn mới tính: nhãn, ghi chú tay, hình minh hoạ cùng cột thì không.
+  const { selection, keep, clear: clearSelection } = useTextSelection(originalTextRef);
   // Màn hẹp hoặc cảm ứng → thanh dính trên footer; còn lại → popup nổi cạnh vùng chọn.
   const docked = useMediaQuery(DOCK_QUERY);
   // Tấm/ngăn giải thích đang mở thì không hiện thanh/popup chọn chữ.
@@ -103,6 +105,8 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
+      // Shift+←/→ là phím nới vùng chọn của trình duyệt, không phải chuyển đoạn
+      if (e.shiftKey && (e.key === "ArrowLeft" || e.key === "ArrowRight")) return;
       // Enter trên nút đang focus là việc của nút đó, phím tắt không xen vào
       if (e.key === "Enter" && e.target instanceof Element && e.target.closest("button")) return;
       if (!typing.done && e.key !== "Escape") {
@@ -135,12 +139,13 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
           break;
         case "Escape":
           setExplainOn(false);
+          clearSelection();
           break;
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [typing, drawerIndex, drawerClosing, passageIndex, goTo, passage, toggleTheme, requestCloseDrawer]);
+  }, [typing, drawerIndex, drawerClosing, passageIndex, goTo, passage, toggleTheme, requestCloseDrawer, clearSelection]);
 
   const openChunk = (chunkId: string) => {
     const i = passage.chunks.findIndex((c) => c.id === chunkId);
@@ -183,7 +188,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
             {"// nguyên văn"}
             {explainOn && <span className="ml-3 text-ink">{passage.chunks.length} chunks đáng học</span>}
           </div>
-          <OriginalText passage={passage} explainOn={explainOn} onChunkClick={openChunk} />
+          <OriginalText ref={originalTextRef} passage={passage} explainOn={explainOn} onChunkClick={openChunk} />
           {explainOn && <MobileNoteList chunks={passage.chunks} onChunkClick={openChunk} />}
           {showSel && !docked && <SelectionPopup selection={selection} containerRef={originalColRef} onKeep={keep} />}
           {passage.sketch && (

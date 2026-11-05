@@ -1,6 +1,6 @@
 "use client";
 import type { TextSelection } from "@/lib/useTextSelection";
-import { SelectionActions } from "./SelectionActions";
+import { SelectionActions, keepOnTouch } from "./SelectionActions";
 
 interface Props {
   selection: TextSelection;
@@ -15,7 +15,7 @@ export function SelectionDock({ selection, onKeep }: Props) {
       role="toolbar"
       aria-label="chữ đang chọn"
       className="grid shrink-0 gap-1 border-t border-line bg-surface px-2 pb-1.5 pt-2"
-      onPointerDown={onKeep}
+      onPointerDown={keepOnTouch(onKeep)}
       onMouseDown={(e) => e.preventDefault()}
     >
       <div className="truncate px-2 text-[12.5px] text-muted">
