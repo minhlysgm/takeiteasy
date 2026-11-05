@@ -59,6 +59,11 @@ describe("PassageView", () => {
     expect(push).toHaveBeenCalledWith("/read/the-subtle-art/ch01/2");
   });
 
+  it("nút theme vẫn tìm được theo tên (chữ chỉ ẩn bằng CSS trên mobile)", () => {
+    renderView();
+    expect(screen.getByRole("button", { name: /theme/ })).toBeTruthy();
+  });
+
   it("nút '← trước' disabled ở đoạn 1, nút 'tiếp →' điều hướng sang đoạn 2", () => {
     renderView();
     const prev = screen.getByRole("button", { name: /← trước/ });

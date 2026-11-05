@@ -51,3 +51,59 @@ test("không có lỗi hydration", async ({ page }) => {
   await expect(page.getByTestId("original-col")).toBeVisible();
   expect(errors.filter((e) => /hydrat/i.test(e))).toEqual([]);
 });
+
+test("pointer: coarse được giả lập ở project mobile", async ({ page }) => {
+  await page.goto(P1);
+  expect(await page.evaluate(() => matchMedia("(pointer: coarse)").matches)).toBe(true);
+});
+
+test("footer dính đáy màn hình, kể cả khi cuộn giữa trang", async ({ page }) => {
+  await page.goto(P1);
+  await finishTyping(page);
+  const footer = page.locator("footer");
+  const bottom = async () => (await footer.boundingBox())!.y + (await footer.boundingBox())!.height;
+  expect(Math.abs((await bottom()) - 844)).toBeLessThanOrEqual(1);
+  await page.evaluate(() => window.scrollTo(0, 600));
+  expect(Math.abs((await bottom()) - 844)).toBeLessThanOrEqual(1);
+});
+
+test("tiếp → sang đoạn 2, ← về đoạn 1", async ({ page }) => {
+  await page.goto(P1);
+  await finishTyping(page);
+  await page.getByRole("button", { name: "tiếp →" }).tap();
+  await expect(page).toHaveURL(/\/ch01\/2$/);
+  await page.getByRole("button", { name: /← trước/ }).tap();
+  await expect(page).toHaveURL(/\/ch01\/1$/);
+});
+
+test("không thấy gợi ý phím ở footer", async ({ page }) => {
+  await page.goto(P1);
+  await expect(page.locator("footer")).toBeVisible();
+  await expect(page.locator("footer kbd:visible")).toHaveCount(0);
+});
+
+test("mẹo lần đầu không nhắc tô đen", async ({ page }) => {
+  await page.goto(P1);
+  // span ngoài chứa cả hai câu; span trong cùng (cuối DOM) là câu đang hiển thị
+  const hint = page.locator("span:visible", { hasText: /\/\/ mẹo/ }).last();
+  await expect(hint).toBeVisible();
+  await expect(hint).toContainText('chạm "giải thích"');
+  await expect(hint).not.toContainText("tô đen");
+});
+
+test.describe("360px", () => {
+  test.use({ viewport: { width: 360, height: 780 } });
+  test("footer một hàng, không cuộn ngang", async ({ page }) => {
+    await page.goto(P1);
+    await finishTyping(page);
+    const footer = page.locator("footer");
+    await expect(footer).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+    const ys = await footer.getByRole("button").evaluateAll((els) =>
+      els.filter((e) => (e as HTMLElement).offsetParent !== null).map((e) => e.getBoundingClientRect().y),
+    );
+    expect(ys.length).toBeGreaterThanOrEqual(4);
+    for (const y of ys) expect(Math.abs(y - ys[0])).toBeLessThanOrEqual(1);
+    expect((await footer.boundingBox())!.height).toBeLessThanOrEqual(61);
+  });
+});

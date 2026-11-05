@@ -22,9 +22,12 @@ export function FirstTimeHint({ explainOn }: { explainOn: boolean }) {
   if (!show) return null;
 
   return (
-    <div className="flex items-center justify-between gap-4 border-t border-line bg-surface px-8 py-2.5 text-[13px]">
+    <div className="flex items-center justify-between gap-4 border-t border-line bg-surface px-4 py-2.5 lg:px-8 text-[13px]">
       <span className="text-ink">
-        {'// mẹo: bấm nút "giải thích" để xem các cụm đáng học được gạch chân và phân tích — tô đen cụm bất kỳ trong nguyên văn để nghe phát âm'}
+        <span className="lg:hidden">{'// mẹo: chạm "giải thích" để xem các cụm đáng học'}</span>
+        <span className="hidden lg:inline">
+          {'// mẹo: bấm nút "giải thích" để xem các cụm đáng học được gạch chân và phân tích — tô đen cụm bất kỳ trong nguyên văn để nghe phát âm'}
+        </span>
       </span>
       <button
         type="button"

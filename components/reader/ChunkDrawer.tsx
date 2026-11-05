@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Chunk } from "@/content/types";
 import { isSpeechAvailable, speak } from "@/lib/speech";
+import { Kbd } from "./Kbd";
 
 interface Props {
   chunks: Chunk[];
@@ -52,7 +53,7 @@ export function ChunkDrawer({ chunks, index, closing = false, onNavigate, onClos
       <div className="flex items-center justify-between text-[13px] text-muted">
         <span>{`// chunk ${index + 1}/${chunks.length}`}</span>
         <button type="button" onClick={onClose} className="hover:text-bright">
-          đóng <kbd className="rounded border border-line px-1.5 py-0.5 text-xs">esc</kbd>
+          đóng <Kbd>esc</Kbd>
         </button>
       </div>
 
@@ -115,7 +116,7 @@ export function ChunkDrawer({ chunks, index, closing = false, onNavigate, onClos
           disabled={index === 0}
           className="disabled:opacity-40"
         >
-          ← chunk trước <kbd className="rounded border border-line px-1.5 py-0.5 text-xs">k</kbd>
+          ← chunk trước <Kbd>k</Kbd>
         </button>
         <button
           type="button"
@@ -123,7 +124,7 @@ export function ChunkDrawer({ chunks, index, closing = false, onNavigate, onClos
           disabled={index === chunks.length - 1}
           className="disabled:opacity-40"
         >
-          <kbd className="rounded border border-line px-1.5 py-0.5 text-xs">j</kbd> chunk sau →
+          <Kbd>j</Kbd> chunk sau →
         </button>
       </div>
     </div>

@@ -11,6 +11,7 @@ import { useTypingText } from "@/lib/useTypingText";
 import { AnnotationLayer } from "./AnnotationLayer";
 import { ChunkDrawer } from "./ChunkDrawer";
 import { FirstTimeHint } from "./FirstTimeHint";
+import { Kbd } from "./Kbd";
 import { OriginalText } from "./OriginalText";
 import { PassageSketch } from "./PassageSketch";
 import { SpeechTooltip } from "./SpeechTooltip";
@@ -198,69 +199,80 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
         )}
       </div>
 
-      <FirstTimeHint explainOn={explainOn} />
-      <footer className="flex h-14 max-w-full shrink-0 overflow-x-clip items-center justify-between border-t border-line px-8 text-[13px] text-muted">
-        <div className="flex items-center gap-2.5">
-          <button
-            type="button"
-            onClick={() => setExplainOn((v) => !v)}
-            className={`flex items-center gap-2 border px-3 py-1.5 transition-colors ${explainOn ? "border-ink text-ink" : "border-line hover:border-accent hover:text-bright"}`}
-          >
-            <kbd className="rounded border border-line px-1.5 py-0.5 text-xs">e</kbd> giải thích
-          </button>
-          <button
-            type="button"
-            onClick={() => speak(passage.original)}
-            disabled={!speechOk}
-            title={speechOk ? undefined : "trình duyệt không hỗ trợ đọc"}
-            className="flex items-center gap-2 border border-line px-3 py-1.5 transition-colors hover:border-accent hover:text-bright disabled:opacity-40 disabled:hover:border-line disabled:hover:text-muted"
-          >
-            <kbd className="rounded border border-line px-1.5 py-0.5 text-xs">s</kbd> đọc to
-          </button>
-          <button
-            type="button"
-            onClick={toggleTheme}
-            className="flex items-center gap-2 border border-line px-3 py-1.5 transition-colors hover:border-accent hover:text-bright"
-          >
-            <kbd className="rounded border border-line px-1.5 py-0.5 text-xs">t</kbd> theme
-          </button>
-          <button
-            type="button"
-            onClick={() => goTo(passageIndex + 1)}
-            disabled={passageIndex >= passageCount}
-            className="flex items-center gap-2 border border-line px-3 py-1.5 transition-colors hover:border-accent hover:text-bright disabled:opacity-40 disabled:hover:border-line disabled:hover:text-muted"
-          >
-            <kbd className="rounded border border-line px-1.5 py-0.5 text-xs">enter</kbd> đoạn tiếp
-          </button>
-        </div>
-        <div className="h-1 w-44 rounded bg-line">
+      <div className="sticky bottom-0 z-[5] lg:static">
+        <FirstTimeHint explainOn={explainOn} />
+        <footer className="relative flex h-[60px] shrink-0 items-center justify-between gap-1.5 border-t border-line bg-bg px-2 text-[13px] text-muted lg:h-14 lg:gap-0 lg:px-8">
           <div
-            className="h-full rounded bg-accent transition-[width] duration-500 ease-out motion-reduce:transition-none"
+            aria-hidden
+            className="absolute -top-px left-0 h-0.5 bg-accent transition-[width] duration-500 motion-reduce:transition-none lg:hidden"
             style={{ width: `${(passageIndex / passageCount) * 100}%` }}
           />
-        </div>
-        <div className="flex items-center gap-4">
-          <span>{chapterLabel(chapterId)} · {passageIndex}/{passageCount}</span>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-1.5 lg:gap-2.5">
             <button
               type="button"
-              onClick={() => goTo(passageIndex - 1)}
-              disabled={passageIndex <= 1}
-              className="border border-line px-3 py-1.5 transition-colors hover:border-accent hover:text-bright disabled:opacity-40 disabled:hover:border-line disabled:hover:text-muted"
+              onClick={() => setExplainOn((v) => !v)}
+              className={`flex h-[38px] items-center gap-2 border px-2.5 transition-colors motion-reduce:transition-none lg:h-auto lg:px-3 lg:py-1.5 ${explainOn ? "border-ink text-ink" : "border-line hover:border-accent hover:text-bright"}`}
             >
-              ← trước
+              <Kbd>e</Kbd> giải thích
+            </button>
+            <button
+              type="button"
+              onClick={() => speak(passage.original)}
+              disabled={!speechOk}
+              title={speechOk ? undefined : "trình duyệt không hỗ trợ đọc"}
+              className="flex h-[38px] items-center gap-2 border border-line px-2.5 transition-colors motion-reduce:transition-none hover:border-accent hover:text-bright disabled:opacity-40 disabled:hover:border-line disabled:hover:text-muted lg:h-auto lg:px-3 lg:py-1.5"
+            >
+              <Kbd>s</Kbd> đọc to
+            </button>
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="flex h-[38px] items-center gap-2 border border-line px-2.5 transition-colors motion-reduce:transition-none hover:border-accent hover:text-bright lg:h-auto lg:px-3 lg:py-1.5"
+            >
+              <svg aria-hidden viewBox="0 0 16 16" width="16" height="16" className="lg:hidden">
+                <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor" />
+              </svg>
+              <Kbd>t</Kbd> <span className="sr-only lg:not-sr-only">theme</span>
             </button>
             <button
               type="button"
               onClick={() => goTo(passageIndex + 1)}
               disabled={passageIndex >= passageCount}
-              className="border border-line px-3 py-1.5 transition-colors hover:border-accent hover:text-bright disabled:opacity-40 disabled:hover:border-line disabled:hover:text-muted"
+              className="hidden items-center gap-2 border border-line px-3 py-1.5 transition-colors motion-reduce:transition-none hover:border-accent hover:text-bright disabled:opacity-40 disabled:hover:border-line disabled:hover:text-muted lg:flex"
             >
-              tiếp →
+              <Kbd>enter</Kbd> đoạn tiếp
             </button>
           </div>
-        </div>
-      </footer>
+          <div className="hidden h-1 w-44 rounded bg-line lg:block">
+            <div
+              className="h-full rounded bg-accent transition-[width] duration-500 ease-out motion-reduce:transition-none"
+              style={{ width: `${(passageIndex / passageCount) * 100}%` }}
+            />
+          </div>
+          <div className="flex items-center gap-4">
+            <span className="hidden lg:inline">{chapterLabel(chapterId)} · {passageIndex}/{passageCount}</span>
+            <div className="flex gap-1.5 lg:gap-2">
+              <button
+                type="button"
+                onClick={() => goTo(passageIndex - 1)}
+                disabled={passageIndex <= 1}
+                className="h-[38px] border border-line px-2.5 transition-colors motion-reduce:transition-none hover:border-accent hover:text-bright disabled:opacity-40 disabled:hover:border-line disabled:hover:text-muted lg:h-auto lg:px-3 lg:py-1.5"
+              >
+                ← <span className="sr-only lg:not-sr-only">trước</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => goTo(passageIndex + 1)}
+                disabled={passageIndex >= passageCount}
+                className="h-[38px] border border-line px-2.5 transition-colors motion-reduce:transition-none hover:border-accent hover:text-bright disabled:opacity-40 disabled:hover:border-line disabled:hover:text-muted lg:h-auto lg:px-3 lg:py-1.5"
+              >
+                tiếp →
+              </button>
+            </div>
+          </div>
+        </footer>
+      </div>
     </div>
   );
 }
