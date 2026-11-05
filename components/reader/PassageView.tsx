@@ -57,14 +57,14 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
   useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current); }, []);
 
   // Đóng drawer có animation trượt ra: đánh dấu closing, chờ transition xong mới unmount
-  const requestCloseDrawer = () => {
+  const requestCloseDrawer = useCallback(() => {
     if (drawerIndex === null || drawerClosing) return;
     setDrawerClosing(true);
     closeTimer.current = setTimeout(() => {
       setDrawerIndex(null);
       setDrawerClosing(false);
     }, prefersReducedMotion() ? 0 : 300);
-  };
+  }, [drawerIndex, drawerClosing]);
 
   const goTo = useCallback(
     (i: number) => {
@@ -125,7 +125,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [typing, drawerIndex, drawerClosing, passageIndex, goTo, passage, toggleTheme]);
+  }, [typing, drawerIndex, drawerClosing, passageIndex, goTo, passage, toggleTheme, requestCloseDrawer]);
 
   const openChunk = (chunkId: string) => {
     const i = passage.chunks.findIndex((c) => c.id === chunkId);

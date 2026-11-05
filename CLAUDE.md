@@ -19,7 +19,8 @@ gạch chân, ghi chú tay và drawer giải thích. Next.js 16 (App Router) · 
 | `npm run dev` | Dev server ở http://localhost:3000 |
 | `npm test` | Unit test (vitest, `tests/`) |
 | `npm run e2e` | E2E (Playwright, `e2e/`) — tự bật dev server nếu chưa chạy |
-| `npm run verify` | type-check + unit + e2e — **bắt buộc xanh trước khi báo "xong"** |
+| `npm run lint` | ESLint (flat config `eslint.config.mjs`), cảnh báo cũng tính là hỏng |
+| `npm run verify` | type-check + lint + unit + e2e — **bắt buộc xanh trước khi báo "xong"** |
 | `npm run ui:snap` | Chụp màn hình desktop/mobile × sáng/tối vào `.ui-snaps/` |
 
 ## Cấu trúc
