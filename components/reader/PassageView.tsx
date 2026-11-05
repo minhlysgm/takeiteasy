@@ -51,9 +51,13 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
   const [speechOk, setSpeechOk] = useState(false);
   useEffect(() => setSpeechOk(isSpeechAvailable()), []);
 
-  // Chuyển đoạn (không remount): reset state đọc, tắt speech, và với user
-  // reduced-motion thì hiện đủ bản dịch ngay (cũng giữ SSR/client khớp nhau).
+  // Chuyển đoạn (không remount — PassageView nằm ở layout của chương): reset state đọc, tắt speech,
+  // về đầu trang (Next chỉ tự cuộn khi dựng lại page), và với user reduced-motion thì hiện đủ bản dịch
+  // ngay (cũng giữ SSR/client khớp nhau).
+  const firstPassage = useRef(true);
   useEffect(() => {
+    if (firstPassage.current) firstPassage.current = false;
+    else window.scrollTo(0, 0);
     setExplainOn(false);
     setDrawerIndex(null);
     setDrawerClosing(false);
@@ -271,6 +275,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
           </div>
           <div className="hidden h-1 w-44 rounded bg-line lg:block">
             <div
+              data-testid="desktop-progress"
               className="h-full rounded bg-accent transition-[width] duration-500 ease-out motion-reduce:transition-none"
               style={{ width: `${(passageIndex / passageCount) * 100}%` }}
             />

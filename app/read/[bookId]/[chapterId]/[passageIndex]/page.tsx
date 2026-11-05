@@ -1,36 +1,20 @@
 import { redirect } from "next/navigation";
-import { PassageView } from "@/components/reader/PassageView";
 import { getBook, getPassages } from "@/lib/content";
 
 interface Props {
   params: Promise<{ bookId: string; chapterId: string; passageIndex: string }>;
 }
 
+/**
+ * Chỉ kiểm số đoạn: sai thì chuyển hướng, đúng thì không vẽ gì — màn đọc nằm ở layout của chương
+ * (`../layout.tsx`) để sống xuyên các đoạn. Sách/chương sai đã được layout chuyển hướng.
+ */
 export default async function ReadPage({ params }: Props) {
   const { bookId, chapterId, passageIndex } = await params;
-  const book = getBook(bookId);
-  if (!book) redirect("/");
-  const chapter = book.chapters.find((c) => c.id === chapterId);
-  if (!chapter) redirect(`/read/${book.id}/${book.chapters[0].id}/1`);
-  const passages = getPassages(book.id, chapter.id) ?? [];
-  if (passages.length === 0) redirect("/");
+  const count = getBook(bookId) ? (getPassages(bookId, chapterId)?.length ?? 0) : 0;
+  if (count === 0) return null;
   const idx = Number(passageIndex);
-  if (!Number.isInteger(idx) || idx < 1) {
-    redirect(`/read/${book.id}/${chapter.id}/1`);
-  }
-  if (idx > passages.length) {
-    redirect(`/read/${book.id}/${chapter.id}/${passages.length}`);
-  }
-  // Không key theo đoạn: PassageView sống xuyên các đoạn để footer/progress bar
-  // animate được khi chuyển; state được reset có chủ đích bên trong (theo passage.id).
-  return (
-    <PassageView
-      key={`${book.id}-${chapter.id}`}
-      book={book}
-      chapterId={chapter.id}
-      passage={passages[idx - 1]}
-      passageIndex={idx}
-      passageCount={passages.length}
-    />
-  );
+  if (!Number.isInteger(idx) || idx < 1) redirect(`/read/${bookId}/${chapterId}/1`);
+  if (idx > count) redirect(`/read/${bookId}/${chapterId}/${count}`);
+  return null;
 }
