@@ -7,6 +7,9 @@ export type ArrowPoints = [number, number, number, number, number, number, numbe
 const DEFAULT_SEED = 1; // roughjs: seed 0 = ngẫu nhiên, nên không bao giờ dùng 0
 const generator = rough.generator();
 
+/** Làm tròn 2 chữ số thập phân: sin/cos của Node và trình duyệt lệch ở chữ số cuối, sẽ gây hydration mismatch. */
+const roundNums = (d: string) => d.replace(/-?\d+\.\d+(?:e[-+]?\d+)?/g, (n) => String(Number(Number(n).toFixed(2))));
+
 export function arrowPath([x1, y1, c1x, c1y, c2x, c2y, x2, y2]: ArrowPoints): string {
   const n = Math.hypot(x2 - c2x, y2 - c2y) || 1;
   const bx = (-(x2 - c2x) / n) * 8;
@@ -17,11 +20,8 @@ export function arrowPath([x1, y1, c1x, c1y, c2x, c2y, x2, y2]: ArrowPoints): st
   ];
   const [ax, ay] = rot(0.5);
   const [cx, cy] = rot(-0.5);
-  return `M${x1},${y1} C${c1x},${c1y} ${c2x},${c2y} ${x2},${y2} M${x2 + ax},${y2 + ay} L${x2},${y2} L${x2 + cx},${y2 + cy}`;
+  return roundNums(`M${x1},${y1} C${c1x},${c1y} ${c2x},${c2y} ${x2},${y2} M${x2 + ax},${y2 + ay} L${x2},${y2} L${x2 + cx},${y2 + cy}`);
 }
-
-/** Làm tròn 2 chữ số thập phân: sin/cos của Node và trình duyệt lệch ở chữ số cuối, sẽ gây hydration mismatch. */
-const roundNums = (d: string) => d.replace(/-?\d+\.\d+/g, (n) => String(Number(Number(n).toFixed(2))));
 
 /** Số tham số của một lần lặp mỗi lệnh path */
 const ARITY: Record<string, number> = { m: 2, l: 2, h: 1, v: 1, c: 6, s: 4, q: 4, t: 2, a: 7 };

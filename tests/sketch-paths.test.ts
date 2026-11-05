@@ -7,6 +7,15 @@ describe("arrowPath", () => {
     expect(d.startsWith("M0,0 C")).toBe(true);
     expect(d).toContain("L30,0");
   });
+
+  it("làm tròn đầu mũi tên như nét roughjs, kể cả số quá nhỏ viết dạng mũ", () => {
+    const d = arrowPath([74, 311, 81, 311, 89, 311, 97, 311]);
+    expect(d).not.toMatch(/\d\.\d{3,}/);
+    expect(d).not.toMatch(/e-/);
+    // bx*sin(a)+by*cos(a) triệt tiêu gần 0: ra số dạng 1.2e-15 nếu không làm tròn
+    expect(arrowPath([0, 0, 1, 1, 2, 2, 12, 12])).not.toMatch(/\d\.\d{3,}|e-/);
+    expect(d).toContain("L97,311");
+  });
 });
 
 describe("stepPaths", () => {
