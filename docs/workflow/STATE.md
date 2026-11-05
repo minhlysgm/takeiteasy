@@ -5,7 +5,9 @@
 
 ## Đang làm
 
-_(trống — chờ Minh chọn task tiếp)_
+**Task:** Chữ xám `--muted` theme sáng đủ tương phản (backlog 7) · **Cỡ:** S · UI · **Trạm:** ⑦ Nghiệm thu — chờ Minh duyệt ảnh trước/sau.
+Nhánh `task/muted-contrast`: `--muted` sáng #a8a29e → #6f6862 (4.9:1 trên bg, 4.6:1 trên surface; theme tối không đổi). Test `tests/theme-contrast.test.ts` đọc thẳng `lib/theme.css`, kiểm ≥4.5:1 cả 2 theme + chữ thường vẫn đậm hơn chữ phụ ≥1.5 lần. Verify xanh: vitest 172/172 · playwright 75/75.
+Bước kế: Minh "ok" → merge vào main (chưa push), bỏ mục 7 khỏi backlog, ghi "Đã xong".
 
 ## Backlog
 
