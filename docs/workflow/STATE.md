@@ -5,11 +5,40 @@
 
 ## Đang làm
 
-**Bước kế:** không có task dở. Minh cần push main (Sync Changes) để Vercel deploy bản chống tiêu cạn, rồi thử tra lại trên production. Gợi ý task tiếp: backlog "[S · UI] Header mobile không dính → phải cuộn lên mới mở được danh sách đoạn" (cần mockup).
+**Task:** Chuyển sang thẻ "vẽ trước" — hình phác thảo là module chính, chạy trước; vẽ xong hiện đoạn mô tả + bình tiếng Anh **do takeiteasy tự viết** (chunk gạch chân, bản dịch, ý chính), dòng ghi công cuối thẻ. Sách chỉ là nguồn ý tưởng (kiểu review sách).
+**Cỡ:** L
+**Trạm:** ④ Plan — **spec đã duyệt 2026-11-06** (commit 8439dd8). Việc kế: dùng `superpowers:writing-plans` viết plan từ `docs/superpowers/specs/2026-11-06-sketch-first-design.md` (nội dung 3 thẻ tạm: toàn văn trong `2026-11-06-sketch-first-cards.html` — caption, bản dịch, ý chính, chunk JS `CHUNKS`, SVG; hình phải chuyển sang kiểu `Sketch` của `content/types.ts`, chữ trong hình đã đo sạch). Tiêu chí 1–14 + 13b → test e2e/unit. Plan duyệt xong → đề nghị đổi session → ⑤ trên nhánh `task/sketch-first`.
 
-- **Ghi chú:** push `main` thất bại — máy chưa đăng nhập GitHub cho git (không có `gh`). Minh tự push hoặc đăng nhập rồi bảo Claude push.
+- **Phản hồi Minh ở ③ (2026-11-06):** (1) chữ trong hình không được chạm nét → đã sửa bản nháp (script đo, 7 chỗ), thêm quy tắc + tiêu chí 13b vào spec. (2) nội dung thật làm theo cách mới: mỗi thẻ = 2–3 đoạn sách, thảo luận rồi Minh trau chuốt → đã làm skill `bien-tap` + công cụ `npm run content` trên nhánh `task/bien-tap` (chờ Minh cho merge). 3 thẻ hiện tại = nội dung tạm cho task code. Còn chờ Minh "duyệt" spec để sang ④.
+- **Đã chốt ở ②:** 3 thẻ = 3 ý lớn của chương 1 (① Bukowski bê bết vẫn viết, không giả vờ ② lo vì mình đang lo — vòng lặp ③ càng đuổi theo vui càng thấy thiếu); đoạn văn 4–5 câu ~60–80 từ (nháp 55–57 từ); Claude viết nháp cả 3, Minh duyệt một lượt. Claude tự chọn: gọi "thẻ", bản dịch giữ hiệu ứng gõ, thẻ đã xem hiện đủ ngay, bôi đen/tra nghĩa giữ nguyên.
+- **Bản nháp nội dung:** `docs/superpowers/specs/2026-11-06-sketch-first-cards.html` (artifact https://claude.ai/artifact/6FLi8XFG3Zme1uZpQFUHwi, nhúng audio Will) — toàn văn caption, bản dịch, ý chính, chunk, SVG của 3 thẻ nằm trong file này.
+- **Map code (Explore):** `original` đọc ở OriginalText, ChapterReader:21 (firstSentence), PassageView:239/426 (speak), lib/selection.ts:82,85, lib/server/handleLookup.ts:60-62. Sketch hiện chạy SAU khi bản dịch gõ xong (`start={typing.done}` PassageView:356), PassageSketch có state idle/waiting/drawing/done nhưng không báo ra ngoài; `useTypingText` có option `enabled`. ~25 file test dò câu chữ sách (nặng: tests/passage-view, content, handle-lookup, selection; e2e/lookup, selection.mobile, sketch).
+
+- **Vì sao:** app đang hiển thị nguyên văn sách Mark Manson + bản dịch tự làm → vi phạm bản quyền nếu mở cho user (mua sách giấy không cho quyền sao/phát tán; viết lại bám từng đoạn = diễn giải sát, vẫn rủi ro). Review sách: chọn lọc ý, ngắn hơn hẳn sách, hình + lời + góc nhìn của mình, trích nguyên văn thì ngắn + ngoặc kép.
+- **Đã chốt (2026-11-06):** KHÔNG có bước "user tự tả hình" — Minh muốn web chia sẻ kiến thức, thoải mái, không áp lực đoán. Vẽ xong là đoạn văn hiện ngay.
+- **Mockup đã duyệt hướng:** `docs/superpowers/specs/2026-11-06-sketch-first-mockup.html` (artifact https://claude.ai/artifact/8MpYdGvnm4fvjqmEkLLbRR, v2, nhúng audio Will thật; chưa commit). Đoạn mẫu thẻ 1: "This is Charles Bukowski, and his life is a mess. He drinks too much, bets his rent money on horse races, and the letters piling up on his desk all say the same thing: no thanks. Most people would give up. He just keeps writing, one bad poem after another." — chunk: is a mess / bet … on / pile up / give up.
+- **Lưu ý:** chữ trong hình hiện tại (ch01-sketches) trích câu của sách → phải đổi sang chữ của mình. Khuyên Minh hỏi luật sư SHTT trước khi mở cho user thật.
+- **Sau task này:** quay lại task giọng đọc (backlog mục đầu) — đọc đoạn mô tả mới, tránh tạo audio 2 lần.
+- **Ghi chú cũ:** push `main` thất bại — máy chưa đăng nhập GitHub cho git (không có `gh`). Minh tự push hoặc đăng nhập rồi bảo Claude push.
 
 ## Backlog
+
+0. **[M · UI] Giọng đọc AI (ElevenLabs) + chọn 1 trong 5 giọng** — LÀM NGAY SAU task "vẽ trước". Mô tả gốc: Giọng đọc AI cho "đọc to" + câu ví dụ — tạo sẵn file audio bằng dịch vụ giọng AI (neural TTS), thay giọng trình duyệt. Chữ bôi đen + từ tra tạm giữ giọng trình duyệt.
+**Cỡ:** M (script tạo audio + chỗ lưu file + đổi cách phát ở 2 chỗ + có thể đổi UI nút)
+**Dừng ở ②:** Minh đã nghe 10 mẫu → **chốt ElevenLabs (model eleven_multilingual_v2), mặc định Will**, không dùng OpenAI. Bước kế: ③ spec + mockup (nút "■ dừng" + chỗ chọn giọng; gợi ý: mobile đặt ở ô trống trái header, desktop nút footer). Audio sẽ đọc **đoạn mô tả mới** của concept "vẽ trước" (đoạn ngắn hơn → rẻ hơn ước tính cũ).
+
+- **Phạm vi chốt thêm:** làm luôn **chỗ chọn 1 trong 5 giọng** (Will mặc định, Brian, Adam, Sarah, Jessica), nhớ lựa chọn, có nghe thử. Voice id: Will `bIHbv24MWmeRgasZH58o`, Brian `nPczCjzI2devNBz1zQrb`, Adam `pNInz6obpgDQGcFmaJgB`, Sarah `EXAVITQu4vr4xnSDxMaL`, Jessica `cgSgspJ2msm6clMCkdW9`.
+- **Chi phí/bản quyền (đã giải thích cho Minh 2026-11-06):** Multilingual v2 = 1 credit/ký tự; nội dung hiện có ~2.800 ký tự → 5 giọng ~14.5k credit. Free 10k/tháng, cấm thương mại + phải ghi "elevenlabs.io". Mọi gói trả phí có giấy phép thương mại; file tạo lúc đang trả phí dùng thương mại mãi mãi. **Chốt: đăng ký Starter ($1 tháng đầu, 30k credit) ngay trước khi tạo audio chính thức ở ⑤** — Minh muốn phục vụ free nhưng phải chắc bản quyền.
+- **Tài khoản:** ElevenLabs gói Free, key `takeiteasy-tts` (chỉ quyền Text to Speech + Voices Read). OpenAI org "Personal", project "takeiteasy", gói Free → API TTS trả 429 hết credit; muốn thử OpenAI phải nạp ≥ $5. Cả hai key nằm trong `.env.local` (gitignored).
+
+- **Đã chốt ở ②:** nghe thử mẫu trước rồi mới chọn dịch vụ (ElevenLabs vs OpenAI, 2–3 giọng mỗi bên, cùng đoạn 1 ch01 + 1 câu ví dụ). Đang phát mà bấm lại "đọc to"/▶ = **dừng**, nút đổi thành "■ dừng" khi đang phát.
+- **Claude tự chọn (Minh chưa phản đối):** audio lưu `public/audio/` commit chung repo; lệnh tạo audio chạy tay, bỏ qua câu đã có (theo hash nội dung); test đỏ nếu đoạn/câu ví dụ thiếu audio; file lỗi/chưa tải được → quay về giọng trình duyệt.
+- **Script mẫu:** tạo lại nếu scratchpad mất — gọi ElevenLabs `/v1/voices` + `/v1/text-to-speech/{id}` (eleven_multilingual_v2) và OpenAI `/v1/audio/speech` (gpt-4o-mini-tts, giọng ash/coral/onyx, có `instructions`), đọc key từ `.env.local`, không in key.
+
+- **Đã biết:** `lib/speech.ts` (Web Speech, en-US, rate 0.9, `cancel()` trước khi đọc). Dùng ở PassageView footer "đọc to" + phím `s`, ChunkDrawer ▶ ví dụ, LookupCard ▶ headword, SelectionActions "nghe". Nội dung: 1 sách, ch01 có 3 đoạn, ~29 câu ví dụ. Chưa có thư mục `public/`. Anthropic không có TTS → cần tài khoản dịch vụ mới.
+0. **[M] Affiliate link mua sách** (sau khi có user): ghi rõ là link affiliate; có thu tiền = thương mại → cần gói ElevenLabs trả phí; ảnh bìa lấy từ chương trình affiliate.
+
+0. **[M] Giọng đọc: phần hoãn từ task giọng AI** — highlight chữ đang đọc (cần dịch vụ trả thời điểm từng chữ), chỉnh tốc độ, giọng AI cho chữ bôi đen + từ tra (gọi lúc dùng, cần trần chi phí như lookup).
 
 0. **[S] Tra nghĩa: vụn vặt hoãn từ ⑥ task B** — giới hạn lượt dựa IP `x-forwarded-for` (giả được nếu không chạy sau Vercel; đổi sang `x-vercel-forwarded-for`/`x-real-ip`); `sentenceAt` dùng lại `ABBREV` của `lib/content` (Mr./Dr., `."` khi lùi) — nội dung hiện chưa gặp.
 0. **[S] Tra nghĩa: `chunkAt` nhận cả trường hợp chữ khớp `chunk.match` ở chỗ khác trong đoạn** (spec task B ghi "hoặc chữ khớp").
@@ -21,6 +50,8 @@
 3. **[S · UI] Vụn vặt của bôi đen** (hoãn sau ⑥, mức thấp): thanh/popup bật ra đột ngột (trượt lên + hiện dần 180ms); popup theme tối viền/bóng mờ khó thấy mép; popup lật xuống dưới chưa chặn mép dưới (câu dài sát đầu trang có thể chui dưới footer); đổi cỡ cửa sổ khi đang chọn thì popup dùng toạ độ cũ; bôi đen trong ~0.35s đầu khi đoạn mới trượt vào thì popup lệch ≤10px; tiêu chí 1 (≤ 0.5s) chỉ dư ~250ms, để ý khi chạy CI; thêm project e2e WebKit (iPhone) cho 2 file selection.
 
 ## Đã xong
+
+- 2026-11-06 · Quy trình biên tập thẻ (cỡ M): skill `bien-tap` (7 trạm, Minh chốt ③/⑤/⑥), sổ thẻ `docs/content/the-subtle-art/SO-THE.md` (bản sách: Harper, ISBN 978-0-06-264154-0), công cụ `npm run content -- status|new|check|preview|ledger` (chặn trùng đoạn trước khi tạo thẻ, chặn chép ≥ 6 chữ / chữ trong hình ≥ 4, đo chữ dính nét bằng trình duyệt), chữ sách chỉ ở `content-src/` (gitignored). Thử bằng 2 agent mới: lần 1 lộ lỗ hổng tạo-rồi-mới-kiểm → sửa thành `new`; lần 2 đúng. vitest 389 / e2e 186. Merge vào main (chưa push)
 
 - 2026-11-05 · Tra nghĩa: chống tiêu cạn $9 (cỡ S) — trình duyệt gửi `start`/`end` thay cho `sentence`, server kiểm mẩu nguyên văn khớp chữ tra rồi tự `sentenceAt`; test `upstashStore` bằng client giả; e2e kiểm vị trí khi bật giải thích. Không làm bộ đếm nguyên tử (vượt rất nhỏ). vitest 365 / e2e 186. Merge vào main (chưa push)
 - 2026-11-05 · Gắn dịch vụ thật cho tra nghĩa (Task 6 của plan): Anthropic workspace `takeiteasy` (trần $9/tháng, auto-reload tắt, key hạn Never — gói Max tặng $100 credit/tháng nên số dư không phải trần); Upstash **Free** tạo trực tiếp trên upstash.com (`takeiteasy-lookup`, us-east-1, eviction tắt) vì Vercel Marketplace không có gói Free; Vercel env `ANTHROPIC_API_KEY`, `UPSTASH_REDIS_REST_URL/TOKEN`, `LOOKUP_BUDGET_USD=9` (Production + Preview), redeploy. Thử trên production: `lout`, `piled up`, `cheapskate` → 200, ~2s/lượt; `lookup:v1:spent_usd` = $0.00047 cho 3 lượt (~$0.00016/lượt → $9 ≈ 55k lượt). Vercel gợi ý lưu `UPSTASH_REDIS_REST_TOKEN` dạng Secret (chưa làm, không bắt buộc).
