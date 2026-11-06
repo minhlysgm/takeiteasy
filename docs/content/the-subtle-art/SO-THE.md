@@ -2,7 +2,8 @@
 
 - Tên sách: The Subtle Art of Not Giving a F*ck
 - Tác giả: Mark Manson
-- Bản sách giấy để đánh số trang: (Minh ghi: nhà xuất bản, năm) — mọi `tr.` trong sổ theo bản này.
+- Bản sách giấy để đánh số trang: Harper (HarperCollins), bìa mềm, ISBN 978-0-06-264154-0 (bản in có nhãn
+  "Everything Is F*cked" trên bìa) — mọi `tr.` trong sổ theo bản này.
 - Quy ước nguồn: `tr.<trang>¶<đoạn>`, ¶ đếm các đoạn **bắt đầu** trên trang đó.
 - Quy trình: skill `bien-tap` (`.claude/skills/bien-tap/SKILL.md`). Công cụ: `npm run content -- status`.
 
