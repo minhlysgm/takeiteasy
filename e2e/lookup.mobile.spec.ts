@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { LOUT, mockLookup } from "./lookup-helpers";
+import { LIFE, mockLookup } from "./lookup-helpers";
 import { P, dismissFirstTimeHint, finishTyping, installSpies, selectText } from "./selection-helpers";
 
 // Tiêu chí nghiệm thu 7 — spec docs/superpowers/specs/2026-11-05-in-app-lookup-design.md.
@@ -8,15 +8,15 @@ import { P, dismissFirstTimeHint, finishTyping, installSpies, selectText } from 
 const dock = (page: Page) => page.getByTestId("selection-dock");
 
 async function openCard(page: Page) {
-  await mockLookup(page, { status: "ok", result: LOUT });
+  await mockLookup(page, { status: "ok", result: LIFE });
   await installSpies(page);
   await dismissFirstTimeHint(page);
   await page.goto(P(1));
   await finishTyping(page, "tap");
-  await selectText(page, "caption-text", "lout");
+  await selectText(page, "caption-text", "life");
   await expect(dock(page)).toBeVisible();
   await dock(page).getByRole("button", { name: "tra nghĩa" }).tap();
-  await expect(dock(page).getByTestId("lookup-card")).toContainText("kẻ thô lỗ");
+  await expect(dock(page).getByTestId("lookup-card")).toContainText("cuộc sống");
 }
 
 test("Khi chạm \"tra nghĩa\" thì thẻ nằm trong thanh đáy, ngay trên footer, có nút đóng thẻ", async ({ page }) => {
@@ -51,11 +51,11 @@ test.describe("390×560 (màn thấp)", () => {
     await mockLookup(page, {
       status: "ok",
       result: {
-        ...LOUT,
-        meaning: "kẻ thô lỗ, cục cằn, cư xử khó coi; người ồn ào, chen ngang, không biết nói cảm ơn hay xin lỗi",
+        ...LIFE,
+        meaning: "cuộc sống, đời sống; quãng thời gian một người sống, làm việc, vui buồn đủ cả, trước khi nói lời tạm biệt",
         example: {
-          en: "My cousin acted like a lout at the wedding: he talked loudly during the vows and never thanked the hosts.",
-          vi: "Ông anh họ tui cư xử như kẻ thô lỗ ở đám cưới: nói to lúc đọc lời thề, chẳng cảm ơn chủ nhà câu nào.",
+          en: "My cousin's whole life changed at the wedding: he talked loudly during the vows and never thanked the hosts.",
+          vi: "Cả cuộc sống của ông anh họ tui đổi khác ở đám cưới: nói to lúc đọc lời thề, chẳng cảm ơn chủ nhà câu nào.",
         },
       },
     });
@@ -63,7 +63,7 @@ test.describe("390×560 (màn thấp)", () => {
     await dismissFirstTimeHint(page);
     await page.goto(P(1));
     await finishTyping(page, "tap");
-    await selectText(page, "caption-text", "lout");
+    await selectText(page, "caption-text", "life");
     await dock(page).getByRole("button", { name: "tra nghĩa" }).tap();
     const c = dock(page).getByTestId("lookup-card");
     await expect(c).toContainText("đám cưới");
@@ -90,17 +90,17 @@ test.describe("320×640", () => {
       const b = d.getByRole("button", { name, exact: true });
       expect((await b.boundingBox())!.height, name).toBeGreaterThanOrEqual(44);
     }
-    expect((await d.getByRole("button", { name: "nghe: lout" }).boundingBox())!.height, "nghe: lout").toBeGreaterThanOrEqual(44);
+    expect((await d.getByRole("button", { name: "nghe: life" }).boundingBox())!.height, "nghe: life").toBeGreaterThanOrEqual(44);
     // Chân thẻ "AI soạn · Cambridge ↗" một dòng (ô link 44px + viền)
     expect((await d.getByTestId("lookup-footer").boundingBox())!.height, "chân thẻ một dòng").toBeLessThanOrEqual(46);
   });
   test("Khi dạng gốc là một chữ rất dài không có dấu cách thì thẻ xuống dòng, không tràn ngang", async ({ page }) => {
-    await mockLookup(page, { status: "ok", result: { ...LOUT, headword: "cheapskate-extraordinairewithoutspaces" } });
+    await mockLookup(page, { status: "ok", result: { ...LIFE, headword: "lifelong-extraordinairewithoutspaces" } });
     await installSpies(page);
     await dismissFirstTimeHint(page);
     await page.goto(P(1));
     await finishTyping(page, "tap");
-    await selectText(page, "caption-text", "lout");
+    await selectText(page, "caption-text", "life");
     await dock(page).getByRole("button", { name: "tra nghĩa" }).tap();
     await expect(dock(page).getByTestId("lookup-card")).toContainText("extraordinaire");
     const { sw, cw, doc } = await dock(page).evaluate((el) => ({

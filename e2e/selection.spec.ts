@@ -23,9 +23,9 @@ test.beforeEach(async ({ page }) => {
 test("Khi kéo chuột bôi đen thì lúc đang kéo chưa hiện popup; thả ra thì popup hiện cạnh vùng chọn (dòng đầu: phía dưới)", async ({ page }) => {
   await page.goto(P(1));
   await finishTyping(page, "click");
-  await dragOver(page, "chronic gambler");
+  await dragOver(page, "bets his rent money on horse");
   await page.waitForTimeout(400);
-  expect(await page.evaluate(() => window.getSelection()!.toString())).toBe("chronic gambler");
+  expect(await page.evaluate(() => window.getSelection()!.toString())).toBe("bets his rent money on horse");
   await expect(popup(page)).toHaveCount(0);
   await page.mouse.up();
   await expect(popup(page)).toBeVisible();
@@ -36,9 +36,12 @@ test("Khi kéo chuột bôi đen thì lúc đang kéo chưa hiện popup; thả 
 });
 
 test("Khi bôi đen chữ ở dòng dưới (phía trên đủ chỗ cho thẻ) thì popup hiện phía trên vùng chọn", async ({ page }) => {
+  // Đoạn ngắn nên dòng cuối còn cao: hạ chiều cao màn để phía dưới chữ hẹp hơn phía trên, thẻ tra nghĩa mới ưu tiên ở trên.
+  await page.setViewportSize({ width: 1440, height: 660 });
   await page.goto(P(1));
   await finishTyping(page, "click");
-  await dragOver(page, "perfect place");
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await dragOver(page, "anyone else");
   await page.mouse.up();
   await expect(popup(page)).toBeVisible();
   const sel = await page.evaluate(() => window.getSelection()!.getRangeAt(0).getBoundingClientRect().top);
@@ -64,7 +67,7 @@ test.describe("1024×800", () => {
 test('Khi bôi đen 11 từ trở lên thì popup chỉ có "nghe"', async ({ page }) => {
   await page.goto(P(1));
   await finishTyping(page, "click");
-  await dragOver(page, "Charles Bukowski was an alcoholic, a womanizer, a chronic gambler, a");
+  await dragOver(page, "This is Charles Bukowski, and his life is a mess. He");
   await page.mouse.up();
   await expect(popup(page)).toBeVisible();
   await expect(popup(page).getByRole("button", { name: /nghe/ })).toBeVisible();
@@ -84,7 +87,7 @@ test("Khi đổi cỡ từ 1280px xuống 390px lúc đang chọn thì popup nh�
     };
     new MutationObserver(check).observe(document.body, { childList: true, subtree: true });
   });
-  await selectText(page, "caption-text", "chronic gambler");
+  await selectText(page, "caption-text", "bets his rent money on horse");
   await expect(popup(page)).toBeVisible();
   await expect(page.getByTestId("selection-dock")).toHaveCount(0);
   await page.setViewportSize({ width: 390, height: 844 });
@@ -93,14 +96,14 @@ test("Khi đổi cỡ từ 1280px xuống 390px lúc đang chọn thì popup nh�
   expect(await page.evaluate(() => (window as unknown as { __both: boolean }).__both)).toBe(false);
 });
 
-test('Khi chọn "chronic" rồi Shift+→ nới tới "chronic gambler" thì vẫn ở đoạn 1, popup còn và giữ chữ mới', async ({ page }) => {
+test('Khi chọn "bets his rent money on" rồi Shift+→ nới tới "bets his rent money on horse" thì vẫn ở đoạn 1, popup còn và giữ chữ mới', async ({ page }) => {
   await page.goto(P(1));
   await finishTyping(page, "click");
-  await dragOver(page, "chronic");
+  await dragOver(page, "bets his rent money on");
   await page.mouse.up();
   await expect(popup(page)).toBeVisible();
-  for (let i = 0; i < " gambler".length; i++) await page.keyboard.press("Shift+ArrowRight");
-  expect(await page.evaluate(() => window.getSelection()!.toString())).toBe("chronic gambler");
+  for (let i = 0; i < " horse".length; i++) await page.keyboard.press("Shift+ArrowRight");
+  expect(await page.evaluate(() => window.getSelection()!.toString())).toBe("bets his rent money on horse");
   await page.waitForTimeout(400); // > 250ms chờ ổn định
   await expect(page).toHaveURL(new RegExp(`${P(1)}$`));
   await expect(popup(page)).toBeVisible();
@@ -108,14 +111,14 @@ test('Khi chọn "chronic" rồi Shift+→ nới tới "chronic gambler" thì v�
   await popup(page).getByRole("button", { name: /nghe/ }).click();
   await expect
     .poll(() => page.evaluate(() => (window as unknown as Spy).__spoken))
-    .toEqual(["chronic gambler"]);
+    .toEqual(["bets his rent money on horse"]);
   await expect(popup(page)).toBeVisible();
 });
 
 test("Khi popup đang hiện mà nhấn Escape thì popup tắt, vùng chọn bị bỏ", async ({ page }) => {
   await page.goto(P(1));
   await finishTyping(page, "click");
-  await dragOver(page, "chronic gambler");
+  await dragOver(page, "bets his rent money on horse");
   await page.mouse.up();
   await expect(popup(page)).toBeVisible();
   await page.keyboard.press("Escape");

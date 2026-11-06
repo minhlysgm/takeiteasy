@@ -84,7 +84,7 @@ test.describe("phác thảo đoạn 1", () => {
   });
 
   const skips: [string, (page: Page) => Promise<void>][] = [
-    ["bấm vào hình", (page) => page.getByRole("img", { name: /Charles Bukowski/ }).click()],
+    ["bấm vào hình", (page) => page.getByRole("img", { name: /^Một người đàn ông/ }).click()],
     ["bấm xem ngay", (page) => page.getByRole("button", { name: "xem ngay ⏭" }).click()],
   ];
   for (const [how, skip] of skips) {
@@ -209,7 +209,7 @@ test.describe("phác thảo đoạn 1", () => {
     // Quay lại đoạn 1: vẫn được xem hiệu ứng, không hiện sẵn
     await page.getByRole("button", { name: "← trước" }).click();
     await expect(page).toHaveURL(new RegExp(`/${CH}/1$`));
-    await expect(page.getByRole("img", { name: /^Phác thảo: Charles Bukowski/ })).toBeVisible();
+    await expect(page.getByRole("img", { name: /^Một người đàn ông/ })).toBeVisible();
     await expect(page.getByTestId("sketch")).toHaveAttribute("data-state", "waiting");
   });
 
@@ -222,7 +222,7 @@ test.describe("phác thảo đoạn 1", () => {
 
   test("10. hình có mô tả cho trình đọc màn hình", async ({ page }) => {
     await page.goto(P1);
-    await expect(page.getByRole("img", { name: /^Phác thảo: Charles Bukowski/ })).toBeVisible();
+    await expect(page.getByRole("img", { name: /^Một người đàn ông/ })).toBeVisible();
   });
 
   for (const n of [1, 2, 3]) {
@@ -463,24 +463,17 @@ test.describe("bút chì đi cùng đầu nét", () => {
     });
   }
 
-  test("đoạn 3: cầu thang và vòng khoanh có mẫu ở giữa hình, không chỉ ở ranh giới giữa các nét", async ({ page }) => {
+  test("đoạn 3: nét nhiều đoạn con (mặt ghế đá + chân) có mẫu ở giữa hình, không chỉ ở ranh giới giữa các nét", async ({ page }) => {
     const { samples, steps } = await sampleWholeDrawing(page, `/read/${BOOK}/${CH}/3`);
     const sketchSteps = getPassage(BOOK, CH, 3)!.sketch!.steps;
-    const stairAt = sketchSteps.findIndex((s) => s.kind === "path" && s.d.startsWith("M30,226"));
-    const ringAt = sketchSteps.findIndex((s) => s.kind === "ellipse" && s.multi);
+    const stairAt = sketchSteps.findIndex((s) => s.kind === "path" && s.d.startsWith("M360 250 L482 250"));
     const slice = (order: string, key: string) => steps.flatMap((k, i) => (k === `${key}-0` ? [order[i]] : [])).join("");
     const stair = new Set(samples.map((s) => slice(s.order, `${stairAt}`)));
-    const ring = new Set(samples.map((s) => slice(s.order, `${ringAt}`)));
 
-    // Cầu thang nhiều đoạn: có lúc đoạn đầu xong, một đoạn đang dở, đoạn sau chưa vẽ
+    expect(stairAt).toBeGreaterThanOrEqual(0);
+    // Nét nhiều đoạn con: có lúc đoạn đầu xong, một đoạn đang dở, đoạn sau chưa vẽ
     expect([...stair].some((o) => /^F+PH+$/.test(o))).toBe(true);
-    // Vòng khoanh 2 vòng: vòng 1 đang dở thì vòng 2 chưa có; vòng 2 đang dở thì vòng 1 đã xong
-    expect(ring).toContain("PH");
-    expect(ring).toContain("FP");
-    expect(ring).not.toContain("PP");
-    // Vòng khoanh là cú chốt: vẽ đủ ~1,2 giây, không vụt qua
-    const ringT = samples.filter((s) => slice(s.order, `${ringAt}`).includes("P")).map((s) => s.t);
-    expect(ringT[ringT.length - 1] - ringT[0]).toBeGreaterThanOrEqual(1100);
+    // (Vòng khoanh `multi` chưa có thẻ nào dùng nên chưa có phép đo "vẽ đủ ~1,2 giây" ở đây.)
   });
 });
 

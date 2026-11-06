@@ -8,18 +8,21 @@ vi.mock("@anthropic-ai/sdk", () => ({
 }));
 
 const SENTENCE =
-  "Charles Bukowski was an alcoholic, a womanizer, a chronic gambler, a lout, a cheapskate, a deadbeat, and on his worst days, a poet.";
-const at = (text: string) => {
-  const start = SENTENCE.indexOf(text); // câu này mở đầu đoạn 1 → vị trí trong câu = vị trí trong đoạn
+  "This is Charles Bukowski, and his life is a mess.";
+const SECOND =
+  "He drinks too much, bets his rent money on horse races, and the letters piling up on his desk all say the same thing: no thanks.";
+const at = (text: string, sentence = SENTENCE) => {
+  // cả hai câu nằm trong đoạn 1 của ch01: câu đầu mở đoạn, câu hai theo sau sau một dấu cách
+  const start = (sentence === SENTENCE ? 0 : SENTENCE.length + 1) + sentence.indexOf(text);
   return { text, start, end: start + text.length };
 };
-const VALID = { bookId: "the-subtle-art", chapterId: "ch01", passageIndex: 1, ...at("lout") };
+const VALID = { bookId: "the-subtle-art", chapterId: "ch01", passageIndex: 1, ...at("mess") };
 const RESULT = {
-  headword: "lout",
-  ipa: "/laʊt/",
+  headword: "mess",
+  ipa: "/mes/",
   pos: "danh từ",
-  meaning: "gã thô lỗ",
-  example: { en: "Nobody invited the lout.", vi: "Không ai mời gã thô lỗ." },
+  meaning: "mớ hỗn độn",
+  example: { en: "My room is a mess.", vi: "Phòng tui bừa tung." },
 };
 
 const post = (body: unknown, ip?: string) =>
@@ -103,16 +106,16 @@ describe("POST /api/lookup", () => {
     const POST = await loadPost();
     const forwarded = "1.2.3.4, 10.0.0.1";
     // 31 cụm khác nhau trong câu (chưa có cache) — tra lại cụm đã có cache thì không trừ lượt
-    const words = SENTENCE.split(" ");
+    const words = SECOND.split(" ");
     const texts = [...new Set(words.flatMap((_, i) => [words[i], words.slice(i, i + 2).join(" ")]))].slice(0, 31);
     expect(texts).toHaveLength(31);
-    for (const text of texts.slice(0, 30)) expect((await POST(post({ ...VALID, ...at(text) }, forwarded))).status).toBe(200);
-    const res = await POST(post({ ...VALID, ...at(texts[30]) }, forwarded));
+    for (const text of texts.slice(0, 30)) expect((await POST(post({ ...VALID, ...at(text, SECOND) }, forwarded))).status).toBe(200);
+    const res = await POST(post({ ...VALID, ...at(texts[30], SECOND) }, forwarded));
     expect(res.status).toBe(429);
     expect(await res.json()).toEqual({ status: "unavailable", reason: "limited" });
     // cùng IP đầu, proxy khác phía sau vẫn bị tính chung
-    expect((await POST(post({ ...VALID, ...at(texts[30]) }, "1.2.3.4, 10.9.9.9"))).status).toBe(429);
+    expect((await POST(post({ ...VALID, ...at(texts[30], SECOND) }, "1.2.3.4, 10.9.9.9"))).status).toBe(429);
     // IP khác thì không bị ảnh hưởng
-    expect((await POST(post({ ...VALID, ...at(texts[30]) }, "5.6.7.8"))).status).toBe(200);
+    expect((await POST(post({ ...VALID, ...at(texts[30], SECOND) }, "5.6.7.8"))).status).toBe(200);
   });
 });

@@ -97,7 +97,7 @@ export function ChunkDrawer({ chunks, index, closing = false, onNavigate, onClos
             <div className="border border-dashed border-accent p-5">
               <div className="text-xs tracking-widest text-accent">PATTERN</div>
               <div className="mt-2 text-[16px] text-bright">{chunk.pattern.formula}</div>
-              <div className="mt-1 text-[13.5px] text-muted">{chunk.pattern.note}</div>
+              {chunk.pattern.note && <div className="mt-1 text-[13.5px] text-muted">{chunk.pattern.note}</div>}
             </div>
           )}
 

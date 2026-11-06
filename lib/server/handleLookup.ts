@@ -25,7 +25,7 @@ const unavailable = (status: number, reason: "invalid" | "limited" | "paused" | 
 });
 
 export function cacheKey(text: string, sentence: string): string {
-  return "lookup:v1:cache:" + createHash("sha256").update(text + "\n" + sentence).digest("hex");
+  return "lookup:v2:cache:" + createHash("sha256").update(text + "\n" + sentence).digest("hex");
 }
 
 function parse(input: unknown): LookupRequest | null {

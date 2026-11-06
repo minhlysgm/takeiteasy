@@ -42,7 +42,7 @@ test.describe("đã tắt mẹo lần đầu", () => {
 
   test("Đang bôi đen mà nhấn Shift+End / Shift+Home thì không nhảy đoạn", async ({ page }) => {
     await open(page, 2);
-    await selectText(page, "caption-col", "Bukowski");
+    await selectText(page, "caption-col", "worries");
     for (const key of ["Shift+End", "Shift+Home"]) {
       await page.keyboard.press(key);
       await expect(page).toHaveURL(/\/ch01\/2$/);

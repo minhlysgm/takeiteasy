@@ -25,8 +25,8 @@ type Live =
   | { kind: "text"; rect: SVGRectElement | null; w: number }
   | { kind: "pause" };
 
-const STROKE: Record<"line" | "ink", string> = { line: "stroke-text", ink: "stroke-ink" };
-const FILL: Record<SketchTone, string> = { ink: "fill-ink", name: "fill-bright", line: "fill-text" };
+const STROKE: Record<"line" | "ink" | "accent", string> = { line: "stroke-text", ink: "stroke-ink", accent: "stroke-accent" };
+const FILL: Record<SketchTone, string> = { ink: "fill-ink", name: "fill-bright", line: "fill-text", accent: "fill-accent" };
 
 export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sketch: Sketch; passageId: string; start: boolean; dimmed?: boolean }) {
   const [state, setState] = useState<State>("idle");

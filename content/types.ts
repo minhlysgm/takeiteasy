@@ -11,7 +11,7 @@ export interface Passage {
   translation: string; // bản dịch tự nhiên (nguồn cho hiệu ứng typing)
   mainIdea?: string; // "ý chính của đoạn"
   chunks: Chunk[];
-  sketch?: Sketch; // hình phác thảo tự vẽ của đoạn (tuỳ chọn)
+  sketch: Sketch; // hình phác thảo tự vẽ của đoạn — thẻ vẽ trước nên bắt buộc
 }
 
 export interface Chunk {
@@ -22,15 +22,15 @@ export interface Chunk {
 
   headword: string; // tựa trong drawer
   meaning: string;
-  pattern?: { formula: string; note: string };
+  pattern?: { formula: string; note?: string };
   examples: { en: string; vi: string }[];
   mistake?: { wrong: string; right: string };
   note?: string;
 }
 
-export type SketchTone = "line" | "ink" | "name"; // không có tone nhạt: chữ trong hình phải đọc được ở cả hai theme
+export type SketchTone = "line" | "ink" | "name" | "accent"; // không có tone nhạt: chữ trong hình phải đọc được ở cả hai theme
 export type SketchStep =
-  | { kind: "path"; d: string; tone: "line" | "ink"; width?: number; rough?: number; seed?: number; plain?: boolean }
+  | { kind: "path"; d: string; tone: "line" | "ink" | "accent"; width?: number; rough?: number; seed?: number; plain?: boolean }
   | { kind: "ellipse"; cx: number; cy: number; w: number; h: number; tone: "line" | "ink"; rough?: number; seed?: number; multi?: boolean }
   | { kind: "arrow"; points: [number, number, number, number, number, number, number, number]; tone: "ink" }
   | { kind: "text"; text: string; x: number; y: number; size: number; tone: SketchTone; anchor?: "start" | "middle" | "end" }

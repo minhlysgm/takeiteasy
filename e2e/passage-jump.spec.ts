@@ -24,7 +24,7 @@ test("1. Khi bấm bộ đếm thì hiện danh sách 3 đoạn có câu mở đ
   await expect(list(page)).toBeVisible();
   await expect(page.getByTestId("jump-row")).toHaveCount(3);
   await expect(row(page, 2)).toHaveAttribute("aria-current", "true");
-  await expect(row(page, 2)).toContainText("Bukowski wanted to be a writer.");
+  await expect(row(page, 2)).toContainText("It’s three in the morning and she still can’t fall asleep.");
   await expect(row(page, 1)).not.toHaveAttribute("aria-current", "true");
   await expect(list(page)).toContainText("Chương 1 · Don't Try");
 });
@@ -129,7 +129,7 @@ test("Danh sách đang mở mà bấm Back thì danh sách đóng, trang không 
 
 test("Đang bôi đen chữ mà nhấn g thì popup chọn chữ tắt", async ({ page }) => {
   await open(page, 1);
-  expect(await selectText(page, "caption-text", "chronic gambler", "selection-popup")).toBeGreaterThanOrEqual(0);
+  expect(await selectText(page, "caption-text", "bets his rent money on horse", "selection-popup")).toBeGreaterThanOrEqual(0);
   await page.keyboard.press("g");
   await expect(list(page)).toBeVisible();
   await expect(page.getByTestId("selection-popup")).toHaveCount(0);

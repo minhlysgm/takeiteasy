@@ -13,8 +13,8 @@ describe("CaptionText", () => {
   });
   it("bật giải thích: mỗi cụm một số 1..n, số không phải chữ trong văn bản và trình đọc màn hình bỏ qua", () => {
     const { container } = render(<CaptionText passage={passage} explainOn onChunkClick={() => {}} />);
-    expect(passage.chunks).toHaveLength(5);
-    expect(badges().map((b) => b.dataset.n)).toEqual(["1", "2", "3", "4", "5"]);
+    expect(passage.chunks).toHaveLength(4);
+    expect(badges().map((b) => b.dataset.n)).toEqual(["1", "2", "3", "4"]);
     for (const b of badges()) expect(b.getAttribute("aria-hidden")).toBe("true");
     // số vẽ bằng CSS (::after) → bôi đen / copy / "nghe" không dính số
     expect(container.textContent).toBe(passage.caption);

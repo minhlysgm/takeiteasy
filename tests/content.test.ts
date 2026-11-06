@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { books, findChunkRange, firstSentence, getPassages } from "@/lib/content";
+import type { Passage } from "@/content/types";
+import { ch01Passages } from "@/content/books/the-subtle-art/ch01";
 
 describe("content validation", () => {
   it("có ít nhất 1 sách", () => {
@@ -37,6 +39,33 @@ describe("content validation", () => {
         });
       }
     }
+  }
+});
+
+const BANNED = ["a womanizer, a chronic gambler", "the perfect place to start", "rejection slips piled up",
+  "Crude.", "Depraved.", "look to for life advice", "alcohol-fueled depression"];
+const sketchTexts = (p: Passage) => p.sketch.steps.flatMap((s) => (s.kind === "text" ? [s.text] : []));
+
+describe("ch01: thẻ vẽ trước (caption do takeiteasy viết)", () => {
+  for (const p of ch01Passages) {
+    it(`${p.id}: mỗi chunk.match nằm trong caption`, () => {
+      for (const c of p.chunks) expect(p.caption).toContain(c.match);
+    });
+    it(`${p.id}: 3–5 câu, 4 chunk, mỗi chunk ≥ 2 ví dụ, có hình + alt`, () => {
+      const sentences = p.caption.split(/(?<=[.?!])\s+/).length;
+      expect(sentences).toBeGreaterThanOrEqual(3);
+      expect(sentences).toBeLessThanOrEqual(5);
+      expect(p.chunks).toHaveLength(4);
+      for (const c of p.chunks) expect(c.examples.length).toBeGreaterThanOrEqual(2);
+      expect(p.sketch.steps.length).toBeGreaterThan(0);
+      expect(p.sketch.alt).not.toBe("");
+    });
+    it(`${p.id}: không còn câu chữ sách cũ`, () => {
+      for (const b of BANNED) {
+        expect(p.caption).not.toContain(b);
+        for (const t of sketchTexts(p)) expect(t).not.toContain(b);
+      }
+    });
   }
 });
 
@@ -84,7 +113,8 @@ describe("firstSentence", () => {
   });
   it("firstSentence của 3 đoạn ch01 khớp mockup", () => {
     const ps = getPassages("the-subtle-art", "ch01")!;
-    expect(firstSentence(ps[1].caption)).toBe("Bukowski wanted to be a writer.");
-    expect(firstSentence(ps[2].caption)).toBe("See, despite the book sales and the fame, Bukowski was a loser.");
+    expect(firstSentence(ps[0].caption)).toBe("This is Charles Bukowski, and his life is a mess.");
+    expect(firstSentence(ps[1].caption)).toBe("It’s three in the morning and she still can’t fall asleep.");
+    expect(firstSentence(ps[2].caption)).toBe("He chases happiness the way a kid chases a balloon.");
   });
 });

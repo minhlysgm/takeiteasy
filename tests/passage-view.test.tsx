@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { PassageView } from "@/components/reader/PassageView";
+import type { Passage } from "@/content/types";
 import { DOCK_QUERY } from "@/lib/breakpoints";
 import { books, firstSentence, getPassages } from "@/lib/content";
 import { getProgress } from "@/lib/progress";
@@ -52,7 +53,7 @@ describe("PassageView", () => {
 
   it("render nguyên văn và header đoạn", () => {
     renderView();
-    expect(screen.getByTestId("caption-col").textContent).toContain("Charles Bukowski was an alcoholic");
+    expect(screen.getByTestId("caption-col").textContent).toContain("This is Charles Bukowski, and his life is a mess");
     expect(document.querySelector("header")!.textContent).toContain(`đoạn 1/${passages.length}`);
   });
 
@@ -64,7 +65,7 @@ describe("PassageView", () => {
   it("phím bất kỳ khi đang typing thì skip (hiện đủ bản dịch)", () => {
     renderView();
     fireEvent.keyDown(window, { key: "x" });
-    expect(screen.getByTestId("translation-col").textContent).toContain("điểm khởi đầu hoàn hảo");
+    expect(screen.getByTestId("translation-col").textContent).toContain("chưa bao giờ giả vờ làm một người khác");
   });
 
   it("không lùi được khi đang ở đoạn 1, enter đi tới đoạn 2", () => {
@@ -196,7 +197,7 @@ describe("PassageView", () => {
         chapterTitle={chapterTitle}
         book={book}
         chapterId="ch01"
-        passage={noSketch}
+        passage={noSketch as Passage}
         passageIndex={1}
         passageCount={passages.length}
       />,
@@ -396,36 +397,36 @@ describe("PassageView — chọn chữ khi chuyển đoạn", () => {
     );
   }
 
-  /** Bôi đen "chronic gambler" trong nguyên văn rồi chờ quá 250ms → popup hiện (jsdom không có matchMedia → desktop). */
-  function selectChronicGambler() {
+  /** Bôi đen "bets his rent money on horse" trong nguyên văn rồi chờ quá 250ms → popup hiện (jsdom không có matchMedia → desktop). */
+  function selectBetsHorse() {
     const root = screen.getByTestId("caption-text");
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     let node: Text | null = null;
     while (walker.nextNode()) {
       const t = walker.currentNode as Text;
-      if (t.data.includes("chronic")) node = t;
+      if (t.data.includes("bets his rent")) node = t;
       if (node) break;
     }
-    // "chronic" là span cụm riêng; " gambler" nằm ở text node kế tiếp
+    // "bets his rent money on" là span cụm riêng; " horse races…" nằm ở text node kế tiếp
     const next = node!.parentNode!.nextSibling as Text;
     act(() => {
       const range = document.createRange();
       range.setStart(node!, 0);
-      range.setEnd(next, " gambler".length);
+      range.setEnd(next, " horse".length);
       const sel = window.getSelection()!;
       sel.removeAllRanges();
       sel.addRange(range);
       document.dispatchEvent(new Event("selectionchange"));
     });
     act(() => void vi.advanceTimersByTime(300));
-    expect(window.getSelection()!.toString()).toBe("chronic gambler");
+    expect(window.getSelection()!.toString()).toBe("bets his rent money on horse");
     expect(screen.getByTestId("selection-popup")).toBeTruthy();
   }
 
   it("bấm Enter sang đoạn kế (goTo) thì popup tắt ngay, vùng chọn bị bỏ", () => {
     render(view(1));
     fireEvent.keyDown(window, { key: "x" }); // skip typing
-    selectChronicGambler();
+    selectBetsHorse();
     fireEvent.keyDown(window, { key: "Enter" });
     expect(push).toHaveBeenCalledWith("/read/the-subtle-art/ch01/2");
     expect(screen.queryByTestId("selection-popup")).toBeNull();
@@ -435,7 +436,7 @@ describe("PassageView — chọn chữ khi chuyển đoạn", () => {
   it("Escape tắt popup và bỏ vùng chọn", () => {
     render(view(1));
     fireEvent.keyDown(window, { key: "x" });
-    selectChronicGambler();
+    selectBetsHorse();
     fireEvent.keyDown(window, { key: "Escape" });
     expect(screen.queryByTestId("selection-popup")).toBeNull();
     expect(window.getSelection()!.toString()).toBe("");
@@ -463,9 +464,9 @@ describe("PassageView — chọn chữ khi chuyển đoạn", () => {
   it("đổi đoạn không qua goTo (back/forward) thì đoạn mới không có popup của đoạn cũ", () => {
     const { rerender } = render(view(1));
     fireEvent.keyDown(window, { key: "x" });
-    selectChronicGambler();
+    selectBetsHorse();
     rerender(view(2));
-    expect(screen.getByTestId("caption-text").textContent).toContain("Bukowski wanted to be a writer");
+    expect(screen.getByTestId("caption-text").textContent).toContain("It’s three in the morning");
     expect(screen.queryByTestId("selection-popup")).toBeNull();
   });
 });
@@ -538,31 +539,31 @@ describe("PassageView — tra nghĩa", () => {
     return { calls, spy };
   }
 
-  it("tra nghĩa trên 'chronic' mở tấm giải thích, không fetch", () => {
+  it("tra nghĩa trên 'mess' mở tấm giải thích, không fetch", () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch");
     renderView();
     fireEvent.keyDown(window, { key: "x" }); // skip typing
-    selectWord("chronic");
+    selectWord("mess");
     fireEvent.click(screen.getByRole("button", { name: /tra nghĩa/ }));
-    expect(screen.getByRole("dialog").textContent).toContain("chronic + noun");
+    expect(screen.getByRole("dialog").textContent).toContain("be a mess");
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(screen.queryByTestId("lookup-card")).toBeNull();
   });
 
-  it("tra nghĩa trên 'lout' → khung xương rồi thẻ kết quả; gửi đúng sách/đoạn/câu", async () => {
+  it("tra nghĩa trên 'Bukowski' → khung xương rồi thẻ kết quả; gửi đúng sách/đoạn/câu", async () => {
     const { calls } = deferredFetch();
     renderView();
     fireEvent.keyDown(window, { key: "x" });
-    selectWord("lout");
+    selectWord("Bukowski");
     fireEvent.click(screen.getByRole("button", { name: /tra nghĩa/ }));
     expect(screen.getByTestId("selection-popup").contains(screen.getByTestId("lookup-skeleton"))).toBe(true);
     expect(calls).toHaveLength(1);
-    expect(calls[0].body).toMatchObject({ bookId: book.id, chapterId: "ch01", passageIndex: 1, text: "lout" });
+    expect(calls[0].body).toMatchObject({ bookId: book.id, chapterId: "ch01", passageIndex: 1, text: "Bukowski" });
     const p1 = getPassages(book.id, "ch01")![0].caption;
     const { start, end } = calls[0].body as { start: number; end: number };
-    expect(p1.slice(start, end)).toBe("lout");
-    await act(async () => calls[0].resolve(result("lout")));
-    expect(screen.getByTestId("lookup-card").textContent).toContain("nghĩa của lout");
+    expect(p1.slice(start, end)).toBe("Bukowski");
+    await act(async () => calls[0].resolve(result("Bukowski")));
+    expect(screen.getByTestId("lookup-card").textContent).toContain("nghĩa của Bukowski");
     expect(screen.queryByTestId("lookup-skeleton")).toBeNull();
   });
 
@@ -570,7 +571,7 @@ describe("PassageView — tra nghĩa", () => {
     const { calls } = deferredFetch();
     renderView();
     fireEvent.keyDown(window, { key: "x" });
-    selectWord("lout");
+    selectWord("Bukowski");
     fireEvent.click(screen.getByRole("button", { name: /tra nghĩa/ }));
     await act(async () => calls[0].resolve({ status: "unavailable", reason: "paused" }));
     expect(screen.getByTestId("lookup-card").textContent).toContain("Tạm chưa tra được, thử lại sau nhé.");
@@ -580,28 +581,28 @@ describe("PassageView — tra nghĩa", () => {
     const { calls } = deferredFetch();
     renderView();
     fireEvent.keyDown(window, { key: "x" });
-    selectWord("lout");
+    selectWord("Bukowski");
     fireEvent.click(screen.getByRole("button", { name: /tra nghĩa/ }));
     expect(screen.getByTestId("lookup-skeleton")).toBeTruthy();
-    selectWord("cheapskate");
+    selectWord("drinks");
     expect(screen.queryByTestId("lookup-card")).toBeNull(); // thẻ thuộc vùng chọn cũ
     fireEvent.click(screen.getByRole("button", { name: /tra nghĩa/ }));
     expect(calls).toHaveLength(2);
-    await act(async () => calls[0].resolve(result("lout")));
-    expect(screen.getByTestId("lookup-card").textContent).not.toContain("lout");
+    await act(async () => calls[0].resolve(result("Bukowski")));
+    expect(screen.getByTestId("lookup-card").textContent).not.toContain("Bukowski");
     expect(screen.getByTestId("lookup-skeleton")).toBeTruthy();
-    await act(async () => calls[1].resolve(result("cheapskate")));
-    expect(screen.getByTestId("lookup-card").textContent).toContain("nghĩa của cheapskate");
+    await act(async () => calls[1].resolve(result("drinks")));
+    expect(screen.getByTestId("lookup-card").textContent).toContain("nghĩa của drinks");
   });
 
   it("bôi đen chữ khác (không bấm tra) rồi phản hồi cũ về → không có thẻ", async () => {
     const { calls } = deferredFetch();
     renderView();
     fireEvent.keyDown(window, { key: "x" });
-    selectWord("lout");
+    selectWord("Bukowski");
     fireEvent.click(screen.getByRole("button", { name: /tra nghĩa/ }));
-    selectWord("cheapskate");
-    await act(async () => calls[0].resolve(result("lout")));
+    selectWord("drinks");
+    await act(async () => calls[0].resolve(result("Bukowski")));
     expect(screen.queryByTestId("lookup-card")).toBeNull();
   });
 
@@ -609,9 +610,9 @@ describe("PassageView — tra nghĩa", () => {
     const { calls } = deferredFetch();
     renderView();
     fireEvent.keyDown(window, { key: "x" });
-    selectWord("lout");
+    selectWord("Bukowski");
     fireEvent.click(screen.getByRole("button", { name: /tra nghĩa/ }));
-    await act(async () => calls[0].resolve(result("lout")));
+    await act(async () => calls[0].resolve(result("Bukowski")));
     expect(screen.getByTestId("lookup-card")).toBeTruthy();
     fireEvent.keyDown(window, { key: "Escape" });
     expect(screen.queryByTestId("lookup-card")).toBeNull();
@@ -622,13 +623,13 @@ describe("PassageView — tra nghĩa", () => {
     const { calls, spy } = deferredFetch();
     const { rerender } = renderView();
     fireEvent.keyDown(window, { key: "x" });
-    selectWord("lout");
+    selectWord("Bukowski");
     fireEvent.click(screen.getByRole("button", { name: /tra nghĩa/ }));
     const signal = spy.mock.calls[0][1]!.signal!;
     expect(signal.aborted).toBe(false);
     rerender(view2());
     expect(signal.aborted).toBe(true);
-    await act(async () => calls[0].resolve(result("lout")));
+    await act(async () => calls[0].resolve(result("Bukowski")));
     expect(screen.queryByTestId("lookup-card")).toBeNull();
   });
 
@@ -636,10 +637,10 @@ describe("PassageView — tra nghĩa", () => {
     const { calls } = deferredFetch();
     renderView();
     fireEvent.keyDown(window, { key: "x" });
-    selectWord("lout");
+    selectWord("Bukowski");
     const btn = () => screen.getByRole("button", { name: /tra nghĩa/ });
     fireEvent.click(btn());
-    await act(async () => calls[0].resolve(result("lout")));
+    await act(async () => calls[0].resolve(result("Bukowski")));
     expect(btn().getAttribute("aria-expanded")).toBe("true");
     fireEvent.click(btn());
     expect(screen.queryByTestId("lookup-card")).toBeNull();
@@ -648,21 +649,21 @@ describe("PassageView — tra nghĩa", () => {
     expect(screen.getByTestId("selection-popup")).toBeTruthy(); // vùng chọn vẫn còn
     fireEvent.click(btn());
     expect(calls).toHaveLength(2);
-    await act(async () => calls[1].resolve(result("lout")));
-    expect(screen.getByTestId("lookup-card").textContent).toContain("nghĩa của lout");
+    await act(async () => calls[1].resolve(result("Bukowski")));
+    expect(screen.getByTestId("lookup-card").textContent).toContain("nghĩa của Bukowski");
   });
 
   it("bấm 'tra nghĩa' lần nữa khi đang chờ → đóng thẻ, huỷ request, phản hồi về muộn bị bỏ qua", async () => {
     const { calls, spy } = deferredFetch();
     renderView();
     fireEvent.keyDown(window, { key: "x" });
-    selectWord("lout");
+    selectWord("Bukowski");
     fireEvent.click(screen.getByRole("button", { name: /tra nghĩa/ }));
     expect(screen.getByTestId("lookup-skeleton")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /tra nghĩa/ }));
     expect(screen.queryByTestId("lookup-card")).toBeNull();
     expect(spy.mock.calls[0][1]!.signal!.aborted).toBe(true);
-    await act(async () => calls[0].resolve(result("lout")));
+    await act(async () => calls[0].resolve(result("Bukowski")));
     expect(screen.queryByTestId("lookup-card")).toBeNull();
   });
 
@@ -670,12 +671,12 @@ describe("PassageView — tra nghĩa", () => {
     const { calls, spy } = deferredFetch();
     renderView();
     fireEvent.keyDown(window, { key: "x" });
-    selectWord("lout");
+    selectWord("Bukowski");
     fireEvent.click(screen.getByRole("button", { name: /tra nghĩa/ }));
     fireEvent.click(screen.getByRole("button", { name: "đóng thẻ" }));
     expect(screen.queryByTestId("lookup-card")).toBeNull();
     expect(spy.mock.calls[0][1]!.signal!.aborted).toBe(true);
-    await act(async () => calls[0].resolve(result("lout")));
+    await act(async () => calls[0].resolve(result("Bukowski")));
     expect(screen.queryByTestId("lookup-card")).toBeNull();
     expect(screen.getByTestId("selection-popup")).toBeTruthy();
   });
@@ -685,13 +686,13 @@ describe("PassageView — tra nghĩa", () => {
     const { calls, spy } = deferredFetch();
     renderView();
     fireEvent.keyDown(window, { key: "x" });
-    selectWord("lout", "selection-dock");
+    selectWord("Bukowski", "selection-dock");
     fireEvent.click(screen.getByRole("button", { name: /tra nghĩa/ }));
     expect(screen.getByTestId("selection-dock").contains(screen.getByTestId("lookup-skeleton"))).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "đóng thẻ" }));
     expect(screen.queryByTestId("lookup-card")).toBeNull();
     expect(spy.mock.calls[0][1]!.signal!.aborted).toBe(true);
-    await act(async () => calls[0].resolve(result("lout")));
+    await act(async () => calls[0].resolve(result("Bukowski")));
     expect(screen.queryByTestId("lookup-card")).toBeNull();
     expect(screen.getByTestId("selection-dock")).toBeTruthy(); // vùng chọn vẫn còn, chỉ thẻ đóng
   });

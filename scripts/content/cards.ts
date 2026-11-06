@@ -381,9 +381,9 @@ main{max-width:1100px;margin:0 auto;padding:24px 16px 64px}.meta{color:var(--mut
 .grid{display:grid;gap:28px;grid-template-columns:1fr}@media(min-width:900px){.grid{grid-template-columns:1fr 1fr}}
 .lbl{color:var(--muted);font-size:13px;margin:18px 0 6px}.lbl.acc{color:var(--accent)}
 svg.sk{width:100%;height:auto;display:block}
-.sk path,.sk ellipse{fill:none;stroke-linecap:round;stroke-linejoin:round}.sk .line{stroke:var(--ink)}.sk .ink{stroke:var(--accent)}
+.sk path,.sk ellipse{fill:none;stroke-linecap:round;stroke-linejoin:round}.sk .line{stroke:var(--ink)}.sk .ink,.sk .accent{stroke:var(--accent)}
 .sk text{font-family:"Patrick Hand",cursive;paint-order:stroke;stroke:var(--bg);stroke-width:5px;stroke-linejoin:round}
-.sk text.line,.sk text.name{fill:var(--ink)}.sk text.ink{fill:var(--accent)}
+.sk text.line,.sk text.name{fill:var(--ink)}.sk text.ink,.sk text.accent{fill:var(--accent)}
 .cap{font-size:16px;color:var(--text)}u{text-decoration-color:var(--accent);text-underline-offset:4px}sup{color:var(--accent);font-size:10px}
 .ck{border-top:1px solid var(--line);padding-top:10px;margin-top:14px}.ck h3{font-size:14px;margin:0 0 4px}.ck small{color:var(--muted);font-weight:400}
 .pt{color:var(--accent)}.ms s{color:var(--muted)}ul{padding-left:18px}.credit{color:var(--muted);font-size:12px;font-style:italic;margin-top:18px}
