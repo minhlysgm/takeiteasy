@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { getPassage } from "@/lib/content";
+import { sketchSeenKey } from "@/lib/sketchSeen";
 import { SKETCH_START_DELAY_MS, SKETCH_TOTAL_MS } from "@/lib/sketch/timeline";
 import { markCardsSeen } from "./card-helpers";
 
@@ -64,7 +65,7 @@ async function expectFullArt(page: Page) {
   for (const c of clips) expect(c).toEqual({ x: x - w, y: y - h, width: w * 3, height: h * 3 });
 }
 
-// Mỗi test dùng context mới của Playwright nên localStorage `tie:sketch-seen:*` không rò giữa các test.
+// Mỗi test dùng context mới của Playwright nên localStorage `tie:sketch-seen:v2:*` không rò giữa các test.
 test.describe("phác thảo đoạn 1", () => {
   test("1. mở thẻ là hình tự vẽ, không chờ bản dịch (bản dịch chờ hình)", async ({ page }) => {
     await page.goto(P1);
@@ -194,7 +195,7 @@ test.describe("phác thảo đoạn 1", () => {
     test("đoạn 2 đã xem: hình hiện sẵn, không bút chì", async ({ page }) => {
       const errors: Error[] = [];
       page.on("pageerror", (e) => errors.push(e));
-      await page.addInitScript((id) => localStorage.setItem(`tie:sketch-seen:${id}`, "1"), PASSAGE_2.id);
+      await page.addInitScript((k) => localStorage.setItem(k, "1"), sketchSeenKey(PASSAGE_2.id));
       await enterMidDraw(page);
       await expect(page.getByTestId("sketch")).toHaveAttribute("data-state", "done");
       await expect(page.getByTestId("sketch-pencil")).toHaveCount(0);
@@ -209,7 +210,7 @@ test.describe("phác thảo đoạn 1", () => {
     await page.getByRole("button", { name: "tiếp →" }).click();
     await expect(page).toHaveURL(new RegExp(`/${CH}/2$`));
     await expect(page.getByRole("img", { name: PASSAGE_2.sketch.alt, exact: true })).toBeVisible();
-    const key = `tie:sketch-seen:${getPassage(BOOK, CH, 1)!.id}`;
+    const key = sketchSeenKey(getPassage(BOOK, CH, 1)!.id);
     expect(await page.evaluate((k) => localStorage.getItem(k), key)).toBeNull();
     // Quay lại đoạn 1: vẫn được xem hiệu ứng, không hiện sẵn
     await page.getByRole("button", { name: "← trước" }).click();
@@ -244,7 +245,7 @@ test.describe("phác thảo đoạn 1", () => {
 });
 
 test.describe("12. chỉ vẽ khi hình đã lọt vào màn hình", () => {
-  const readSeen = (page: Page) => page.evaluate((k) => localStorage.getItem(k), `tie:sketch-seen:${getPassage(BOOK, CH, 1)!.id}`);
+  const readSeen = (page: Page) => page.evaluate((k) => localStorage.getItem(k), sketchSeenKey(getPassage(BOOK, CH, 1)!.id));
 
   // Hình nằm đầu cột trái: cửa sổ phải thấp hơn hẳn hình (~320px) thì mới có lúc hình chưa lọt màn hình.
   // Không chạm phím / chuột nào: lúc hình chưa xong, phím bất kỳ là "hiện đủ ngay".
@@ -284,7 +285,7 @@ test.describe("Enter trên nút đang focus chỉ làm đúng việc của nút"
   const url = (n: number) => new RegExp(`/${CH}/${n}$`);
 
   test("↻ vẽ lại: vẽ lại, không chuyển đoạn", async ({ page }) => {
-    await page.addInitScript((id) => localStorage.setItem(`tie:sketch-seen:${id}`, "1"), getPassage(BOOK, CH, 1)!.id);
+    await page.addInitScript((k) => localStorage.setItem(k, "1"), sketchSeenKey(getPassage(BOOK, CH, 1)!.id));
     await page.goto(P1);
     await finishTyping(page);
     await page.getByRole("button", { name: "↻ vẽ lại" }).focus();

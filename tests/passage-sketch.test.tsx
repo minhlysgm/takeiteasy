@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createRef, useLayoutEffect } from "react";
 import { PassageSketch, type SketchHandle } from "@/components/reader/PassageSketch";
 import type { Sketch } from "@/content/types";
+import { sketchSeenKey } from "@/lib/sketchSeen";
 
 const sketch: Sketch = {
   viewBox: "0 0 480 330",
@@ -83,7 +84,7 @@ describe("PassageSketch", () => {
   });
 
   it("đã xem rồi → done ngay, không bút chì, có nút vẽ lại", () => {
-    localStorage.setItem("tie:sketch-seen:p", "1");
+    localStorage.setItem(sketchSeenKey("p"), "1");
     render(<PassageSketch sketch={sketch} passageId="p" />);
     expect(sketchEl().dataset.state).toBe("done");
     expect(screen.queryByTestId("sketch-pencil")).toBeNull();
@@ -110,7 +111,7 @@ describe("PassageSketch", () => {
     fireEvent.click(screen.getByRole("button", { name: "xem ngay ⏭" }));
     expect(sketchEl().dataset.state).toBe("done");
     expect(screen.queryByTestId("sketch-pencil")).toBeNull();
-    expect(localStorage.getItem("tie:sketch-seen:p")).toBe("1");
+    expect(localStorage.getItem(sketchSeenKey("p"))).toBe("1");
   });
 
   it("bấm vào hình khi đang vẽ → done; bấm khi done thì không gì", async () => {
@@ -129,7 +130,7 @@ describe("PassageSketch", () => {
     await advance(7000);
     expect(sketchEl().dataset.state).toBe("done");
     expect(screen.queryByTestId("sketch-pencil")).toBeNull();
-    expect(localStorage.getItem("tie:sketch-seen:p")).toBe("1");
+    expect(localStorage.getItem(sketchSeenKey("p"))).toBe("1");
   });
 
   it("đang vẽ: nét có dash, bút chì di chuyển; xong thì nét đủ", async () => {
@@ -177,7 +178,7 @@ describe("PassageSketch", () => {
   });
 
   it("done → bấm vẽ lại → drawing", async () => {
-    localStorage.setItem("tie:sketch-seen:p", "1");
+    localStorage.setItem(sketchSeenKey("p"), "1");
     render(<PassageSketch sketch={sketch} passageId="p" />);
     fireEvent.click(screen.getByRole("button", { name: "↻ vẽ lại" }));
     expect(sketchEl().dataset.state).toBe("drawing");
@@ -281,7 +282,7 @@ describe("PassageSketch", () => {
       expect(path.style.strokeDasharray).toBe("");
       expect(path.style.strokeDashoffset).toBe("");
       // chưa vẽ được lần nào thì chưa tính là đã xem — lần sau (trình duyệt khác, hết lỗi) vẫn được xem vẽ
-      expect(localStorage.getItem("tie:sketch-seen:p")).toBeNull();
+      expect(localStorage.getItem(sketchSeenKey("p"))).toBeNull();
       await advance(0);
       expect(rejections).toEqual([]);
     } finally {
@@ -290,7 +291,7 @@ describe("PassageSketch", () => {
   });
 
   it("vẽ lại mà đo bị lỗi: vẫn ở done, hình đủ", () => {
-    localStorage.setItem("tie:sketch-seen:p", "1");
+    localStorage.setItem(sketchSeenKey("p"), "1");
     (SVGElement.prototype as unknown as Record<string, unknown>).getBBox = vi.fn(() => {
       throw new Error("InvalidStateError");
     });
@@ -357,7 +358,7 @@ describe("PassageSketch", () => {
       await advance(10000);
       expect(sketchEl().dataset.state).toBe("waiting");
       expect(screen.queryByTestId("sketch-pencil")).toBeNull();
-      expect(localStorage.getItem("tie:sketch-seen:p")).toBeNull();
+      expect(localStorage.getItem(sketchSeenKey("p"))).toBeNull();
     });
 
     it("chỉ hiện một phần (dưới 90%) thì vẫn chưa vẽ", async () => {
@@ -390,7 +391,7 @@ describe("PassageSketch", () => {
       await advance(250);
       expect(sketchEl().dataset.state).toBe("waiting");
       expect(screen.getByText(SCROLL)).toBeTruthy();
-      expect(localStorage.getItem("tie:sketch-seen:p")).toBeNull();
+      expect(localStorage.getItem(sketchSeenKey("p"))).toBeNull();
       expect(FakeObserver.all).toHaveLength(2);
       expect(lastObserver().disconnected).toBe(false);
 
@@ -429,14 +430,14 @@ describe("PassageSketch", () => {
     });
 
     it("đã xem hoặc giảm chuyển động: không cần quan sát, hiện sẵn", () => {
-      localStorage.setItem("tie:sketch-seen:p", "1");
+      localStorage.setItem(sketchSeenKey("p"), "1");
       render(<PassageSketch sketch={sketch} passageId="p" />);
       expect(sketchEl().dataset.state).toBe("done");
       expect(FakeObserver.all).toHaveLength(0);
     });
 
     it("vẽ lại không cần chờ lọt màn hình", () => {
-      localStorage.setItem("tie:sketch-seen:p", "1");
+      localStorage.setItem(sketchSeenKey("p"), "1");
       render(<PassageSketch sketch={sketch} passageId="p" />);
       fireEvent.click(screen.getByRole("button", { name: "↻ vẽ lại" }));
       expect(sketchEl().dataset.state).toBe("drawing");
@@ -453,7 +454,7 @@ describe("PassageSketch", () => {
 
   describe("báo xong cho trang đọc (onDone) và finish()", () => {
     it("đã xem → onDone('instant') đúng một lần, không vẽ", async () => {
-      localStorage.setItem("tie:sketch-seen:p", "1");
+      localStorage.setItem(sketchSeenKey("p"), "1");
       const onDone = vi.fn();
       render(<PassageSketch sketch={sketch} passageId="p" onDone={onDone} />);
       expect(sketchEl().dataset.state).toBe("done");
@@ -505,7 +506,7 @@ describe("PassageSketch", () => {
       await advance(450);
       expect(sketchEl().dataset.state).toBe("done");
       expect(onDone.mock.calls).toEqual([["animate"]]);
-      expect(localStorage.getItem("tie:sketch-seen:p")).toBeNull();
+      expect(localStorage.getItem(sketchSeenKey("p"))).toBeNull();
     });
 
     it("ref.finish() khi đang chờ → done, đã xem, onDone('animate')", async () => {
@@ -515,7 +516,7 @@ describe("PassageSketch", () => {
       expect(sketchEl().dataset.state).toBe("waiting");
       act(() => ref.current!.finish());
       expect(sketchEl().dataset.state).toBe("done");
-      expect(localStorage.getItem("tie:sketch-seen:p")).toBe("1");
+      expect(localStorage.getItem(sketchSeenKey("p"))).toBe("1");
       expect(onDone.mock.calls).toEqual([["animate"]]);
       expect(screen.getByTestId("sketch-art").style.opacity).toBe("");
       await advance(10000); // timer chờ đã bị huỷ, không tự vẽ nữa
@@ -548,7 +549,7 @@ describe("PassageSketch", () => {
       localStorage.clear();
       const ref2 = createRef<SketchHandle>();
       const onDone2 = vi.fn();
-      localStorage.setItem("tie:sketch-seen:q", "1");
+      localStorage.setItem(sketchSeenKey("q"), "1");
       render(<PassageSketch sketch={sketch} passageId="q" onDone={onDone2} ref={ref2} />);
       act(() => ref2.current!.finish());
       expect(onDone2.mock.calls).toEqual([["instant"]]);
@@ -571,7 +572,7 @@ describe("PassageSketch", () => {
     });
 
     it("vẽ lại → vẽ xong lại gọi onDone('animate')", async () => {
-      localStorage.setItem("tie:sketch-seen:p", "1");
+      localStorage.setItem(sketchSeenKey("p"), "1");
       const onDone = vi.fn();
       render(<PassageSketch sketch={sketch} passageId="p" onDone={onDone} />);
       fireEvent.click(screen.getByRole("button", { name: "↻ vẽ lại" }));
@@ -592,8 +593,8 @@ describe("PassageSketch", () => {
     });
 
     it("đổi passageId (không remount) sang thẻ đã xem → báo 'instant' cho thẻ mới", () => {
-      localStorage.setItem("tie:sketch-seen:p", "1");
-      localStorage.setItem("tie:sketch-seen:q", "1");
+      localStorage.setItem(sketchSeenKey("p"), "1");
+      localStorage.setItem(sketchSeenKey("q"), "1");
       const onDone = vi.fn();
       const { rerender } = render(<PassageSketch sketch={sketch} passageId="p" onDone={onDone} />);
       rerender(<PassageSketch sketch={sketch} passageId="q" onDone={onDone} />);

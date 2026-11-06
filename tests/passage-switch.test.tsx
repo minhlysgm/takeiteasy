@@ -3,6 +3,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { PassageView } from "@/components/reader/PassageView";
 import type { Chunk } from "@/content/types";
 import { books, firstSentence, getPassages } from "@/lib/content";
+import { sketchSeenKey } from "@/lib/sketchSeen";
 
 // PassageView sống xuyên các đoạn (layout của chương): state của đoạn cũ không được lọt sang
 // lần vẽ ĐẦU TIÊN của đoạn mới, kể cả một khung hình. Các con được thay bằng bản ghi lại props.
@@ -69,7 +70,7 @@ describe("PassageView — chuyển đoạn không remount", () => {
   });
 
   it("chuyển sang thẻ đã xem: lần vẽ đầu đã hiện đủ, không loé chỗ chờ (back/forward giữ được chỗ cuộn)", () => {
-    localStorage.setItem("tie:sketch-seen:ch01-p02", "1");
+    localStorage.setItem(sketchSeenKey("ch01-p02"), "1");
     const { rerender, container } = render(view(1));
     fireEvent.keyDown(window, { key: "x" }); // thẻ 1: hiện đủ
     const mo = new MutationObserver(() => {});

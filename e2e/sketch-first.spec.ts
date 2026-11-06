@@ -5,7 +5,7 @@ import { LIFE, mockLookup } from "./lookup-helpers";
 import { dismissFirstTimeHint, selectText } from "./selection-helpers";
 
 // Luồng "vẽ trước" (spec 2026-11-06, mục B + tiêu chí 1–5, 7): mở thẻ → hình vẽ trước; vẽ xong → mô tả hiện dần,
-// bản dịch gõ; gõ xong → ý chính + ghi công. Mỗi test dùng context mới nên `tie:sketch-seen:*` không rò giữa các test.
+// bản dịch gõ; gõ xong → ý chính + ghi công. Mỗi test dùng context mới nên `tie:sketch-seen:v2:*` không rò giữa các test.
 
 const BOOK = "the-subtle-art";
 const CH = "ch01";
