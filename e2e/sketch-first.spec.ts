@@ -1,6 +1,8 @@
 import { test, expect, type Page } from "@playwright/test";
 import { getPassage } from "@/lib/content";
 import { markCardsSeen } from "./card-helpers";
+import { LIFE, mockLookup } from "./lookup-helpers";
+import { dismissFirstTimeHint, selectText } from "./selection-helpers";
 
 // Luồng "vẽ trước" (spec 2026-11-06, mục B + tiêu chí 1–5, 7): mở thẻ → hình vẽ trước; vẽ xong → mô tả hiện dần,
 // bản dịch gõ; gõ xong → ý chính + ghi công. Mỗi test dùng context mới nên `tie:sketch-seen:*` không rò giữa các test.
@@ -10,6 +12,7 @@ const CH = "ch01";
 const P = (n: number) => `/read/${BOOK}/${CH}/${n}`;
 const url = (n: number) => new RegExp(`/${CH}/${n}$`);
 const CREDIT = "Ý tưởng từ chương 1, The Subtle Art of Not Giving a F*ck — Mark Manson. Hình và lời: takeiteasy.";
+const PASSAGE_1 = getPassage(BOOK, CH, 1)!;
 const PASSAGE_2 = getPassage(BOOK, CH, 2)!;
 
 test.use({ viewport: { width: 1440, height: 900 } });
@@ -233,4 +236,76 @@ test("6: header/footer ghi thẻ; danh sách nhảy nhanh ghi thẻ + câu mở 
   // nhãn cột trái
   await page.keyboard.press("Escape");
   await expect(page.getByText("// mô tả", { exact: true })).toBeVisible();
+});
+
+test("8: chunk trong mô tả gạch chân, có số, ghi chú lề; bấm mở drawer đúng chunk", async ({ page }) => {
+  await markCardsSeen(page);
+  await dismissFirstTimeHint(page);
+  await page.goto(P(1));
+  await expectAllShown(page);
+  await page.getByRole("button", { name: /giải thích/ }).click();
+  await expect(page.locator("header")).toContainText("explain");
+
+  const caption = page.getByTestId("caption-text");
+  const chunks = PASSAGE_1.chunks;
+  expect(chunks).toHaveLength(4);
+  await expect(caption.locator("[data-chunk-id]")).toHaveCount(4);
+  // Gạch chân + số: mỗi chunk có cụm chữ nằm trong caption-text, số tròn (data-n) đi kèm
+  await expect(caption.getByTestId("chunk-badge")).toHaveCount(4);
+  for (const [i, c] of chunks.entries()) {
+    const span = caption.locator(`[data-chunk-id="${c.id}"]`);
+    await expect(span).toHaveText(c.match);
+    await expect(span).toHaveCSS("cursor", "pointer");
+    await expect(caption.getByTestId("chunk-badge").nth(i)).toHaveAttribute("data-n", String(i + 1));
+  }
+  // Ghi chú lề: nhãn của chunk 1 hiện cạnh đoạn mô tả
+  const margin = page.getByTestId("reader").locator("button.font-hand", { hasText: chunks[0].label });
+  await expect(margin).toBeVisible();
+
+  // Bấm chunk "piling up" → drawer có headword của chunk đó
+  const pile = chunks.find((c) => c.match === "piling up")!;
+  await caption.locator(`[data-chunk-id="${pile.id}"]`).click();
+  const drawer = page.getByRole("dialog");
+  await expect(drawer).toBeVisible();
+  await expect(drawer).toHaveAccessibleName(pile.headword);
+  await expect(drawer.getByRole("heading", { name: pile.headword })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(drawer).toBeHidden();
+});
+
+test("9: bôi đen 'piling up' trong mô tả → popup nghe/tra nghĩa; tra nghĩa gửi đúng start/end", async ({ page }) => {
+  await markCardsSeen(page);
+  await dismissFirstTimeHint(page);
+  const calls: unknown[] = [];
+  await mockLookup(page, { status: "ok", result: LIFE }, calls);
+  await page.goto(P(1));
+  await expectAllShown(page);
+
+  await selectText(page, "caption-text", "piling up");
+  const popup = page.getByTestId("selection-popup");
+  await expect(popup).toBeVisible();
+  await expect(popup.getByRole("button", { name: "nghe" })).toBeVisible();
+  // "piling up" là chunk soạn sẵn → "tra nghĩa" mở drawer của chunk (đã có dữ liệu biên tập), không gọi AI
+  await popup.getByRole("button", { name: "tra nghĩa" }).click();
+  const drawer = page.getByRole("dialog");
+  await expect(drawer).toHaveAccessibleName("pile up");
+  expect(calls).toHaveLength(0);
+  await page.keyboard.press("Escape");
+  await expect(drawer).toBeHidden();
+
+  // Vùng chọn vượt ra ngoài chunk ("letters piling up") → tra nghĩa gửi đúng start/end trong nguyên văn
+  const phrase = "letters piling up";
+  await selectText(page, "caption-text", phrase);
+  await expect(popup).toBeVisible();
+  await popup.getByRole("button", { name: "tra nghĩa" }).click();
+  await expect(page.getByTestId("lookup-card")).toBeVisible();
+  expect(calls).toHaveLength(1);
+  const body = calls[0] as { text: string; start: number; end: number; passageIndex: number };
+  const at = PASSAGE_1.caption.indexOf(phrase);
+  expect(at).toBeGreaterThan(0);
+  expect(body.text).toBe(phrase);
+  expect(body.passageIndex).toBe(1);
+  expect(body.start).toBe(at);
+  expect(body.end).toBe(at + phrase.length);
+  expect(PASSAGE_1.caption.slice(body.start, body.end)).toBe(phrase);
 });
