@@ -7,6 +7,7 @@ import {
   ledgerTable,
   parseCard,
   parseRange,
+  previewHtml,
   rangesOverlap,
   sharedRuns,
   type Card,
@@ -248,5 +249,19 @@ describe("uncoveredParts", () => {
     expect(uncoveredParts(want, [parseRange("tr.1¶1 – tr.1¶3")!])).toEqual(["sau tr.1¶3, tới tr.3¶1"]);
     expect(uncoveredParts(want, [parseRange("tr.2¶1 – tr.2¶2")!])).toEqual(["từ tr.1¶3, trước tr.2¶1", "sau tr.2¶2, tới tr.3¶1"]);
     expect(uncoveredParts(want, [parseRange("tr.1¶1 – tr.4¶1")!])).toEqual([]);
+  });
+});
+
+describe("previewHtml", () => {
+  it("màu nét/chữ theo tone khớp app: line = text, ink = ink, accent = accent (accent khác ink)", () => {
+    const html = previewHtml(parseCard(OK_CARD, "ch01-t01.md"), null, { title: "T", author: "A" });
+    expect(html).toContain(".sk .line{stroke:var(--text)}");
+    expect(html).toContain(".sk .ink{stroke:var(--ink)}");
+    expect(html).toContain(".sk .accent{stroke:var(--accent)}");
+    expect(html).toContain("text.line{fill:var(--text)}");
+    expect(html).toContain("text.name{fill:var(--bright)}");
+    expect(html).toContain("text.ink{fill:var(--ink)}");
+    expect(html).toContain("text.accent{fill:var(--accent)}");
+    expect(html).toMatch(/--bright:/);
   });
 });

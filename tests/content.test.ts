@@ -28,7 +28,7 @@ describe("content validation", () => {
         });
         it(`${p.id}: có sketch hợp lệ`, () => {
           expect(p.sketch, "thiếu sketch").toBeDefined();
-          const { alt, viewBox, steps } = p.sketch!;
+          const { alt, viewBox, steps } = p.sketch;
           expect(alt.length, "alt quá ngắn").toBeGreaterThan(10);
           expect(viewBox).toMatch(/^0 0 \d+ \d+$/);
           expect(steps.some((s) => s.kind === "text"), "thiếu bước text").toBe(true);

@@ -373,17 +373,17 @@ ${c.mistake ? `<p class="ms"><s>${esc(c.mistake.wrong)}</s> → ${esc(c.mistake.
 <title>${esc(card.id)} xem trước</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Patrick+Hand&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f6f2ea;--text:#3b3631;--muted:#6f675e;--line:#d9d1c4;--ink:#3b3631;--accent:#b5530f;}
-@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#1d1b19;--text:#ddd5c9;--muted:#a1988c;--line:#3a3530;--ink:#e6dfd4;--accent:#e08a4c;}}
-:root[data-theme=dark]{--bg:#1d1b19;--text:#ddd5c9;--muted:#a1988c;--line:#3a3530;--ink:#e6dfd4;--accent:#e08a4c;}
+:root{--bg:#f6f3ec;--text:#44403c;--bright:#1c1917;--muted:#6f6862;--line:#e2dccd;--ink:#b45309;--accent:#b45309;}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0f1317;--text:#d6dee6;--bright:#e6edf3;--muted:#7d8590;--line:#1f262e;--ink:#e3b341;--accent:#3fb950;}}
+:root[data-theme=dark]{--bg:#0f1317;--text:#d6dee6;--bright:#e6edf3;--muted:#7d8590;--line:#1f262e;--ink:#e3b341;--accent:#3fb950;}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.65 "IBM Plex Mono",monospace}
 main{max-width:1100px;margin:0 auto;padding:24px 16px 64px}.meta{color:var(--muted);font-size:12px}
 .grid{display:grid;gap:28px;grid-template-columns:1fr}@media(min-width:900px){.grid{grid-template-columns:1fr 1fr}}
 .lbl{color:var(--muted);font-size:13px;margin:18px 0 6px}.lbl.acc{color:var(--accent)}
 svg.sk{width:100%;height:auto;display:block}
-.sk path,.sk ellipse{fill:none;stroke-linecap:round;stroke-linejoin:round}.sk .line{stroke:var(--ink)}.sk .ink,.sk .accent{stroke:var(--accent)}
+.sk path,.sk ellipse{fill:none;stroke-linecap:round;stroke-linejoin:round}.sk .line{stroke:var(--text)}.sk .ink{stroke:var(--ink)}.sk .accent{stroke:var(--accent)}
 .sk text{font-family:"Patrick Hand",cursive;paint-order:stroke;stroke:var(--bg);stroke-width:5px;stroke-linejoin:round}
-.sk text.line,.sk text.name{fill:var(--ink)}.sk text.ink,.sk text.accent{fill:var(--accent)}
+.sk text.line{fill:var(--text)}.sk text.name{fill:var(--bright)}.sk text.ink{fill:var(--ink)}.sk text.accent{fill:var(--accent)}
 .cap{font-size:16px;color:var(--text)}u{text-decoration-color:var(--accent);text-underline-offset:4px}sup{color:var(--accent);font-size:10px}
 .ck{border-top:1px solid var(--line);padding-top:10px;margin-top:14px}.ck h3{font-size:14px;margin:0 0 4px}.ck small{color:var(--muted);font-weight:400}
 .pt{color:var(--accent)}.ms s{color:var(--muted)}ul{padding-left:18px}.credit{color:var(--muted);font-size:12px;font-style:italic;margin-top:18px}
