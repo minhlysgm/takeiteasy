@@ -79,7 +79,7 @@ Không giả vờ là điểm mạnh.
 - 2026-11-06 · Minh: chốt hướng A
 `;
 
-const SKETCH_OK = { viewBox: "0 0 520 340", alt: "Một người gục bên bàn viết.", steps: [{ kind: "path", d: "M0 0 L10 10", tone: "line" }, { kind: "text", text: "one more…", x: 10, y: 20, size: 17, tone: "ink" }] };
+const SKETCH_OK = { viewBox: "0 0 520 340", alt: "Một người gục bên bàn viết.", steps: [{ kind: "path", d: "M0 0 L10 10", tone: "line" }, { kind: "text", text: "one more…", x: 10, y: 20, size: 21, tone: "ink" }] };
 
 function card(md = OK_CARD, file = "ch01-t01.md"): Card {
   return parseCard(md, file);
@@ -160,8 +160,14 @@ describe("checkCard", () => {
   });
 
   it("chữ trong hình chép sách → lỗi", () => {
-    const sketch = { ...SKETCH_OK, steps: [...SKETCH_OK.steps, { kind: "text", text: "the perfect place to start", x: 1, y: 1, size: 17, tone: "ink" }] };
+    const sketch = { ...SKETCH_OK, steps: [...SKETCH_OK.steps, { kind: "text", text: "the perfect place to start", x: 1, y: 1, size: 21, tone: "ink" }] };
     expect(checkCard(card(), ctx({ sketch, sources: ["it is the perfect place to start, really"] })).errors.join("\n")).toMatch(/hình/);
+  });
+
+  it("chữ trong hình khác cỡ chuẩn (21) → cảnh báo", () => {
+    const sketch = { ...SKETCH_OK, steps: [...SKETCH_OK.steps, { kind: "text", text: "rent", x: 1, y: 1, size: 17, tone: "ink" }] };
+    expect(checkCard(card(), ctx({ sketch })).warnings.join("\n")).toMatch(/"rent".*cỡ 17.*21/);
+    expect(checkCard(card(), ctx()).warnings.join("\n")).not.toMatch(/cỡ/);
   });
 
   it("phần trong ngoặc kép được miễn kiểm chép nhưng phải ngắn", () => {

@@ -13,7 +13,7 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { SKETCH_TEXT_HALO } from "../../lib/sketch/style.ts";
+import { SKETCH_TEXT_HALO, SKETCH_TEXT_SIZE } from "../../lib/sketch/style.ts";
 
 export type Pos = [number, number]; // [trang, ¶]
 export type Range = { from: Pos; to: Pos };
@@ -41,7 +41,7 @@ export type Card = {
   sketchFile: string;
   chunks: CardChunk[];
 };
-export type SketchLike = { viewBox: string; alt: string; steps: { kind: string; text?: string }[] };
+export type SketchLike = { viewBox: string; alt: string; steps: { kind: string; text?: string; size?: number }[] };
 export type Skipped = { range: Range; reason: string };
 export type CheckContext = { others: Card[]; skipped: Skipped[]; sources: string[]; sketch: SketchLike | null };
 export type CheckResult = { errors: string[]; warnings: string[] };
@@ -290,6 +290,9 @@ export function checkCard(card: Card, ctx: CheckContext): CheckResult {
     const labels = ctx.sketch.steps.filter((s) => s.kind === "text").map((s) => s.text ?? "");
     // chữ trong hình ngắn → chặt hơn: trùng sách từ 4 chữ liền là lỗi
     for (const l of labels) copyChecks(`chữ trong hình "${l}"`, l, ctx.sources, out, COPY_WARN_WORDS);
+    for (const s of ctx.sketch.steps)
+      if (s.kind === "text" && s.size !== SKETCH_TEXT_SIZE)
+        warn(`chữ trong hình "${s.text}" cỡ ${s.size} — chuẩn là ${SKETCH_TEXT_SIZE} (đọc được trên điện thoại)`);
   }
   return out;
 }
@@ -473,7 +476,7 @@ function writePreview(book: BookData, card: Card): string {
   return out;
 }
 
-/** Đo bằng trình duyệt thật: chữ trong hình phải cách mọi nét ≥ pad đơn vị. */
+/** Đo bằng trình duyệt thật: chữ trong hình phải cách mọi nét ≥ pad đơn vị, nằm trong khung hình, không chồng chữ khác. */
 async function labelClashes(htmlPath: string, pad = 6): Promise<string[]> {
   const { chromium } = await import("@playwright/test");
   const browser = await chromium.launch();
@@ -493,8 +496,11 @@ async function labelClashes(htmlPath: string, pad = 6): Promise<string[]> {
         return { d: (p.getAttribute("d") ?? "ellipse").slice(0, 28), arr };
       });
       const texts = [...svg.querySelectorAll("text")];
+      const vb = (svg as SVGSVGElement).viewBox.baseVal;
       texts.forEach((t, i) => {
         const b = t.getBBox();
+        if (b.x < vb.x || b.y < vb.y || b.x + b.width > vb.x + vb.width || b.y + b.height > vb.y + vb.height)
+          out.push(`chữ "${t.textContent}" ra ngoài khung hình ${vb.width}×${vb.height}`);
         const inBox = (x: number, y: number, q: DOMRect, padding: number) =>
           x > q.x - padding && x < q.x + q.width + padding && y > q.y - padding && y < q.y + q.height + padding;
         for (const p of pts) {

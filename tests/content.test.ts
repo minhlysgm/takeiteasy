@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { books, findChunkRange, firstSentence, getPassages } from "@/lib/content";
 import type { Passage } from "@/content/types";
 import { ch01Passages } from "@/content/books/the-subtle-art/ch01";
+import { SKETCH_TEXT_SIZE } from "@/lib/sketch/style";
 
 describe("content validation", () => {
   it("có ít nhất 1 sách", () => {
@@ -35,6 +36,8 @@ describe("content validation", () => {
           expect(steps.some((s) => s.kind === "path" || s.kind === "ellipse" || s.kind === "arrow"), "thiếu nét vẽ").toBe(true);
           for (const s of steps) {
             if ("seed" in s && s.seed !== undefined) expect(Number.isInteger(s.seed), `seed ${s.seed} không nguyên`).toBe(true);
+            // Chữ tay cỡ 21 đơn vị: hình thu về ~358px trên màn 390px vẫn còn ~14.5px, đọc được
+            if (s.kind === "text") expect(s.size, `chữ "${s.text}" cỡ ${s.size}`).toBe(SKETCH_TEXT_SIZE);
           }
         });
       }

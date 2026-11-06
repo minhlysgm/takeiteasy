@@ -1,10 +1,11 @@
 import type { Sketch, SketchStep } from "@/content/types";
+import { SKETCH_TEXT_SIZE } from "@/lib/sketch/style";
 
-/** Hình phác thảo từng đoạn của chương 1 — bản nháp đã duyệt: docs/superpowers/specs/2026-11-06-sketch-first-cards.html (toạ độ 520×340, chữ cách nét ≥ 6) */
+/** Hình phác thảo từng đoạn của chương 1 — bản nháp đã duyệt: docs/superpowers/specs/2026-11-06-sketch-first-cards.html (toạ độ 520×340, chữ cỡ 21 cách nét ≥ 6) */
 const line = (d: string): SketchStep => ({ kind: "path", d, tone: "line", plain: true, width: 2.2 });
 const ink = (d: string): SketchStep => ({ kind: "path", d, tone: "ink", plain: true, width: 1.8 });
 const accent = (d: string): SketchStep => ({ kind: "path", d, tone: "accent", plain: true, width: 2.2 });
-const text = (t: string, x: number, y: number, tone: "ink" | "accent" = "ink"): SketchStep => ({ kind: "text", text: t, x, y, size: 17, tone });
+const text = (t: string, x: number, y: number, tone: "ink" | "accent" = "ink"): SketchStep => ({ kind: "text", text: t, x, y, size: SKETCH_TEXT_SIZE, tone });
 
 export const ch01Sketches: Record<"p01" | "p02" | "p03", Sketch> = {
   p01: {
@@ -37,9 +38,10 @@ export const ch01Sketches: Record<"p01" | "p02" | "p03", Sketch> = {
       line("M120 70 C112 52 135 40 150 50 C158 32 190 34 194 52 C212 46 230 60 220 76 C214 86 196 86 190 80 C178 92 150 90 144 80 C130 88 112 82 120 70 Z"),
       line("M140 92 L136 103 M161 94 L157 105 M183 92 L179 103 M205 89 L201 100"),
       ink("M92 156 C100 160 106 164 111 169"),
-      text("one more…", 18, 158),
+      text("one more…", 4, 140),
       ink("M42 226 L56 237"),
-      text("rent → horses", 4, 212),
+      text("rent →", 4, 188),
+      text("horses", 4, 210),
       ink("M444 168 C436 172 430 174 424 176"),
       text("no.", 424, 112),
       text("no thanks.", 424, 132),
@@ -64,15 +66,16 @@ export const ch01Sketches: Record<"p01" | "p02" | "p03", Sketch> = {
       line("M418 262 L492 262 M425 262 L425 300 M485 262 L485 300"),
       line("M455 218 C467 218 476 227 476 239 C476 251 467 259 455 259 C443 259 434 251 434 239 C434 227 443 218 455 218 Z"),
       line("M455 239 L455 226 M455 239 L464 243"),
-      text("3:00 a.m.", 424, 206),
+      text("3:00 a.m.", 424, 202),
       line("M128 176 C128 172 134 172 134 176 C134 180 128 180 128 176 Z"),
       line("M146 158 C146 152 156 152 156 158 C156 164 146 164 146 158 Z"),
       accent("M196 104 C196 56 328 50 330 102 C332 150 206 156 198 116"),
       accent("M190 104 L198 118 L210 108"),
       text("the meeting…", 206, 38),
       text("why am I still awake?", 338, 96),
-      text("what's wrong with me?", 22, 112),
-      text("round & round", 224, 108, "accent"),
+      text("what's wrong with me?", 4, 112),
+      text("round &", 234, 101, "accent"),
+      text("round", 244, 123, "accent"),
     ],
   },
   p03: {
@@ -87,7 +90,7 @@ export const ch01Sketches: Record<"p01" | "p02" | "p03", Sketch> = {
       line("M122 160 L100 160 M120 180 L94 180 M126 200 L106 200"),
       accent("M300 34 C322 34 336 52 334 72 C332 94 316 106 300 106 C284 106 268 94 266 72 C264 52 278 34 300 34 Z"),
       accent("M300 106 C294 118 306 130 300 146"),
-      text("happy", 281, 78, "accent"),
+      text("happy", 278, 77, "accent"),
       ink("M230 134 C248 122 260 114 270 106"),
       text("almost…", 86, 126),
       line("M360 250 L482 250 M368 250 L368 288 M474 250 L474 288"),
@@ -100,7 +103,7 @@ export const ch01Sketches: Record<"p01" | "p02" | "p03", Sketch> = {
       line("M445 212 C441 205 449 200 445 193"),
       ink("M478 92 C482 84 490 84 494 92 M486 72 L486 62 M470 78 L463 71 M502 78 L509 71"),
       text("rough week…", 356, 128),
-      text("…it's okay.", 370, 148),
+      text("…it's okay.", 370, 152),
     ],
   },
 };
