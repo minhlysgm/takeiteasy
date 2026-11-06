@@ -7,7 +7,7 @@
 
 **Task:** [M · UI] Giọng đọc AI (ElevenLabs) + chọn 1 trong 5 giọng (chi tiết ② ở mục backlog 0 bên dưới, giữ nguyên làm ghi chú).
 **Trạm:** ⑤ Build — ④ plan đã duyệt 2026-11-06. Spec `docs/superpowers/specs/2026-11-06-ai-voice-design.md`, mockup https://claude.ai/artifact/6CpSz4ffdVoBQtjYvfkYJE (phương án A). Plan `docs/superpowers/plans/2026-11-06-ai-voice.md` (5 task). Nhánh `task/ai-voice` (đã có, chứa spec+plan). Bước kế: build bằng `superpowers:subagent-driven-development`, bắt đầu Task 1; cập nhật STATE sau mỗi task. **Task 5 Step 6 phải DỪNG chờ Minh đăng ký Starter** rồi mới tạo audio thật.
-**Tiến độ ⑤:** chưa bắt đầu.
+**Tiến độ ⑤:** Task 1–4 xong + Task 5 Step 1–5 xong (d7455df, đã review). **ĐANG DỪNG ở Task 5 Step 6: chờ Minh đăng ký ElevenLabs Starter.** Minh báo "đã đăng ký" → chạy `npm run audio` (140 file, 9.490 credit), kiểm `--dry-run` ra 0, nghe thử 2–3 file, `npm run verify`, commit audio, rồi review toàn nhánh. Sổ chi tiết + các mục nhỏ hoãn: `.superpowers/sdd/2026-11-06-ai-voice/progress.md` (gitignored). Tui tự quyết 2 việc chờ Minh xem: tắt nút "N" của Next lúc dev (đè nút loa mobile); desktop đóng ô chọn giọng bằng chuột thì không trả focus về nút (giống danh sách thẻ).
 
 ## Backlog
 
