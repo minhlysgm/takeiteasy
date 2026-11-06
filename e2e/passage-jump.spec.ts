@@ -99,7 +99,7 @@ test("7. Khi đã mở đoạn 1 và 2 thì danh sách có ✓ ở dòng 1, 2, k
     await expect(row(page, 1)).toContainText("✓");
     await expect(row(page, 2)).toContainText("✓");
     await expect(row(page, 3)).not.toContainText("✓");
-    await expect(list(page)).toContainText("2/3 đoạn đã đọc");
+    await expect(list(page)).toContainText("2/3 thẻ đã đọc");
   };
   await checks();
   await page.reload();

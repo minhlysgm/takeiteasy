@@ -42,7 +42,7 @@ test("chạm bản dịch khi đang gõ thì hiện đủ ngay", async ({ page }
 test("header gọn: chỉ chương và số đoạn", async ({ page }) => {
   await page.goto(P1);
   const header = page.locator("header");
-  await expect(header).toContainText("chương 1 · đoạn 1/3");
+  await expect(header).toContainText("chương 1 · thẻ 1/3");
   await expect(header.getByText("takeiteasy —")).toBeHidden();
 });
 

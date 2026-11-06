@@ -14,7 +14,7 @@ test("Khi bấm đoạn tiếp thì header/footer giữ nguyên (không dựng l
   await page.getByRole("button", { name: /tiếp →/ }).click();
   await expect(page).toHaveURL(/\/ch01\/2$/);
   await expect(page.getByTestId("caption-text")).not.toHaveText(before!);
-  await expect(page.locator("header")).toContainText("đoạn 2/");
+  await expect(page.locator("header")).toContainText("thẻ 2/");
   await expect.poll(() => shellState(page)).toMatchObject({ header: true, footer: true, transitions: ["width"] });
 
   // Nút back của trình duyệt cũng vậy

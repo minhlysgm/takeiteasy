@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { markCardsSeen } from "./card-helpers";
 
 // Tiêu chí 10 (spec 2026-11-06): mobile xếp một cột hình → mô tả → bản dịch → ý chính → ghi công; mở thẻ là hình vẽ.
 
@@ -24,4 +25,17 @@ test("10: thứ tự hình → mô tả → bản dịch → ý chính → ghi c
     await y(page.getByTestId("credit")),
   ];
   for (let i = 1; i < ys.length; i++) expect(ys[i]).toBeGreaterThan(ys[i - 1]);
+});
+
+test("11: 320px không tràn ngang, header vừa 'chương 1 · thẻ 2/3'", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 700 });
+  await markCardsSeen(page);
+  await page.goto("/read/the-subtle-art/ch01/2");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+  const trigger = page.getByTestId("jump-trigger-mobile");
+  await expect(trigger).toContainText("chương 1 · thẻ 2/3");
+  await expect(trigger).toBeVisible();
+  // chữ không bị cắt "…": phần chữ vừa khít trong ô chứa nó
+  const clipped = await trigger.locator("span.truncate").evaluate((el) => el.scrollWidth > el.clientWidth);
+  expect(clipped).toBe(false);
 });

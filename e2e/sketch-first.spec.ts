@@ -218,3 +218,19 @@ test("RF3: tải lại thẻ đã xem → không gõ lại bản dịch", async 
   await expectAllShown(page);
   expect(await everTyped(page)).toBe(false);
 });
+
+test("6: header/footer ghi thẻ; danh sách nhảy nhanh ghi thẻ + câu mở đầu từ đoạn mô tả", async ({ page }) => {
+  await markCardsSeen(page);
+  await page.goto(P(2));
+  await expect(page.locator("header")).toContainText("chương 1 · thẻ 2/3");
+  await expect(page.locator("footer")).toContainText("thẻ tiếp");
+  await page.keyboard.press("g");
+  const list = page.getByRole("dialog", { name: "danh sách thẻ" });
+  await expect(list).toBeVisible();
+  await expect(list).toContainText("thẻ đã đọc");
+  await expect(list).toContainText("It’s three in the morning and she still can’t fall asleep.");
+  await expect(list).not.toContainText("đoạn");
+  // nhãn cột trái
+  await page.keyboard.press("Escape");
+  await expect(page.getByText("// mô tả", { exact: true })).toBeVisible();
+});

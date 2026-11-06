@@ -332,7 +332,7 @@ test.describe("Enter trên nút đang focus chỉ làm đúng việc của nút"
     await expect(page).toHaveURL(url(1));
   });
 
-  for (const name of [/đoạn tiếp/, /tiếp →/]) {
+  for (const name of [/thẻ tiếp/, /tiếp →/]) {
     test(`${name.source}: sang đúng đoạn sau, một lần`, async ({ page }) => {
       await page.goto(P1);
       await finishTyping(page);

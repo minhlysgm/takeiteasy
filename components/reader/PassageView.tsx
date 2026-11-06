@@ -336,7 +336,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
           <span className="block h-3 w-3 rounded-full bg-accent opacity-70" />
         </div>
         <div className="min-w-0 grow truncate text-center text-[13px] text-muted">
-          {/* Mobile: tiêu đề là nút mở danh sách đoạn. Desktop: chữ thường như cũ (nút ở footer). */}
+          {/* Mobile: tiêu đề là nút mở danh sách thẻ. Desktop: chữ thường như cũ (nút ở footer). */}
           <button
             ref={jumpTriggerMobileRef}
             type="button"
@@ -347,14 +347,14 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
             className="inline-flex h-11 max-w-full items-center gap-1.5 px-0.5 align-top text-bright focus-visible:outline-offset-[-4px] lg:hidden"
           >
             <span className="truncate">
-              {chapterLabel(chapterId)} · đoạn {passageIndex}/{passageCount}
+              {chapterLabel(chapterId)} · thẻ {passageIndex}/{passageCount}
               {explainOn && <span className="text-ink"> · explain</span>}
             </span>
             {/* < 360px mà bật giải thích thì không đủ chỗ cho cả "· explain" lẫn ▾ (font mono 13px): nhường cho chữ */}
             <span aria-hidden="true" className={`shrink-0 text-muted ${explainOn ? "max-[359.98px]:hidden" : ""}`}>▾</span>
           </button>
           <span className="hidden lg:inline">
-            takeiteasy — {book.id} / {chapterLabel(chapterId)} · đoạn {passageIndex}/{passageCount}
+            takeiteasy — {book.id} / {chapterLabel(chapterId)} · thẻ {passageIndex}/{passageCount}
             {explainOn && <span className="text-ink"> · explain</span>}
           </span>
         </div>
@@ -503,7 +503,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
               <Kbd>t</Kbd> theme
             </FooterButton>
             <FooterButton desktopOnly onClick={() => goTo(passageIndex + 1)} disabled={passageIndex >= passageCount}>
-              <Kbd>enter</Kbd> đoạn tiếp
+              <Kbd>enter</Kbd> thẻ tiếp
             </FooterButton>
           </div>
           <div className="hidden h-1 w-44 rounded bg-line lg:block">

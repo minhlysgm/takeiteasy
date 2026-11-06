@@ -53,7 +53,7 @@ describe("PassageView", () => {
   it("render nguyên văn và header đoạn", () => {
     renderView();
     expect(screen.getByTestId("caption-col").textContent).toContain("This is Charles Bukowski, and his life is a mess");
-    expect(document.querySelector("header")!.textContent).toContain(`đoạn 1/${passages.length}`);
+    expect(document.querySelector("header")!.textContent).toContain(`thẻ 1/${passages.length}`);
   });
 
   it("lưu tiến độ khi mở đoạn", () => {

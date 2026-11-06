@@ -99,7 +99,7 @@ export function PassageJumpList({ title, outline, current, read, onPick, onClose
         ref={ref}
         tabIndex={-1}
         role="dialog"
-        aria-label="danh sách đoạn"
+        aria-label="danh sách thẻ"
         data-testid="jump-list"
         onKeyDown={onKeyDown}
         className={`fixed inset-x-0 bottom-0 z-40 flex max-h-[85dvh] flex-col rounded-t-2xl border-t border-line bg-surface shadow-2xl outline-none transition-transform duration-300 ease-out motion-reduce:transition-none lg:inset-x-auto lg:bottom-16 lg:right-8 lg:max-h-[60vh] lg:w-[420px] lg:rounded-lg lg:border lg:transition-none ${entered ? "translate-y-0" : "translate-y-full lg:translate-y-0"}`}
@@ -108,7 +108,7 @@ export function PassageJumpList({ title, outline, current, read, onPick, onClose
           <div className="min-w-0">
             <div className="truncate text-[14px] text-bright">{title}</div>
             <div className="text-[13px] text-muted">
-              {readSet.size}/{outline.length} đoạn đã đọc
+              {readSet.size}/{outline.length} thẻ đã đọc
             </div>
           </div>
           <button
@@ -156,13 +156,13 @@ export function PassageJumpList({ title, outline, current, read, onPick, onClose
             <Kbd>↑</Kbd> <Kbd>↓</Kbd> chọn
           </span>
           <span>
-            <Kbd>enter</Kbd> mở đoạn
+            <Kbd>enter</Kbd> mở thẻ
           </span>
           <span>
             <Kbd>esc</Kbd> đóng
           </span>
           <span>
-            <Kbd>home</Kbd>/<Kbd>end</Kbd> đoạn đầu/cuối
+            <Kbd>home</Kbd>/<Kbd>end</Kbd> thẻ đầu/cuối
           </span>
         </div>
       </div>
