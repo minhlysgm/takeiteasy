@@ -416,8 +416,8 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
             {explainOn && <span className="ml-3 text-ink">{passage.chunks.length} chunks đáng học</span>}
           </div>
           {waiting && (
-            <p data-testid="caption-waiting" className="gate-wait text-xs text-accent">
-              đang vẽ…
+            <p data-testid="caption-waiting" aria-hidden="true" className="gate-wait text-[13px] text-muted">
+              mô tả hiện sau khi vẽ xong.
             </p>
           )}
           {/* Luôn render (giữ ref cho bôi đen chữ), chỉ ẩn khi hình chưa xong */}

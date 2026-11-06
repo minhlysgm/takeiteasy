@@ -62,6 +62,8 @@ export function PassageSketch({
   // Thẻ nào vừa được finish() (người trên có thể gọi trước cả effect mở thẻ, vd. trong layout effect)
   const finishedFor = useRef<string | null>(null);
   const [reduced, setReduced] = useState(false);
+  // Đã vẽ xong (hoặc bị bỏ qua) ngay trước mắt người đọc → nhãn trạng thái báo "vẽ xong" cho trình đọc màn hình
+  const [finished, setFinished] = useState(false);
   // Hình có đang trên màn hình không. "yes" giữ nguyên cho tới lúc sắp vẽ;
   // ngay trước khi vẽ kiểm lại một lần, lướt qua rồi cuộn đi thì về "no" và chờ tiếp.
   const [onScreen, setOnScreen] = useState<"unknown" | "no" | "yes">("unknown");
@@ -157,6 +159,7 @@ export function PassageSketch({
   /** Xem xong (vẽ hết, người đọc bấm xem ngay, hoặc người trên gọi finish()) */
   const finish = useCallback(() => {
     reveal(true);
+    setFinished(true);
     finishedFor.current = passageId;
     onDoneRef.current?.("animate");
   }, [reveal, passageId]);
@@ -331,7 +334,11 @@ export function PassageSketch({
       {/* flex-wrap: cột hẹp thì xuống dòng, đừng nong cột ra theo tổng chiều dài các nhãn */}
       <div className="flex min-h-[22px] flex-wrap items-baseline gap-x-3 gap-y-1 text-[13px]">
         <span className="whitespace-nowrap text-muted">{"// hình"}</span>
-        {status && <span className="text-xs text-accent">{status}</span>}
+        {/* Chỗ báo trạng thái duy nhất của thẻ: luôn có mặt, chỉ đổi chữ (vẽ xong thì chỉ trình đọc màn hình nghe) */}
+        <span role="status" className="text-xs text-accent">
+          {status}
+          {state === "done" && finished && <span className="sr-only">vẽ xong</span>}
+        </span>
         {action && (
           <button
             type="button"

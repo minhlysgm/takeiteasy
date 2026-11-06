@@ -47,7 +47,7 @@ async function expectAllShown(page: Page) {
 test("1: mở thẻ 1 lần đầu → hình đang vẽ, mô tả + bản dịch đang chờ", async ({ page }) => {
   await page.goto(P(1));
   await expect(page.getByTestId("sketch")).toHaveAttribute("data-state", /waiting|drawing/);
-  await expect(page.getByTestId("caption-waiting")).toHaveText("đang vẽ…");
+  await expect(page.getByTestId("caption-waiting")).toHaveText("mô tả hiện sau khi vẽ xong.");
   await expect(page.getByTestId("caption-text")).toBeHidden();
   await expect(page.getByTestId("translation-waiting")).toHaveText("bản dịch hiện sau khi vẽ xong.");
   await expect(page.getByText("đang gõ…")).toHaveCount(0);

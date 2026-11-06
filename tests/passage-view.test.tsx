@@ -199,7 +199,13 @@ describe("PassageView", () => {
 
   it("mở thẻ chưa xem: mô tả + bản dịch chờ hình; phím bất kỳ (trừ Esc) → hiện đủ, chưa chuyển thẻ", () => {
     renderView();
-    expect(screen.getByTestId("caption-waiting").textContent).toBe("đang vẽ…");
+    const capWait = screen.getByTestId("caption-waiting");
+    expect(capWait.textContent).toBe("mô tả hiện sau khi vẽ xong.");
+    expect(capWait.getAttribute("aria-hidden")).toBe("true");
+    expect(capWait.className).toContain("text-muted");
+    // chỉ một chỗ báo trạng thái (nhãn của hình)
+    expect(screen.getAllByRole("status")).toHaveLength(1);
+    expect(screen.getByTestId("sketch").contains(screen.getByRole("status"))).toBe(true);
     expect(screen.getByTestId("caption-text").closest("[hidden]")).not.toBeNull();
     expect(screen.getByTestId("translation-waiting").textContent).toBe("bản dịch hiện sau khi vẽ xong.");
     fireEvent.keyDown(window, { key: "Escape" });

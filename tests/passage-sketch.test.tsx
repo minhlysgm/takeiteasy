@@ -114,6 +114,27 @@ describe("PassageSketch", () => {
     expect(localStorage.getItem(sketchSeenKey("p"))).toBe("1");
   });
 
+  it("trạng thái báo ở một role=status luôn có mặt: chờ → rỗng, đang vẽ → 'đang vẽ…', vẽ xong → 'vẽ xong'", async () => {
+    render(<PassageSketch sketch={sketch} passageId="p" />);
+    const status = screen.getByRole("status");
+    expect(sketchEl().contains(status)).toBe(true);
+    expect(status.textContent).toBe("");
+    await advance(450);
+    expect(screen.getByRole("status")).toBe(status);
+    expect(status.textContent).toBe("đang vẽ…");
+    await advance(7000);
+    expect(screen.getByRole("status")).toBe(status);
+    expect(status.textContent).toBe("vẽ xong");
+    // "vẽ xong" chỉ cho trình đọc màn hình: mắt thường không thấy chữ nào sau khi xong
+    expect(status.querySelector(".sr-only")!.textContent).toBe("vẽ xong");
+  });
+
+  it("đã xem từ trước: status rỗng (không báo 'vẽ xong' lúc mở)", () => {
+    localStorage.setItem(sketchSeenKey("p"), "1");
+    render(<PassageSketch sketch={sketch} passageId="p" />);
+    expect(screen.getByRole("status").textContent).toBe("");
+  });
+
   it("bấm vào hình khi đang vẽ → done; bấm khi done thì không gì", async () => {
     render(<PassageSketch sketch={sketch} passageId="p" />);
     await advance(450);
