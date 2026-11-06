@@ -27,7 +27,7 @@ for (const width of [320, 360, 390]) {
     await page.setViewportSize({ width, height: 700 });
     for (const n of [1, 2, 3]) {
       await page.goto(P(n));
-      await expect(page.getByTestId("original-col")).toBeVisible();
+      await expect(page.getByTestId("caption-col")).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth), `đoạn ${n}`).toBeLessThanOrEqual(width);
       const boxes = await page.locator("footer button:visible").evaluateAll((els) =>
         els.map((e) => ({ t: e.textContent?.trim(), l: e.getBoundingClientRect().left, r: e.getBoundingClientRect().right })),
@@ -128,7 +128,7 @@ test.describe("màn hình thấp 390×600", () => {
 
   test("Khi tấm còn nội dung bên dưới thì có dải mờ ở đáy vùng cuộn; cuộn tới cuối thì dải mờ ẩn", async ({ page }) => {
     await page.goto(P(1));
-    const dialog = await openNote(page, 5);
+    const dialog = await openNote(page, 4);
     const fade = dialog.getByTestId("sheet-fade");
     await expect(fade).toHaveCSS("opacity", "1");
     const scroller = dialog.getByTestId("sheet-scroll");

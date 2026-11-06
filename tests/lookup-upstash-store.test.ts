@@ -67,6 +67,12 @@ describe("upstashStore (client giả)", () => {
     expect(fake.data.get("lookup:v1:spent_usd")).toBeTypeOf("string");
   });
 
+  it("khoá tiền vẫn là lookup:v1:spent_usd (đổi khoá là reset ngân sách $9; chỉ cache mới lên v2)", async () => {
+    const store = upstashStore("https://x.upstash.io", "t");
+    await store.addSpentUsd(0.001);
+    expect([...fake.data.keys()].filter((k) => k.includes("spent"))).toEqual(["lookup:v1:spent_usd"]);
+  });
+
   it("lượt: tăng theo IP + giờ, chỉ đặt hạn 1 giờ ở lượt đầu, sang giờ sau đếm lại", async () => {
     const store = upstashStore("https://x.upstash.io", "t");
     const t = 7 * HOUR;

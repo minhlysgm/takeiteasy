@@ -3,15 +3,15 @@ import { getPassages } from "@/lib/content";
 import { canLookUp, chunkAt, lookupUrl, normalizeSelectionText, placePopup, sentenceAt } from "@/lib/selection";
 
 describe("normalizeSelectionText", () => {
-  it("gộp khoảng trắng và xuống dòng", () => expect(normalizeSelectionText("  chronic\n  gambler ")).toBe("chronic gambler"));
+  it("gộp khoảng trắng và xuống dòng", () => expect(normalizeSelectionText("  is a\n  mess ")).toBe("is a mess"));
   it("chỉ dấu câu / khoảng trắng → rỗng", () => expect(normalizeSelectionText(" , — . ")).toBe(""));
 });
 
 describe("canLookUp", () => {
   it("10 từ thì tra được", () =>
-    expect(canLookUp("Charles Bukowski was an alcoholic, a womanizer, a chronic gambler,")).toBe(true));
+    expect(canLookUp("This is Charles Bukowski, and his life is a mess.")).toBe(true));
   it("11 từ thì không", () =>
-    expect(canLookUp("Charles Bukowski was an alcoholic, a womanizer, a chronic gambler, a")).toBe(false));
+    expect(canLookUp("This is Charles Bukowski, and his life is a mess. He")).toBe(false));
   it("≤ 10 từ nhưng quá 120 ký tự → false; đúng 120 → true", () => {
     expect(canLookUp("x".repeat(121))).toBe(false);
     expect(canLookUp("x".repeat(120))).toBe(true);
@@ -20,36 +20,37 @@ describe("canLookUp", () => {
 
 const p1 = getPassages("the-subtle-art", "ch01")![0];
 const at = (s: string) => {
-  const i = p1.original.indexOf(s);
+  const i = p1.caption.indexOf(s);
   return [i, i + s.length] as const;
 };
 
 describe("sentenceAt", () => {
-  it("câu chứa 'lout'", () =>
-    expect(sentenceAt(p1.original, ...at("lout"))).toBe(
-      "Charles Bukowski was an alcoholic, a womanizer, a chronic gambler, a lout, a cheapskate, a deadbeat, and on his worst days, a poet.",
-    ));
-  it("câu đứng riêng sau dòng trống", () =>
-    expect(sentenceAt(p1.original, ...at("perfect place"))).toBe("Which is why he's the perfect place to start."));
+  it("câu chứa 'mess'", () =>
+    expect(sentenceAt(p1.caption, ...at("mess"))).toBe("This is Charles Bukowski, and his life is a mess."));
+  it("câu đứng riêng sau dòng trống", () => {
+    const caption = "Most people would give up.\n\nHe just keeps writing.";
+    const s = caption.indexOf("keeps writing");
+    expect(sentenceAt(caption, s, s + "keeps writing".length)).toBe("He just keeps writing.");
+  });
   it("câu dài quá 600 ký tự → cắt khung ≤ 600 quanh vùng chọn, vẫn chứa vùng chọn và vẫn nằm trong đoạn", () => {
     const words = Array.from({ length: 200 }, (_, i) => `word${i}`);
-    const original = words.join(" ") + ".";
+    const caption = words.join(" ") + ".";
     for (const target of ["word0", "word100", "word199"]) {
-      const s = original.indexOf(target + " ") >= 0 ? original.indexOf(target + " ") : original.indexOf(target + ".");
-      const got = sentenceAt(original, s, s + target.length);
+      const s = caption.indexOf(target + " ") >= 0 ? caption.indexOf(target + " ") : caption.indexOf(target + ".");
+      const got = sentenceAt(caption, s, s + target.length);
       expect(got.length).toBeLessThanOrEqual(600);
       expect(got).toContain(target);
-      expect(original).toContain(got);
+      expect(caption).toContain(got);
     }
   });
 });
 
 describe("chunkAt", () => {
   it("nằm trọn trong cụm → cụm đó; lấn ra ngoài → null", () => {
-    expect(chunkAt(p1, ...at("chronic"))?.id).toBe("chronic");
-    expect(chunkAt(p1, ...at("worst days"))?.id).toBe("on-his-worst-days");
-    expect(chunkAt(p1, ...at("chronic gambler"))).toBeNull();
-    expect(chunkAt(p1, ...at("lout"))).toBeNull();
+    expect(chunkAt(p1, ...at("mess"))?.id).toBe("is-a-mess");
+    expect(chunkAt(p1, ...at("rent money"))?.id).toBe("bet-on");
+    expect(chunkAt(p1, ...at("life is a mess"))).toBeNull();
+    expect(chunkAt(p1, ...at("Bukowski"))).toBeNull();
   });
 });
 

@@ -3,6 +3,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { PassageView } from "@/components/reader/PassageView";
 import type { Chunk } from "@/content/types";
 import { books, firstSentence, getPassages } from "@/lib/content";
+import { sketchSeenKey } from "@/lib/sketchSeen";
 
 // PassageView sống xuyên các đoạn (layout của chương): state của đoạn cũ không được lọt sang
 // lần vẽ ĐẦU TIÊN của đoạn mới, kể cả một khung hình. Các con được thay bằng bản ghi lại props.
@@ -30,7 +31,7 @@ vi.mock("@/components/reader/SelectionPopup", () => ({
 
 const book = books[0];
 const passages = getPassages(book.id, "ch01")!;
-const outline = passages.map((p, i) => ({ index: i + 1, firstSentence: firstSentence(p.original) }));
+const outline = passages.map((p, i) => ({ index: i + 1, firstSentence: firstSentence(p.caption) }));
 const view = (i: number) => (
   <PassageView outline={outline} chapterTitle="Chương 1 · Don't Try" book={book} chapterId="ch01" passage={passages[i - 1]} passageIndex={i} passageCount={passages.length} />
 );
@@ -68,10 +69,41 @@ describe("PassageView — chuyển đoạn không remount", () => {
     expect(screen.getByRole("banner").textContent).not.toContain("explain");
   });
 
+  it("chuyển sang thẻ đã xem: lần vẽ đầu đã hiện đủ, không loé chỗ chờ (back/forward giữ được chỗ cuộn)", () => {
+    localStorage.setItem(sketchSeenKey("ch01-p02"), "1");
+    const { rerender, container } = render(view(1));
+    fireEvent.keyDown(window, { key: "x" }); // thẻ 1: hiện đủ
+    const mo = new MutationObserver(() => {});
+    mo.observe(container, { childList: true, subtree: true });
+    rerender(view(2));
+    // Chỗ chờ mà loé một khung thì đã bị gỡ ra khỏi DOM ngay sau đó: soi cả nút thêm vào lẫn nút bị gỡ
+    const waiting = '[data-testid="caption-waiting"],[data-testid="translation-waiting"]';
+    const flashed = mo
+      .takeRecords()
+      .flatMap((r) => [...r.addedNodes, ...r.removedNodes])
+      .filter((n) => n instanceof Element && (n.matches(waiting) || n.querySelector(waiting)));
+    mo.disconnect();
+    expect(flashed).toEqual([]);
+    expect(screen.queryByTestId("caption-waiting")).toBeNull();
+    expect(screen.getByTestId("credit")).toBeTruthy();
+  });
+
+  it("chuyển sang thẻ chưa xem: bắt đầu lại ở chỗ chờ, không mang chữ đã gõ của thẻ cũ", () => {
+    const { rerender } = render(view(1));
+    fireEvent.keyDown(window, { key: "x" });
+    rerender(view(2));
+    expect(screen.getByTestId("caption-waiting").textContent).toBe("mô tả hiện sau khi vẽ xong.");
+    // hình của thẻ mới là một lần mount mới (div cha key theo thẻ): không mang "done" của thẻ cũ
+    expect(screen.getByTestId("sketch").dataset.state).toBe("waiting");
+    expect(screen.getByTestId("translation-waiting")).toBeTruthy();
+    expect(screen.getByTestId("translation-col").textContent).not.toContain(passages[0].translation.slice(0, 20));
+    expect(screen.queryByTestId("credit")).toBeNull();
+  });
+
   it("đang có popup chọn chữ: đổi đoạn (back/forward) thì đoạn mới không vẽ popup lần nào", () => {
     const { rerender } = render(view(1));
     fireEvent.keyDown(window, { key: "x" });
-    const text = [...document.querySelectorAll('[data-testid="original-text"]')][0].firstChild as Text;
+    const text = [...document.querySelectorAll('[data-testid="caption-text"]')][0].firstChild as Text;
     act(() => {
       const range = document.createRange();
       range.setStart(text, 0);

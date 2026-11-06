@@ -25,14 +25,14 @@ test.beforeEach(async ({ page }) => {
 
 test("9. Khi chạm tiêu đề header thì tấm danh sách trượt lên; chạm một dòng thì sang đoạn đó và tấm đóng", async ({ page }) => {
   await open(page, 1);
-  await expect(trigger(page)).toContainText("chương 1 · đoạn 1/3");
+  await expect(trigger(page)).toContainText("chương 1 · thẻ 1/3");
   await trigger(page).tap();
   await expect(list(page)).toBeVisible();
   await expect.poll(() => list(page).evaluate((e) => e.getBoundingClientRect().bottom)).toBeLessThanOrEqual(845);
   await page.locator('[data-testid="jump-row"][data-index="3"]').tap();
   await expect(page).toHaveURL(/\/ch01\/3$/);
   await expect(list(page)).toHaveCount(0);
-  await expect(trigger(page)).toContainText("đoạn 3/3");
+  await expect(trigger(page)).toContainText("thẻ 3/3");
 });
 
 test("10. Khi chạm ✕ hoặc vùng mờ thì tấm đóng; khi tấm đang mở thì trang sau không cuộn", async ({ page }) => {

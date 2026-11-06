@@ -16,7 +16,8 @@ body { background: var(--bg); color: var(--text); }
 
 /* mũi tên tay vẽ "đang được vẽ" — AnnotationLayer dùng */
 @keyframes draw { to { stroke-dashoffset: 0; } }
-.arrow-draw { stroke-dasharray: 600; stroke-dashoffset: 600; animation: draw 0.6s ease forwards; }
+/* path đặt pathLength=100: mũi tên ngắn hay dài cũng vẽ hết đúng 0.4s */
+.arrow-draw { stroke-dasharray: 100; stroke-dashoffset: 100; animation: draw 0.4s ease-out forwards; }
 
 /* các dòng hiện tuần tự như terminal đang in — BookShelf dùng */
 @keyframes reveal { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
@@ -27,9 +28,18 @@ body { background: var(--bg); color: var(--text); }
 
 /* đoạn văn mới trượt nhẹ vào khi chuyển đoạn — PassageView dùng */
 @keyframes passage-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-.animate-passage-in { animation: passage-in 0.35s ease-out; }
+.animate-passage-in { animation: passage-in 0.3s ease-out; }
+
+/* Thẻ "vẽ trước" lúc chưa hydrate (PassageView reveal = "pending", có [data-sketch-gate]): server không biết thẻ đã xem
+   chưa nên dựng cả chỗ chờ (.gate-wait) lẫn nội dung đủ (.gate-full). Mặc định = chưa xem; thẻ đã xem thì <style> của
+   thẻ (sketchGateCss) lật lại, giảm chuyển động thì lật ở dưới. Hình chưa quyết (idle) thì ẩn như lúc chờ vẽ. */
+[data-sketch-gate] .gate-full { display: none; }
+.sketch-art-idle { opacity: 0; }
 
 @media (prefers-reduced-motion: reduce) {
+  [data-sketch-gate] .gate-wait { display: none; }
+  [data-sketch-gate] .gate-full { display: block; }
+  [data-sketch-gate] .sketch-art-idle { opacity: 1; }
   .animate-blink { animation: none; }
   .arrow-draw { animation: none; stroke-dashoffset: 0; }
   .reveal, .reveal-1, .reveal-2, .reveal-3 { animation: none; opacity: 1; }

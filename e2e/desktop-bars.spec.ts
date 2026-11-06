@@ -1,4 +1,10 @@
 import { test, expect, type Page } from "@playwright/test";
+import { markCardsSeen } from "./card-helpers";
+
+// Không kiểm luồng vẽ trước: coi như đã xem hình, mở thẻ là mô tả + bản dịch hiện đủ.
+test.beforeEach(async ({ page }) => {
+  await markCardsSeen(page);
+});
 
 // Desktop: header + footer dính mép màn hình; ngăn giải thích nằm giữa hai thanh.
 const SIZES = [[1440, 900], [1280, 800]] as const;

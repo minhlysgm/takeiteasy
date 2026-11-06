@@ -25,11 +25,11 @@
   --bright: #1c1917;
   --muted: #6f6862;
   --line: #e2dccd;
-  --accent: #b45309;
-  --accent-soft: #e9dbca; /* ~10% accent trên surface — nền dòng đang chọn */
-  --accent-strong: #92400e; /* chữ accent nhỏ trên --accent-soft (≥ 4.5:1) */
-  --focus: #1c1917; /* gần đen: tách khỏi cam của accent/ink */
-  --ink: #b45309;
+  --accent: #2f6f3e; /* xanh lá như theme tối — tách khỏi cam của --ink */
+  --accent-soft: #e0e0d2; /* ~8% accent trên surface — nền dòng đang chọn (accent ✓ vẫn ≥ 4.5:1) */
+  --accent-strong: #166534; /* chữ accent nhỏ trên --accent-soft (≥ 4.5:1) */
+  --focus: #1c1917; /* gần đen: tách khỏi xanh của accent và cam của ink */
+  --ink: #a34a08; /* ≥ 4.5:1 trên cả --bg lẫn --surface (thanh mẹo) */
   --ink-strong: #92400e;
   --danger: #b91c1c;
   --sel: #d3e3f5;

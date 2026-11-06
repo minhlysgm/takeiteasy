@@ -5,21 +5,21 @@ import { MOBILE_QUERY } from "@/lib/breakpoints";
 import { books, getPassages } from "@/lib/content";
 
 // neo vào đoạn theo id (không theo vị trí) để thêm đoạn mới không làm test trôi fixture
-const chunks = getPassages(books[0].id, "ch01")!.find((p) => p.id === "ch01-p03")!.chunks;
+const chunks = getPassages(books[0].id, "ch01")!.find((p) => p.id === "ch01-p02")!.chunks;
 
 describe("ChunkDrawer", () => {
   it("hiện headword, meaning, pattern và ví dụ của chunk đang chọn", () => {
-    const stemIdx = chunks.findIndex((c) => c.id === "stem-from");
-    render(<ChunkDrawer chunks={chunks} index={stemIdx} onNavigate={() => {}} onClose={() => {}} />);
-    expect(screen.getByText("stem from something")).toBeTruthy();
-    expect(screen.getByText("= bắt nguồn từ / xuất phát từ")).toBeTruthy();
-    expect(screen.getByText(/stems not from A, but from B/)).toBeTruthy();
-    expect(screen.getByText(/stems not from a lack of money/)).toBeTruthy();
+    const harderIdx = chunks.findIndex((c) => c.id === "the-harder-the-louder");
+    render(<ChunkDrawer chunks={chunks} index={harderIdx} onNavigate={() => {}} onClose={() => {}} />);
+    expect(screen.getByText("the harder…, the louder…")).toBeTruthy();
+    expect(screen.getByText(/^Mẫu "càng… càng…"/)).toBeTruthy();
+    expect(screen.getByText(/The \+ so sánh hơn \+ S \+ V, the \+ so sánh hơn/)).toBeTruthy();
+    expect(screen.getByText(/The earlier we leave, the better\./)).toBeTruthy();
   });
   it("hiện mistake box khi có", () => {
-    const despiteIdx = chunks.findIndex((c) => c.id === "despite");
-    render(<ChunkDrawer chunks={chunks} index={despiteIdx} onNavigate={() => {}} onClose={() => {}} />);
-    expect(screen.getByText(/Despite of the rain/)).toBeTruthy();
+    const asleepIdx = chunks.findIndex((c) => c.id === "fall-asleep");
+    render(<ChunkDrawer chunks={chunks} index={asleepIdx} onNavigate={() => {}} onClose={() => {}} />);
+    expect(screen.getByText(/I fell sleep/)).toBeTruthy();
   });
   it("nút đóng gọi onClose, nút chunk sau gọi onNavigate", () => {
     const onClose = vi.fn();

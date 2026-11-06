@@ -88,7 +88,7 @@ export async function selectText(page: Page, testId: string, needle: string, wai
 /** Toạ độ viewport của ký tự đầu và ký tự cuối của `needle` trong nguyên văn (để kéo chuột). */
 export async function charBoxes(page: Page, needle: string) {
   return page.evaluate((s) => {
-    const root = document.querySelector('[data-testid="original-text"]')!;
+    const root = document.querySelector('[data-testid="caption-text"]')!;
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     const nodes: { node: Text; start: number }[] = [];
     let full = "";

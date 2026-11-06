@@ -13,6 +13,7 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { SKETCH_TEXT_HALO, SKETCH_TEXT_SIZE } from "../../lib/sketch/style.ts";
 
 export type Pos = [number, number]; // [trang, ¶]
 export type Range = { from: Pos; to: Pos };
@@ -40,7 +41,7 @@ export type Card = {
   sketchFile: string;
   chunks: CardChunk[];
 };
-export type SketchLike = { viewBox: string; alt: string; steps: { kind: string; text?: string }[] };
+export type SketchLike = { viewBox: string; alt: string; steps: { kind: string; text?: string; size?: number }[] };
 export type Skipped = { range: Range; reason: string };
 export type CheckContext = { others: Card[]; skipped: Skipped[]; sources: string[]; sketch: SketchLike | null };
 export type CheckResult = { errors: string[]; warnings: string[] };
@@ -289,6 +290,9 @@ export function checkCard(card: Card, ctx: CheckContext): CheckResult {
     const labels = ctx.sketch.steps.filter((s) => s.kind === "text").map((s) => s.text ?? "");
     // chữ trong hình ngắn → chặt hơn: trùng sách từ 4 chữ liền là lỗi
     for (const l of labels) copyChecks(`chữ trong hình "${l}"`, l, ctx.sources, out, COPY_WARN_WORDS);
+    for (const s of ctx.sketch.steps)
+      if (s.kind === "text" && s.size !== SKETCH_TEXT_SIZE)
+        warn(`chữ trong hình "${s.text}" cỡ ${s.size} — chuẩn là ${SKETCH_TEXT_SIZE} (đọc được trên điện thoại)`);
   }
   return out;
 }
@@ -360,6 +364,17 @@ function underline(caption: string, chunks: CardChunk[]): string {
   return html + esc(caption.slice(pos));
 }
 
+/**
+ * Màu của app, đọc thẳng từ lib/theme.css lúc dựng trang (không chép hex): theme tối mặc định như app,
+ * máy đang để sáng thì lấy khối theme sáng.
+ */
+function themeCss(): string {
+  const css = readFileSync(join(ROOT, "lib/theme.css"), "utf8");
+  const light = css.match(/:root\[data-theme="light"\]\s*\{([^}]*)\}/)?.[1];
+  if (!light) throw new Error("lib/theme.css: không thấy khối :root[data-theme=\"light\"]");
+  return `${css}\n@media (prefers-color-scheme: light){:root:not([data-theme=dark]){${light}}}`;
+}
+
 export function previewHtml(card: Card, sketch: SketchLike | null, book: { title: string; author: string }): string {
   const chunks = card.chunks
     .map(
@@ -373,17 +388,15 @@ ${c.mistake ? `<p class="ms"><s>${esc(c.mistake.wrong)}</s> → ${esc(c.mistake.
 <title>${esc(card.id)} xem trước</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Patrick+Hand&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f6f2ea;--text:#3b3631;--muted:#6f675e;--line:#d9d1c4;--ink:#3b3631;--accent:#b5530f;}
-@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#1d1b19;--text:#ddd5c9;--muted:#a1988c;--line:#3a3530;--ink:#e6dfd4;--accent:#e08a4c;}}
-:root[data-theme=dark]{--bg:#1d1b19;--text:#ddd5c9;--muted:#a1988c;--line:#3a3530;--ink:#e6dfd4;--accent:#e08a4c;}
+${themeCss()}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.65 "IBM Plex Mono",monospace}
 main{max-width:1100px;margin:0 auto;padding:24px 16px 64px}.meta{color:var(--muted);font-size:12px}
 .grid{display:grid;gap:28px;grid-template-columns:1fr}@media(min-width:900px){.grid{grid-template-columns:1fr 1fr}}
 .lbl{color:var(--muted);font-size:13px;margin:18px 0 6px}.lbl.acc{color:var(--accent)}
 svg.sk{width:100%;height:auto;display:block}
-.sk path,.sk ellipse{fill:none;stroke-linecap:round;stroke-linejoin:round}.sk .line{stroke:var(--ink)}.sk .ink{stroke:var(--accent)}
-.sk text{font-family:"Patrick Hand",cursive;paint-order:stroke;stroke:var(--bg);stroke-width:5px;stroke-linejoin:round}
-.sk text.line,.sk text.name{fill:var(--ink)}.sk text.ink{fill:var(--accent)}
+.sk path,.sk ellipse{fill:none;stroke-linecap:round;stroke-linejoin:round}.sk .line{stroke:var(--text)}.sk .ink{stroke:var(--ink)}.sk .accent{stroke:var(--accent)}
+.sk text{font-family:"Patrick Hand",cursive;paint-order:stroke;stroke:var(--bg);stroke-width:${SKETCH_TEXT_HALO}px;stroke-linejoin:round}
+.sk text.line{fill:var(--text)}.sk text.name{fill:var(--bright)}.sk text.ink{fill:var(--ink)}.sk text.accent{fill:var(--accent)}
 .cap{font-size:16px;color:var(--text)}u{text-decoration-color:var(--accent);text-underline-offset:4px}sup{color:var(--accent);font-size:10px}
 .ck{border-top:1px solid var(--line);padding-top:10px;margin-top:14px}.ck h3{font-size:14px;margin:0 0 4px}.ck small{color:var(--muted);font-weight:400}
 .pt{color:var(--accent)}.ms s{color:var(--muted)}ul{padding-left:18px}.credit{color:var(--muted);font-size:12px;font-style:italic;margin-top:18px}
@@ -463,7 +476,7 @@ function writePreview(book: BookData, card: Card): string {
   return out;
 }
 
-/** Đo bằng trình duyệt thật: chữ trong hình phải cách mọi nét ≥ pad đơn vị. */
+/** Đo bằng trình duyệt thật: chữ trong hình phải cách mọi nét ≥ pad đơn vị, nằm trong khung hình, không chồng chữ khác. */
 async function labelClashes(htmlPath: string, pad = 6): Promise<string[]> {
   const { chromium } = await import("@playwright/test");
   const browser = await chromium.launch();
@@ -483,8 +496,11 @@ async function labelClashes(htmlPath: string, pad = 6): Promise<string[]> {
         return { d: (p.getAttribute("d") ?? "ellipse").slice(0, 28), arr };
       });
       const texts = [...svg.querySelectorAll("text")];
+      const vb = (svg as SVGSVGElement).viewBox.baseVal;
       texts.forEach((t, i) => {
         const b = t.getBBox();
+        if (b.x < vb.x || b.y < vb.y || b.x + b.width > vb.x + vb.width || b.y + b.height > vb.y + vb.height)
+          out.push(`chữ "${t.textContent}" ra ngoài khung hình ${vb.width}×${vb.height}`);
         const inBox = (x: number, y: number, q: DOMRect, padding: number) =>
           x > q.x - padding && x < q.x + q.width + padding && y > q.y - padding && y < q.y + q.height + padding;
         for (const p of pts) {

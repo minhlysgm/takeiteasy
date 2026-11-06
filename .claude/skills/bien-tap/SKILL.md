@@ -64,7 +64,8 @@ Nhật ký "Minh chốt hướng X". `trang-thai: 3 chốt hướng`. Chưa có 
 - 4 chunk: cụm đời thường dùng được ngay, `Khớp` là chữ **y hệt** trong đoạn văn, 2 ví dụ **chuyện đời thường**
   (không coding), có `Hay sai` nếu người Việt hay nhầm. Không lặp chunk đã dạy ở thẻ khác.
 - Hình: `viewBox` "0 0 520 340"; nét `tone: "line"`, điểm nhấn/mũi chỉ `tone: "ink"`; ≤ 6 nhãn, mỗi nhãn ≤ 4 chữ,
-  là lời của mình; nhãn ở khoảng trống, cách mọi nét ≥ 6, mũi chỉ bắt đầu cách chữ; `alt` tiếng Việt tả cảnh.
+  là lời của mình, chữ `size: 21` (`SKETCH_TEXT_SIZE` — nhỏ hơn thì điện thoại khó đọc; nhãn dài thì ngắt 2 dòng);
+  nhãn ở khoảng trống, trong khung 520×340, cách mọi nét ≥ 6, mũi chỉ bắt đầu cách chữ; `alt` tiếng Việt tả cảnh.
 - `npm run content -- check <id>` cho tới khi không còn ✗ → `npm run content -- preview <id>` → đăng file html
   bằng Artifact (cập nhật lại cùng artifact ở các vòng sau) → gửi link + tóm tắt ngắn. `trang-thai: 4 nháp`.
 

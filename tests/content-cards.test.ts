@@ -1,4 +1,6 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { SKETCH_TEXT_HALO } from "@/lib/sketch/style";
 import {
   uncoveredParts,
   checkCard,
@@ -7,6 +9,7 @@ import {
   ledgerTable,
   parseCard,
   parseRange,
+  previewHtml,
   rangesOverlap,
   sharedRuns,
   type Card,
@@ -76,7 +79,7 @@ Không giả vờ là điểm mạnh.
 - 2026-11-06 · Minh: chốt hướng A
 `;
 
-const SKETCH_OK = { viewBox: "0 0 520 340", alt: "Một người gục bên bàn viết.", steps: [{ kind: "path", d: "M0 0 L10 10", tone: "line" }, { kind: "text", text: "one more…", x: 10, y: 20, size: 17, tone: "ink" }] };
+const SKETCH_OK = { viewBox: "0 0 520 340", alt: "Một người gục bên bàn viết.", steps: [{ kind: "path", d: "M0 0 L10 10", tone: "line" }, { kind: "text", text: "one more…", x: 10, y: 20, size: 21, tone: "ink" }] };
 
 function card(md = OK_CARD, file = "ch01-t01.md"): Card {
   return parseCard(md, file);
@@ -157,8 +160,14 @@ describe("checkCard", () => {
   });
 
   it("chữ trong hình chép sách → lỗi", () => {
-    const sketch = { ...SKETCH_OK, steps: [...SKETCH_OK.steps, { kind: "text", text: "the perfect place to start", x: 1, y: 1, size: 17, tone: "ink" }] };
+    const sketch = { ...SKETCH_OK, steps: [...SKETCH_OK.steps, { kind: "text", text: "the perfect place to start", x: 1, y: 1, size: 21, tone: "ink" }] };
     expect(checkCard(card(), ctx({ sketch, sources: ["it is the perfect place to start, really"] })).errors.join("\n")).toMatch(/hình/);
+  });
+
+  it("chữ trong hình khác cỡ chuẩn (21) → cảnh báo", () => {
+    const sketch = { ...SKETCH_OK, steps: [...SKETCH_OK.steps, { kind: "text", text: "rent", x: 1, y: 1, size: 17, tone: "ink" }] };
+    expect(checkCard(card(), ctx({ sketch })).warnings.join("\n")).toMatch(/"rent".*cỡ 17.*21/);
+    expect(checkCard(card(), ctx()).warnings.join("\n")).not.toMatch(/cỡ/);
   });
 
   it("phần trong ngoặc kép được miễn kiểm chép nhưng phải ngắn", () => {
@@ -248,5 +257,34 @@ describe("uncoveredParts", () => {
     expect(uncoveredParts(want, [parseRange("tr.1¶1 – tr.1¶3")!])).toEqual(["sau tr.1¶3, tới tr.3¶1"]);
     expect(uncoveredParts(want, [parseRange("tr.2¶1 – tr.2¶2")!])).toEqual(["từ tr.1¶3, trước tr.2¶1", "sau tr.2¶2, tới tr.3¶1"]);
     expect(uncoveredParts(want, [parseRange("tr.1¶1 – tr.4¶1")!])).toEqual([]);
+  });
+});
+
+describe("previewHtml", () => {
+  it("màu nét/chữ theo tone khớp app: line = text, ink = ink, accent = accent (accent khác ink)", () => {
+    const html = previewHtml(parseCard(OK_CARD, "ch01-t01.md"), null, { title: "T", author: "A" });
+    expect(html).toContain(".sk .line{stroke:var(--text)}");
+    expect(html).toContain(".sk .ink{stroke:var(--ink)}");
+    expect(html).toContain(".sk .accent{stroke:var(--accent)}");
+    expect(html).toContain("text.line{fill:var(--text)}");
+    expect(html).toContain("text.name{fill:var(--bright)}");
+    expect(html).toContain("text.ink{fill:var(--ink)}");
+    expect(html).toContain("text.accent{fill:var(--accent)}");
+    expect(html).toMatch(/--bright:/);
+  });
+
+  it("màu đọc từ lib/theme.css (không chép cứng hex), theo theme máy; viền chữ trong hình khớp PassageSketch", () => {
+    const html = previewHtml(parseCard(OK_CARD, "ch01-t01.md"), null, { title: "T", author: "A" });
+    const theme = readFileSync("lib/theme.css", "utf8");
+    for (const [, name, value] of theme.matchAll(/(--[\w-]+):\s*([^;]+);/g)) expect(html).toContain(`${name}: ${value};`);
+    expect(html).toContain("@media (prefers-color-scheme: light){:root:not([data-theme=dark]){");
+    // ngoài khối theme thì không có mã màu nào
+    const rest = html
+      .slice(html.indexOf("<style>"), html.indexOf("</style>"))
+      .replace(theme, "")
+      .replace(/@media \(prefers-color-scheme: light\)\{:root:not\(\[data-theme=dark\]\)\{[^}]*\}\}/, "");
+    expect(rest).not.toMatch(/#[0-9a-f]{3,8}\b/i);
+    expect(html).toContain(`stroke-width:${SKETCH_TEXT_HALO}px`);
+    expect(SKETCH_TEXT_HALO).toBe(4);
   });
 });

@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { markCardsSeen } from "./card-helpers";
 
 const P1 = "/read/the-subtle-art/ch01/1";
 
@@ -10,14 +11,14 @@ async function finishTyping(page: Page) {
 
 test("trang không cuộn ngang ở 390px", async ({ page }) => {
   await page.goto(P1);
-  await expect(page.getByTestId("original-col")).toBeVisible();
+  await expect(page.getByTestId("caption-col")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
 
 test("nguyên văn và bản dịch nằm trọn bề ngang, bản dịch ở dưới", async ({ page }) => {
   await page.goto(P1);
-  await expect(page.getByTestId("original-col")).toBeVisible();
-  const o = await page.getByTestId("original-col").boundingBox();
+  await expect(page.getByTestId("caption-col")).toBeVisible();
+  const o = await page.getByTestId("caption-col").boundingBox();
   const t = await page.getByTestId("translation-col").boundingBox();
   expect(o).not.toBeNull();
   expect(t).not.toBeNull();
@@ -30,15 +31,18 @@ test("nguyên văn và bản dịch nằm trọn bề ngang, bản dịch ở d�
 
 test("chạm bản dịch khi đang gõ thì hiện đủ ngay", async ({ page }) => {
   await page.goto(P1);
+  // Thẻ vẽ trước: bản dịch chỉ bắt đầu gõ khi hình xong → bấm "xem ngay ⏭" lúc đang vẽ
+  await expect(page.getByTestId("sketch")).toHaveAttribute("data-state", "drawing");
+  await page.getByRole("button", { name: "xem ngay ⏭" }).tap();
   await expect(page.getByText("đang gõ…")).toBeVisible();
   await finishTyping(page);
-  await expect(page.getByTestId("translation-col")).toContainText("điểm khởi đầu hoàn hảo");
+  await expect(page.getByTestId("translation-col")).toContainText("chưa bao giờ giả vờ làm một người khác");
 });
 
 test("header gọn: chỉ chương và số đoạn", async ({ page }) => {
   await page.goto(P1);
   const header = page.locator("header");
-  await expect(header).toContainText("chương 1 · đoạn 1/3");
+  await expect(header).toContainText("chương 1 · thẻ 1/3");
   await expect(header.getByText("takeiteasy —")).toBeHidden();
 });
 
@@ -58,7 +62,7 @@ test("không có lỗi hydration", async ({ page }) => {
     if (m.type() === "error") errors.push(m.text());
   });
   await page.goto(P1);
-  await expect(page.getByTestId("original-col")).toBeVisible();
+  await expect(page.getByTestId("caption-col")).toBeVisible();
   expect(errors.filter((e) => /hydrat/i.test(e))).toEqual([]);
 });
 
@@ -139,19 +143,19 @@ test.describe("chuột ở bề ngang hẹp (có gợi ý phím)", () => {
   }
 });
 
-test("bật giải thích: 5 số cạnh cụm + 5 ghi chú tay giữa nguyên văn và bản dịch", async ({ page }) => {
+test("bật giải thích: 4 số cạnh cụm + 4 ghi chú tay giữa nguyên văn và bản dịch", async ({ page }) => {
   await page.goto(P1);
   await finishTyping(page);
   await page.getByRole("button", { name: /giải thích/ }).tap();
   const nums = page.getByTestId("chunk-badge");
-  await expect(nums).toHaveCount(5);
-  for (let i = 0; i < 5; i++) await expect(nums.nth(i)).toBeVisible();
+  await expect(nums).toHaveCount(4);
+  for (let i = 0; i < 4; i++) await expect(nums.nth(i)).toBeVisible();
 
   const notes = page.getByTestId("mobile-notes");
   await expect(notes).toBeVisible();
   const items = notes.getByRole("button");
-  await expect(items).toHaveCount(5);
-  for (let i = 0; i < 5; i++) {
+  await expect(items).toHaveCount(4);
+  for (let i = 0; i < 4; i++) {
     const b = (await items.nth(i).boundingBox())!;
     expect(b.x).toBeGreaterThanOrEqual(0);
     expect(b.x + b.width).toBeLessThanOrEqual(390);
@@ -167,13 +171,13 @@ test("chạm cụm gạch chân hoặc số thì mở đúng cụm", async ({ pa
   await page.goto(P1);
   await finishTyping(page);
   await page.getByRole("button", { name: /giải thích/ }).tap();
-  await page.locator('[data-chunk-id="chronic"]').tap();
+  await page.locator('[data-chunk-id="is-a-mess"]').tap();
   const dialog = page.getByRole("dialog");
-  await expect(dialog).toContainText("// chunk 1/5");
+  await expect(dialog).toContainText("// chunk 1/4");
   await dialog.getByRole("button", { name: /đóng/ }).tap();
   await expect(dialog).toBeHidden();
   await page.getByTestId("chunk-badge").nth(2).tap();
-  await expect(page.getByRole("dialog")).toContainText("// chunk 3/5");
+  await expect(page.getByRole("dialog")).toContainText("// chunk 3/4");
 });
 
 /** Chờ tấm/ngăn giải thích trượt xong: vị trí (x, y) không còn đổi giữa hai lần đo. */
@@ -201,11 +205,11 @@ async function openNote(page: Page, n: number) {
   return waitSettled(page);
 }
 
-test("chạm ghi chú 4 → tấm trượt lên, trọn màn hình, đúng cụm", async ({ page }) => {
+test("chạm ghi chú 3 → tấm trượt lên, trọn màn hình, đúng cụm", async ({ page }) => {
   await page.goto(P1);
-  const dialog = await openNote(page, 4);
-  await expect(dialog).toContainText("// chunk 4/5");
-  await expect(dialog.getByRole("heading", { name: "look to somebody for something" })).toBeVisible();
+  const dialog = await openNote(page, 3);
+  await expect(dialog).toContainText("// chunk 3/4");
+  await expect(dialog.getByRole("heading", { name: "pile up" })).toBeVisible();
   const b = (await dialog.boundingBox())!;
   expect(b.y).toBeGreaterThanOrEqual(0);
   expect(b.y + b.height).toBeLessThanOrEqual(844 + 1);
@@ -214,11 +218,11 @@ test("chạm ghi chú 4 → tấm trượt lên, trọn màn hình, đúng cụm
   expect(b.width).toBe(390);
 });
 
-test("chunk sau → sang cụm 5; ✕ đóng; chạm vùng mờ đóng", async ({ page }) => {
+test("chunk sau → sang cụm 4; ✕ đóng; chạm vùng mờ đóng", async ({ page }) => {
   await page.goto(P1);
-  const dialog = await openNote(page, 4);
+  const dialog = await openNote(page, 3);
   await dialog.getByRole("button", { name: /chunk sau/ }).tap();
-  await expect(dialog).toContainText("// chunk 5/5");
+  await expect(dialog).toContainText("// chunk 4/4");
   await dialog.getByRole("button", { name: "đóng", exact: true }).tap();
   await expect(page.getByRole("dialog")).toBeHidden();
 
@@ -231,9 +235,9 @@ test("chunk sau → sang cụm 5; ✕ đóng; chạm vùng mờ đóng", async (
 test.describe("màn hình thấp 390×600", () => {
   test.use({ viewport: { width: 390, height: 600 } });
 
-  test("cụm 5 nhiều nội dung: vùng cuộn tràn, nút chuyển cụm luôn thấy được", async ({ page }) => {
+  test("cụm 4 nhiều nội dung: vùng cuộn tràn, nút chuyển cụm luôn thấy được", async ({ page }) => {
     await page.goto(P1);
-    const dialog = await openNote(page, 5);
+    const dialog = await openNote(page, 4);
     const scroller = dialog.getByTestId("sheet-scroll");
     const { sh, ch } = await scroller.evaluate((e) => ({ sh: e.scrollHeight, ch: e.clientHeight }));
     expect(sh).toBeGreaterThan(ch);
@@ -245,12 +249,12 @@ test.describe("màn hình thấp 390×600", () => {
 
   test("chuyển cụm thì vùng cuộn về đầu", async ({ page }) => {
     await page.goto(P1);
-    const dialog = await openNote(page, 5);
+    const dialog = await openNote(page, 4);
     const scroller = dialog.getByTestId("sheet-scroll");
     await scroller.evaluate((e) => (e.scrollTop = e.scrollHeight));
     expect(await scroller.evaluate((e) => e.scrollTop)).toBeGreaterThan(0);
     await dialog.getByRole("button", { name: /chunk trước/ }).tap();
-    await expect(dialog).toContainText("// chunk 4/5");
+    await expect(dialog).toContainText("// chunk 3/4");
     expect(await scroller.evaluate((e) => e.scrollTop)).toBe(0);
   });
 });
@@ -332,6 +336,7 @@ test("tấm vẫn trọn màn hình khi đổi cỡ qua 1024px", async ({ page }
 test.describe("số tròn không rời cụm, dấu câu không rớt xuống đầu dòng", () => {
   for (const width of [320, 360, 390, 412, 720, 790]) {
     test(`${width}px, cả 3 đoạn`, async ({ page }) => {
+      await markCardsSeen(page); // đo trên mô tả đã hiện
       await page.setViewportSize({ width, height: 844 });
       for (const n of [1, 2, 3]) {
         await page.goto(`/read/the-subtle-art/ch01/${n}`);
@@ -341,7 +346,7 @@ test.describe("số tròn không rời cụm, dấu câu không rớt xuống đ
         await expect(page.getByTestId("chunk-badge").first()).toBeVisible();
         const broken = await page.evaluate(() => {
           const out: string[] = [];
-          const chunks = document.querySelectorAll('[data-testid="original-text"] [data-chunk-id]');
+          const chunks = document.querySelectorAll('[data-testid="caption-text"] [data-chunk-id]');
           const badges = document.querySelectorAll<HTMLElement>('[data-testid="chunk-badge"]');
           for (const [i, badge] of badges.entries()) {
             const b = badge.getBoundingClientRect();
@@ -369,11 +374,12 @@ test.describe("số tròn không rời cụm, dấu câu không rớt xuống đ
 });
 
 test("bôi đen nguyên văn khi bật giải thích không dính số", async ({ page }) => {
+  await markCardsSeen(page); // vùng chọn chỉ lấy được chữ của mô tả đang hiện
   await page.goto(P1);
   await finishTyping(page);
   const selected = () =>
     page.evaluate(() => {
-      const el = document.querySelector('[data-testid="original-text"]')!;
+      const el = document.querySelector('[data-testid="caption-text"]')!;
       const sel = window.getSelection()!;
       sel.removeAllRanges();
       const r = document.createRange();
@@ -385,7 +391,7 @@ test("bôi đen nguyên văn khi bật giải thích không dính số", async (
     });
   const plain = await selected();
   await page.getByRole("button", { name: /giải thích/ }).tap();
-  await expect(page.getByTestId("chunk-badge")).toHaveCount(5);
+  await expect(page.getByTestId("chunk-badge")).toHaveCount(4);
   expect(await selected()).toBe(plain);
 });
 
@@ -393,7 +399,7 @@ test("bật giải thích: bản dịch vẫn rõ trên mobile", async ({ page }
   await page.goto(P1);
   await finishTyping(page);
   await page.getByRole("button", { name: /giải thích/ }).tap();
-  await expect(page.getByText("5 chunks đáng học")).toBeVisible();
+  await expect(page.getByText("4 chunks đáng học")).toBeVisible();
   // chờ hiệu ứng mờ dần (nếu có) chạy xong rồi mới đo
   const opacity = await page.getByTestId("translation-col").evaluate(async (el) => {
     await new Promise((r) => setTimeout(r, 50));
@@ -457,7 +463,7 @@ test('nút "đã hiểu" của mẹo lần đầu có vùng chạm ≥ 44px', as
 test("tablet 900px: cột đọc không trải hết bề ngang, căn giữa", async ({ page }) => {
   await page.setViewportSize({ width: 900, height: 1000 });
   await page.goto(P1);
-  for (const id of ["original-col", "translation-col"]) {
+  for (const id of ["caption-col", "translation-col"]) {
     const b = (await page.getByTestId(id).boundingBox())!;
     expect(b.width, id).toBeLessThanOrEqual(640);
     expect(Math.abs(b.x - (900 - (b.x + b.width))), `${id} căn giữa`).toBeLessThanOrEqual(2);

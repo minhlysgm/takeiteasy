@@ -1,5 +1,11 @@
 import { test, expect } from "@playwright/test";
 import { markShell, shellState } from "./persist-helpers";
+import { markCardsSeen } from "./card-helpers";
+
+// Không kiểm luồng vẽ trước: coi như đã xem hình, mở thẻ là mô tả + bản dịch hiện đủ.
+test.beforeEach(async ({ page }) => {
+  await markCardsSeen(page);
+});
 
 test("Khi chạm tiếp → trên mobile thì header/footer giữ nguyên, vạch tiến độ trượt (scaleX)", async ({ page }) => {
   await page.goto("/read/the-subtle-art/ch01/1");

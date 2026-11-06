@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { getPassage } from "@/lib/content";
 import { P, dismissFirstTimeHint, finishTyping, installSpies, selectText, type Spy } from "./selection-helpers";
+import { markCardsSeen } from "./card-helpers";
 
 // Tiêu chí nghiệm thu 1–9 + RF4 — spec docs/superpowers/specs/2026-11-05-touch-selection-design.md.
 // Máy giả lập Pixel 7 (390×844, cảm ứng, pointer: coarse). Vùng chọn tạo bằng script.
@@ -12,6 +13,7 @@ const spy = <K extends keyof Spy>(page: Page, key: K) =>
   page.evaluate((k) => (window as unknown as Spy)[k], key);
 
 test.beforeEach(async ({ page }) => {
+  await markCardsSeen(page); // không kiểm luồng vẽ trước: mở thẻ là hiện đủ
   await installSpies(page);
 });
 
@@ -22,12 +24,12 @@ test.describe("mẹo lần đầu đã tắt (thanh nằm ngay trên footer)", (
     await finishTyping(page, "tap");
   });
 
-  test('Khi bôi đen "chronic gambler" trong nguyên văn thì trong ≤ 0.5s thanh hiện ngay trên footer, có "nghe" và "tra nghĩa", không có popup', async ({ page }) => {
-    const ms = await selectText(page, "original-text", "chronic gambler", "selection-dock");
+  test('Khi bôi đen "bets his rent money on horse" trong nguyên văn thì trong ≤ 0.5s thanh hiện ngay trên footer, có "nghe" và "tra nghĩa", không có popup', async ({ page }) => {
+    const ms = await selectText(page, "caption-text", "bets his rent money on horse", "selection-dock");
     expect(ms, "thời gian tới khi thanh hiện (ms)").toBeGreaterThanOrEqual(0);
     expect(ms).toBeLessThanOrEqual(500);
     await expect(dock(page)).toBeVisible();
-    await expect(dock(page)).toContainText("chronic gambler");
+    await expect(dock(page)).toContainText("bets his rent money on horse");
     await expect(dock(page).getByRole("button", { name: /nghe/ })).toBeVisible();
     await expect(dock(page).getByRole("button", { name: /tra nghĩa/ })).toBeVisible();
     await expect(page.getByTestId("selection-popup")).toHaveCount(0);
@@ -37,34 +39,34 @@ test.describe("mẹo lần đầu đã tắt (thanh nằm ngay trên footer)", (
   });
 
   test("Khi bỏ chọn thì thanh ẩn", async ({ page }) => {
-    await selectText(page, "original-text", "chronic gambler");
+    await selectText(page, "caption-text", "bets his rent money on horse");
     await expect(dock(page)).toBeVisible();
     await page.evaluate(() => window.getSelection()!.removeAllRanges());
     await page.touchscreen.tap(6, 400); // lề trái của vùng đọc: không chữ, không nút
     await expect(dock(page)).toBeHidden();
   });
 
-  test('Khi chạm "nghe" thì đọc đúng "chronic gambler", vùng chọn và thanh vẫn còn', async ({ page }) => {
-    await selectText(page, "original-text", "chronic gambler");
+  test('Khi chạm "nghe" thì đọc đúng "bets his rent money on horse", vùng chọn và thanh vẫn còn', async ({ page }) => {
+    await selectText(page, "caption-text", "bets his rent money on horse");
     await dock(page).getByRole("button", { name: /nghe/ }).tap();
-    await expect.poll(() => spy(page, "__spoken")).toEqual(["chronic gambler"]);
+    await expect.poll(() => spy(page, "__spoken")).toEqual(["bets his rent money on horse"]);
     // quá hạn chờ ổn định (250ms) và hạn giữ (800ms) mà thanh vẫn còn
     await page.waitForTimeout(1100);
     await expect(dock(page)).toBeVisible();
-    await expect(dock(page)).toContainText("chronic gambler");
-    expect(await page.evaluate(() => window.getSelection()!.toString())).toBe("chronic gambler");
+    await expect(dock(page)).toContainText("bets his rent money on horse");
+    expect(await page.evaluate(() => window.getSelection()!.toString())).toBe("bets his rent money on horse");
   });
 
   test('Khi bôi đen câu 11 từ trở lên thì thanh chỉ có "nghe"', async ({ page }) => {
-    await selectText(page, "original-text", "Charles Bukowski was an alcoholic, a womanizer, a chronic gambler, a");
+    await selectText(page, "caption-text", "This is Charles Bukowski, and his life is a mess. He");
     await expect(dock(page)).toBeVisible();
     await expect(dock(page).getByRole("button", { name: /nghe/ })).toBeVisible();
     await expect(dock(page).getByRole("button", { name: /tra nghĩa/ })).toHaveCount(0);
   });
 
   test("Khi bôi đen chữ trong bản dịch thì không hiện thanh", async ({ page }) => {
-    await selectText(page, "translation-col", "con bạc kinh niên");
-    expect(await page.evaluate(() => window.getSelection()!.toString())).toBe("con bạc kinh niên");
+    await selectText(page, "translation-col", "đem cả tiền nhà đi cá ngựa");
+    expect(await page.evaluate(() => window.getSelection()!.toString())).toBe("đem cả tiền nhà đi cá ngựa");
     await page.waitForTimeout(600); // > 250ms chờ ổn định
     await expect(dock(page)).toHaveCount(0);
   });
@@ -83,13 +85,13 @@ test.describe("mẹo lần đầu đã tắt (thanh nằm ngay trên footer)", (
     await page.getByRole("button", { name: /giải thích/ }).tap();
     await page.getByTestId("mobile-notes").getByRole("button").first().tap();
     await expect(page.getByRole("dialog")).toBeVisible();
-    await selectText(page, "original-text", "chronic gambler");
+    await selectText(page, "caption-text", "bets his rent money on horse");
     await page.waitForTimeout(600);
     await expect(dock(page)).toHaveCount(0);
   });
 
   test("Khi thanh đang hiện mà chạm tiếp → thì sang đoạn 2 và thanh ẩn ngay, không đọc chữ của đoạn cũ", async ({ page }) => {
-    await selectText(page, "original-text", "chronic gambler");
+    await selectText(page, "caption-text", "bets his rent money on horse");
     await expect(dock(page)).toBeVisible();
     // Ghi lại mọi lần DOM đổi: đoạn 2 đã hiện mà thanh (của đoạn 1) vẫn còn → lỗi.
     // Không dựa vào auto-wait: vùng chọn tự xẹp khi cột cũ unmount, hook sẽ tự ẩn thanh sau 250ms.
@@ -98,19 +100,19 @@ test.describe("mẹo lần đầu đã tắt (thanh nằm ngay trên footer)", (
       const w = window as unknown as { __stale: string[] };
       w.__stale = [];
       const check = () => {
-        const text = document.querySelector('[data-testid="original-text"]')?.textContent ?? "";
+        const text = document.querySelector('[data-testid="caption-text"]')?.textContent ?? "";
         const d = document.querySelector('[data-testid="selection-dock"]');
         if (text.startsWith(p2) && d) w.__stale.push(d.textContent ?? "");
       };
       new MutationObserver(check).observe(document.body, { childList: true, subtree: true, characterData: true });
-    }, PASSAGE_2.original.slice(0, 40));
+    }, PASSAGE_2.caption.slice(0, 40));
     await page.getByRole("button", { name: "tiếp →" }).tap();
     await expect(page).toHaveURL(/\/ch01\/2$/);
     const dockWhenP2Shows = await page.waitForFunction((p2) => {
-      const text = document.querySelector('[data-testid="original-text"]')?.textContent ?? "";
+      const text = document.querySelector('[data-testid="caption-text"]')?.textContent ?? "";
       if (!text.startsWith(p2)) return false;
       return document.querySelector('[data-testid="selection-dock"]') ? "còn thanh" : "không thanh";
-    }, PASSAGE_2.original.slice(0, 40));
+    }, PASSAGE_2.caption.slice(0, 40));
     expect(await dockWhenP2Shows.jsonValue(), "lúc đoạn 2 vừa hiện").toBe("không thanh");
     await page.waitForTimeout(600);
     expect(await page.evaluate(() => (window as unknown as { __stale: string[] }).__stale), "thanh cũ trên đoạn 2").toEqual([]);
@@ -125,7 +127,7 @@ test.describe("mẹo lần đầu còn hiện", () => {
     await finishTyping(page, "tap");
     const hintBtn = page.getByRole("button", { name: "đã hiểu" });
     await expect(hintBtn).toBeVisible();
-    await selectText(page, "original-text", "chronic gambler");
+    await selectText(page, "caption-text", "bets his rent money on horse");
     await expect(dock(page)).toBeVisible();
     await expect(hintBtn).toBeHidden();
     await page.evaluate(() => window.getSelection()!.removeAllRanges());
@@ -135,19 +137,19 @@ test.describe("mẹo lần đầu còn hiện", () => {
   });
 });
 
-test.describe("màn thấp 390×560", () => {
-  test.use({ viewport: { width: 390, height: 560 } });
+test.describe("màn thấp 390×500", () => {
+  test.use({ viewport: { width: 390, height: 500 } });
 
   test("Khi bôi đen chữ nằm ngay chỗ thanh sắp hiện thì trang tự cuộn để chữ đang chọn nằm trên thanh", async ({ page }) => {
     await dismissFirstTimeHint(page);
-    await page.goto(P(1));
+    await page.goto(P(2)); // đoạn 2 dài hơn: chữ cuối đủ thấp để rơi vào dải thanh
     await finishTyping(page, "tap");
-    const words = PASSAGE_1.original.trim().split(/\s+/);
+    const words = PASSAGE_2.caption.trim().split(/\s+/);
     const needle = words.slice(-2).join(" ");
     // Đưa chữ cần chọn xuống còn cách đáy màn hình 90px: đúng dải thanh (~82px) + footer (60px) sẽ chiếm.
     // Trả về đáy của chữ sau khi cuộn (trang có thể không cuộn được đủ).
     const bottom = await page.evaluate((s) => {
-      const root = document.querySelector('[data-testid="original-text"]')!;
+      const root = document.querySelector('[data-testid="caption-text"]')!;
       const i = root.textContent!.lastIndexOf(s);
       const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
       let seen = 0;
@@ -164,8 +166,8 @@ test.describe("màn thấp 390×560", () => {
       }
       throw new Error("không thấy chữ");
     }, needle);
-    expect(bottom, "điều kiện đầu: chữ nằm trong dải thanh sẽ chiếm (đáy màn - 60 footer - 70)").toBeGreaterThan(560 - 60 - 70);
-    await selectText(page, "original-text", needle);
+    expect(bottom, "điều kiện đầu: chữ nằm trong dải thanh sẽ chiếm (đáy màn - 60 footer - 70)").toBeGreaterThan(500 - 60 - 70);
+    await selectText(page, "caption-text", needle);
     await expect(dock(page)).toBeVisible();
     await expect
       .poll(async () => {
@@ -188,7 +190,7 @@ test.describe("320px", () => {
     await dismissFirstTimeHint(page);
     await page.goto(P(1));
     await finishTyping(page, "tap");
-    await selectText(page, "original-text", "chronic gambler");
+    await selectText(page, "caption-text", "bets his rent money on horse");
     await expect(dock(page)).toBeVisible();
 
     const d = (await dock(page).boundingBox())!;
@@ -217,10 +219,10 @@ test.describe("320px", () => {
 
     await selectText(
       page,
-      "original-text",
-      "Charles Bukowski was an alcoholic, a womanizer, a chronic gambler, a lout, a cheapskate",
+      "caption-text",
+      "This is Charles Bukowski, and his life is a mess. He drinks too much, bets his rent money on horse races, and the letters",
     );
-    await expect(dock(page)).toContainText("a cheapskate");
+    await expect(dock(page)).toContainText("the letters");
     const text = await dock(page).locator(".truncate").evaluate((el) => {
       const cs = getComputedStyle(el);
       const lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.5;

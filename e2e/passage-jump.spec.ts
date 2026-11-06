@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { P, dismissFirstTimeHint, finishTyping, selectText } from "./selection-helpers";
+import { markCardsSeen } from "./card-helpers";
 
 // Tiêu chí nghiệm thu 1–8, 12 — spec docs/superpowers/specs/2026-11-05-passage-jump-design.md.
 // Desktop 1440×900.
@@ -13,6 +14,7 @@ async function open(page: Page, n: number) {
 }
 
 test.beforeEach(async ({ page }) => {
+  await markCardsSeen(page); // không kiểm luồng vẽ trước: mở thẻ là hiện đủ
   await dismissFirstTimeHint(page);
 });
 
@@ -24,7 +26,7 @@ test("1. Khi bấm bộ đếm thì hiện danh sách 3 đoạn có câu mở đ
   await expect(list(page)).toBeVisible();
   await expect(page.getByTestId("jump-row")).toHaveCount(3);
   await expect(row(page, 2)).toHaveAttribute("aria-current", "true");
-  await expect(row(page, 2)).toContainText("Bukowski wanted to be a writer.");
+  await expect(row(page, 2)).toContainText("It’s three in the morning and she still can’t fall asleep.");
   await expect(row(page, 1)).not.toHaveAttribute("aria-current", "true");
   await expect(list(page)).toContainText("Chương 1 · Don't Try");
 });
@@ -36,7 +38,7 @@ test("2. Khi bấm dòng 1 thì danh sách đóng, sang đoạn 1 và trang ở 
   await row(page, 1).click();
   await expect(page).toHaveURL(/\/ch01\/1$/);
   await expect(list(page)).toHaveCount(0);
-  await expect(page.getByTestId("original-text")).toContainText("Charles Bukowski");
+  await expect(page.getByTestId("caption-text")).toContainText("Charles Bukowski");
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
 });
 
@@ -87,7 +89,7 @@ test("6. Khi tấm giải thích đang mở thì g / Home / End không làm gì"
   await expect(list(page)).toHaveCount(0);
 });
 
-test("7. Khi đã mở đoạn 1 và 2 thì danh sách có ✓ ở dòng 1, 2, không có ở dòng 3; tải lại vẫn còn", async ({ page }) => {
+test("7. Khi đã mở thẻ 1 và 2 thì danh sách có ✓ ở dòng 1, 2, không có ở dòng 3; tải lại vẫn còn", async ({ page }) => {
   await open(page, 1);
   await page.getByRole("button", { name: /tiếp →/ }).click();
   await expect(page).toHaveURL(/\/ch01\/2$/);
@@ -97,7 +99,7 @@ test("7. Khi đã mở đoạn 1 và 2 thì danh sách có ✓ ở dòng 1, 2, k
     await expect(row(page, 1)).toContainText("✓");
     await expect(row(page, 2)).toContainText("✓");
     await expect(row(page, 3)).not.toContainText("✓");
-    await expect(list(page)).toContainText("2/3 đoạn đã đọc");
+    await expect(list(page)).toContainText("2/3 thẻ đã đọc");
   };
   await checks();
   await page.reload();
@@ -109,7 +111,7 @@ test("8. Khi bấm ra ngoài danh sách thì danh sách đóng", async ({ page }
   await open(page, 2);
   await page.getByTestId("jump-trigger").click();
   await expect(list(page)).toBeVisible();
-  const box = (await page.getByTestId("original-col").boundingBox())!;
+  const box = (await page.getByTestId("caption-col").boundingBox())!;
   await page.mouse.click(box.x + box.width / 2, box.y + 40);
   await expect(list(page)).toHaveCount(0);
   await expect(page).toHaveURL(/\/ch01\/2$/);
@@ -129,7 +131,7 @@ test("Danh sách đang mở mà bấm Back thì danh sách đóng, trang không 
 
 test("Đang bôi đen chữ mà nhấn g thì popup chọn chữ tắt", async ({ page }) => {
   await open(page, 1);
-  expect(await selectText(page, "original-text", "chronic gambler", "selection-popup")).toBeGreaterThanOrEqual(0);
+  expect(await selectText(page, "caption-text", "bets his rent money on horse", "selection-popup")).toBeGreaterThanOrEqual(0);
   await page.keyboard.press("g");
   await expect(list(page)).toBeVisible();
   await expect(page.getByTestId("selection-popup")).toHaveCount(0);

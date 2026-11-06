@@ -25,7 +25,7 @@ const unavailable = (status: number, reason: "invalid" | "limited" | "paused" | 
 });
 
 export function cacheKey(text: string, sentence: string): string {
-  return "lookup:v1:cache:" + createHash("sha256").update(text + "\n" + sentence).digest("hex");
+  return "lookup:v2:cache:" + createHash("sha256").update(text + "\n" + sentence).digest("hex");
 }
 
 function parse(input: unknown): LookupRequest | null {
@@ -45,8 +45,8 @@ function parse(input: unknown): LookupRequest | null {
 }
 
 /**
- * Trả { text, sentence } nếu hợp lệ, ngược lại null. Câu ngữ cảnh do server tự cắt từ nguyên văn theo vị trí
- * (không tin câu trình duyệt gửi) → khoá cache chỉ gồm các cặp (mẩu nguyên văn ≤ 120 ký tự, câu chứa nó) có thật trong sách.
+ * Trả { text, sentence } nếu hợp lệ, ngược lại null. Câu ngữ cảnh do server tự cắt từ đoạn mô tả theo vị trí
+ * (không tin câu trình duyệt gửi) → khoá cache chỉ gồm các cặp (mẩu đoạn mô tả ≤ 120 ký tự, câu chứa nó) có thật trong sách.
  */
 function validate(input: unknown): { text: string; sentence: string } | null {
   const req = parse(input);
@@ -57,9 +57,9 @@ function validate(input: unknown): { text: string; sentence: string } | null {
   const passage = getPassage(req.bookId, req.chapterId, req.passageIndex);
   if (!passage) return null;
   const { start, end } = req;
-  if (start < 0 || end <= start || end > passage.original.length) return null;
-  if (normalizeSelectionText(passage.original.slice(start, end)) !== text) return null;
-  return { text, sentence: sentenceAt(passage.original, start, end) };
+  if (start < 0 || end <= start || end > passage.caption.length) return null;
+  if (normalizeSelectionText(passage.caption.slice(start, end)) !== text) return null;
+  return { text, sentence: sentenceAt(passage.caption, start, end) };
 }
 
 const isPaymentError = (err: unknown) =>

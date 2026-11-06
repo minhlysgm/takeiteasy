@@ -50,4 +50,68 @@ describe("useTypingText", () => {
     rerender({ t: "ngắn" });
     expect(seen[0]).toBe("ngắn||false");
   });
+  describe("option start", () => {
+    it("start=false: chưa gõ, chưa done", () => {
+      const { result } = renderHook(() => useTypingText("abc", { charMs: 10, start: false }));
+      act(() => vi.advanceTimersByTime(1000));
+      expect(result.current.display).toBe("");
+      expect(result.current.done).toBe(false);
+      expect(vi.getTimerCount()).toBe(0);
+    });
+    it("start false→true: bắt đầu gõ từ 0 rồi done", () => {
+      const { result, rerender } = renderHook(({ s }) => useTypingText("abc", { charMs: 10, start: s }), {
+        initialProps: { s: false },
+      });
+      act(() => vi.advanceTimersByTime(1000));
+      rerender({ s: true });
+      expect(result.current.display).toBe("");
+      act(() => vi.advanceTimersByTime(40));
+      expect(result.current.display.length).toBeGreaterThan(0);
+      act(() => vi.runAllTimers());
+      expect(result.current.display).toBe("abc");
+      expect(result.current.done).toBe(true);
+    });
+    it("enabled=false thắng start=false: hiện đủ", () => {
+      const { result } = renderHook(() => useTypingText("xyz", { enabled: false, start: false }));
+      expect(result.current.display).toBe("xyz");
+      expect(result.current.done).toBe(true);
+    });
+    it("đổi text khi start=false: vẫn rỗng, kể cả lần vẽ đầu với text mới", () => {
+      const seen: string[] = [];
+      const { rerender } = renderHook(
+        ({ t }) => {
+          const r = useTypingText(t, { charMs: 10, start: false });
+          seen.push(`${t}|${r.display}|${r.done}`);
+          return r;
+        },
+        { initialProps: { t: "một" } },
+      );
+      act(() => vi.advanceTimersByTime(1000));
+      seen.length = 0;
+      rerender({ t: "hai" });
+      expect(seen[0]).toBe("hai||false");
+      act(() => vi.advanceTimersByTime(1000));
+      expect(seen[seen.length - 1]).toBe("hai||false");
+    });
+    it("enabled true→false (đang chờ start): đủ chữ + done ngay trong lần vẽ đó, không khung nào rỗng", () => {
+      const seen: string[] = [];
+      const { rerender } = renderHook(
+        ({ e }) => {
+          const r = useTypingText("abc", { charMs: 10, start: false, enabled: e });
+          seen.push(`${r.display}|${r.done}`);
+          return r;
+        },
+        { initialProps: { e: true } },
+      );
+      seen.length = 0;
+      rerender({ e: false });
+      expect(seen[0]).toBe("abc|true");
+    });
+    it("skip vẫn hiện đủ khi start=false", () => {
+      const { result } = renderHook(() => useTypingText("hello", { charMs: 10, start: false }));
+      act(() => result.current.skip());
+      expect(result.current.display).toBe("hello");
+      expect(result.current.done).toBe(true);
+    });
+  });
 });

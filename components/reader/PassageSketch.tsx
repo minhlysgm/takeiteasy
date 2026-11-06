@@ -1,14 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type Ref } from "react";
 import type { Sketch, SketchStep, SketchTone } from "@/content/types";
 import { buildTimeline, drawMs, ease, frameAt, locateOnSubpaths, pencilAngle, SKETCH_EMPHASIS_MS, SKETCH_START_DELAY_MS, visibleRatio, visibleThreshold, type MeasuredStep, type Pt, type TimedStep } from "@/lib/sketch/timeline";
 import { waitFonts } from "@/lib/sketch/fonts";
 import { pointOn, splitSubpaths, stepPaths } from "@/lib/sketch/paths";
+import { SKETCH_TEXT_HALO } from "@/lib/sketch/style";
 import { isSketchSeen, markSketchSeen } from "@/lib/sketchSeen";
 import { prefersReducedMotion } from "@/lib/motion";
 
 type State = "idle" | "waiting" | "drawing" | "done";
+
+/** "instant": hiện sẵn ngay khi mở (đã xem / giảm chuyển động). "animate": vừa vẽ xong (hoặc bị bỏ qua) trước mắt người đọc. */
+export type SketchDone = "animate" | "instant";
+/** finish(how): hiện đủ ngay, nhớ đã xem, báo `onDone(how)` ("animate" nếu không nói gì). */
+export type SketchHandle = { finish(how?: SketchDone): void };
 type TextStep = Extract<SketchStep, { kind: "text" }>;
 
 type Item =
@@ -25,13 +31,43 @@ type Live =
   | { kind: "text"; rect: SVGRectElement | null; w: number }
   | { kind: "pause" };
 
-const STROKE: Record<"line" | "ink", string> = { line: "stroke-text", ink: "stroke-ink" };
-const FILL: Record<SketchTone, string> = { ink: "fill-ink", name: "fill-bright", line: "fill-text" };
+const STROKE: Record<"line" | "ink" | "accent", string> = { line: "stroke-text", ink: "stroke-ink", accent: "stroke-accent" };
+const FILL: Record<SketchTone, string> = { ink: "fill-ink", name: "fill-bright", line: "fill-text", accent: "fill-accent" };
 
-export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sketch: Sketch; passageId: string; start: boolean; dimmed?: boolean }) {
+export function PassageSketch({
+  sketch,
+  passageId,
+  dimmed = false,
+  onDone,
+  ref,
+}: {
+  sketch: Sketch;
+  passageId: string;
+  dimmed?: boolean;
+  onDone?: (how: SketchDone) => void;
+  ref?: Ref<SketchHandle>;
+}) {
   const [state, setState] = useState<State>("idle");
+  // Bản state đồng bộ cho finish() qua ref: gọi hai lần liên tiếp trước khi render lại vẫn chỉ báo một lần
+  const stateRef = useRef<State>("idle");
+  const go = useCallback((next: State) => {
+    stateRef.current = next;
+    setState(next);
+  }, []);
+  // onDone mới nhất, để callback trong effect/rAF không gọi bản cũ
+  const onDoneRef = useRef(onDone);
+  useEffect(() => {
+    onDoneRef.current = onDone;
+  });
+  // Mỗi thẻ một lần mount (PassageView key theo thẻ), nên chỉ cần cờ, không cần nhớ theo passageId.
+  // Đã báo "instant" rồi (chống StrictMode chạy effect hai lần)
+  const reportedInstant = useRef(false);
+  // finish() đã chạy (người trên có thể gọi trước cả effect mở thẻ, vd. trong layout effect của mình)
+  const finishedRef = useRef(false);
   const [reduced, setReduced] = useState(false);
-  // Hình có đang trên màn hình không. Chỉ đo sau khi bản dịch gõ xong. "yes" giữ nguyên cho tới lúc sắp vẽ;
+  // Đã vẽ xong (hoặc bị bỏ qua) ngay trước mắt người đọc → nhãn trạng thái báo "vẽ xong" cho trình đọc màn hình
+  const [finished, setFinished] = useState(false);
+  // Hình có đang trên màn hình không. "yes" giữ nguyên cho tới lúc sắp vẽ;
   // ngay trước khi vẽ kiểm lại một lần, lướt qua rồi cuộn đi thì về "no" và chờ tiếp.
   const [onScreen, setOnScreen] = useState<"unknown" | "no" | "yes">("unknown");
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
@@ -76,12 +112,22 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
   const pencil = useRef<SVGGElement>(null);
   const pencilBody = useRef<SVGGElement>(null);
 
-  // Khi mount: giảm chuyển động hoặc đã xem → hiện sẵn; còn lại chờ bản dịch gõ xong
-  useEffect(() => {
+  // Khi mở: giảm chuyển động hoặc đã xem → hiện sẵn và báo "instant"; còn lại chờ hình lọt khung rồi tự vẽ.
+  // Layout effect: quyết trước khi trình duyệt vẽ khung đầu (lúc hydrate hay mở bằng điều hướng trong app),
+  // để thẻ đã xem không loé một khung hình trống / "chờ vẽ".
+  useLayoutEffect(() => {
     const rm = prefersReducedMotion();
     setReduced(rm);
-    setState(rm || isSketchSeen(passageId) ? "done" : "waiting");
-  }, [passageId]);
+    // finish() đã chạy trước effect: đã done và đã báo rồi, đừng báo thêm "instant"
+    if (stateRef.current === "done" && finishedRef.current) return;
+    if (rm || isSketchSeen(passageId)) {
+      go("done");
+      if (!reportedInstant.current) {
+        reportedInstant.current = true;
+        onDoneRef.current?.("instant");
+      }
+    } else go("waiting");
+  }, [passageId, go]);
 
   const setP = (l: Live, p: number) => {
     if (l.kind === "path") {
@@ -108,12 +154,27 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
         for (const [k, v] of Object.entries(fullRect)) l.rect.setAttribute(k, String(v));
       }
     });
-    setState("done");
+    go("done");
     if (seen) markSketchSeen(passageId);
-  }, [passageId, fullRect]);
+  }, [passageId, fullRect, go]);
 
-  /** Xem xong (vẽ hết hoặc người đọc bấm xem ngay) */
-  const finish = useCallback(() => reveal(true), [reveal]);
+  /** Xem xong (vẽ hết, người đọc bấm xem ngay, hoặc người trên gọi finish(how)) → báo onDone(how) */
+  const finish = useCallback((how: SketchDone = "animate") => {
+    reveal(true);
+    setFinished(true);
+    finishedRef.current = true;
+    onDoneRef.current?.(how);
+  }, [reveal]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      finish: (how) => {
+        if (stateRef.current !== "done") finish(how);
+      },
+    }),
+    [finish],
+  );
 
   /**
    * Đo DOM, dựng timeline, xoá trắng hình rồi chuyển sang "drawing". Đo lỗi thì hiện đủ hình, đừng để hình ẩn mãi,
@@ -164,17 +225,18 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
       items.forEach((it, i) => next.push(measure(it, i)));
       timeline.current = buildTimeline(measured, home);
       next.forEach((l) => setP(l, 0));
-      setState("drawing");
+      go("drawing");
     } catch {
       reveal(false);
+      onDoneRef.current?.("animate");
     }
-  }, [items, home, reveal]);
+  }, [items, home, reveal, go]);
 
   const visible = onScreen === "yes";
 
-  // waiting + start → đợi hình lọt vào màn hình
+  // waiting → đợi hình lọt vào màn hình
   useEffect(() => {
-    if (state !== "waiting" || !start || visible) return;
+    if (state !== "waiting" || visible) return;
     if (typeof IntersectionObserver === "undefined") return setOnScreen("yes");
     const el = svg.current;
     if (!el) return;
@@ -188,11 +250,11 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [state, start, visible]);
+  }, [state, visible]);
 
-  // đủ 2 điều kiện → chờ delay → chờ font → đo và vẽ
+  // hình đã lọt khung → chờ delay → chờ font → đo và vẽ
   useEffect(() => {
-    if (state !== "waiting" || !start || !visible) return;
+    if (state !== "waiting" || !visible) return;
     let alive = true;
     let fonts: ReturnType<typeof waitFonts> | undefined;
     const go = () => {
@@ -214,7 +276,7 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
       clearTimeout(timer);
       fonts?.cancel();
     };
-  }, [state, start, visible, begin]);
+  }, [state, visible, begin]);
 
   // vòng rAF khi đang vẽ
   useEffect(() => {
@@ -232,6 +294,8 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
     };
 
     const tick = (now: number) => {
+      // finish() vừa chạy (state chưa kịp render lại để huỷ rAF): đừng vẽ đè lên hình đã hiện đủ
+      if (stateRef.current !== "drawing") return;
       if (t0 === null) t0 = now;
       const t = now - t0;
       if (t >= end) return finish();
@@ -258,8 +322,7 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
     return () => cancelAnimationFrame(raf);
   }, [state, finish]);
 
-  const hidden = state === "idle" || state === "waiting";
-  const waitingFor = !start ? "chờ bản dịch gõ xong…" : onScreen === "no" ? "cuộn tới hình để xem vẽ…" : null;
+  const waitingFor = onScreen === "no" ? "cuộn tới hình để xem vẽ…" : null;
   const status = state === "waiting" ? waitingFor : state === "drawing" ? "đang vẽ…" : null;
   // Một nút duy nhất, chỉ đổi nhãn: bấm bằng bàn phím xong focus vẫn còn ở nút
   const action = state === "drawing" ? "skip" : state === "done" && !reduced ? "replay" : null;
@@ -268,17 +331,22 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
     <section
       data-testid="sketch"
       data-state={state}
-      className={`mt-9 transition-opacity motion-reduce:transition-none ${dimmed ? "opacity-30 focus-within:opacity-100" : ""}`}
+      className={`transition-opacity motion-reduce:transition-none ${dimmed ? "opacity-30 focus-within:opacity-100" : ""}`}
     >
       {/* flex-wrap: cột hẹp thì xuống dòng, đừng nong cột ra theo tổng chiều dài các nhãn */}
       <div className="flex min-h-[22px] flex-wrap items-baseline gap-x-3 gap-y-1 text-[13px]">
-        <span className="whitespace-nowrap text-muted">{"// phác thảo"}</span>
-        {status && <span className="text-xs text-accent">{status}</span>}
+        <span className="whitespace-nowrap text-muted">{"// hình"}</span>
+        {/* Chỗ báo trạng thái duy nhất của thẻ: luôn có mặt, chỉ đổi chữ (vẽ xong thì chỉ trình đọc màn hình nghe) */}
+        <span role="status" className="text-xs text-accent">
+          {status}
+          {state === "done" && finished && <span className="sr-only">vẽ xong</span>}
+        </span>
         {action && (
           <button
             type="button"
-            className="ml-auto whitespace-nowrap px-1 py-0.5 text-xs text-muted transition-colors hover:text-ink motion-reduce:transition-none"
-            onClick={action === "skip" ? finish : begin}
+            // Vùng chạm cao 44px (min-h-11), margin âm trả lại đúng 22px của hàng + self-center (ra khỏi canh baseline): chữ và hình không xê dịch
+            className="-my-[11px] -mr-1 ml-auto inline-flex min-h-11 items-center self-center whitespace-nowrap px-2 text-xs text-muted transition-colors hover:text-ink motion-reduce:transition-none"
+            onClick={action === "skip" ? () => finish() : begin}
           >
             {action === "skip" ? "xem ngay ⏭" : "↻ vẽ lại"}
           </button>
@@ -289,7 +357,7 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
         viewBox={sketch.viewBox}
         role="img"
         aria-label={sketch.alt}
-        className={`mt-6 block h-auto w-full max-w-[520px] overflow-visible ${state === "drawing" ? "cursor-pointer" : ""}`}
+        className={`mt-6 block h-auto w-full overflow-visible ${state === "drawing" ? "cursor-pointer" : ""}`}
         onClick={() => state === "drawing" && finish()}
       >
         <defs>
@@ -301,7 +369,12 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
             ) : null,
           )}
         </defs>
-        <g data-testid="sketch-art" style={hidden ? { opacity: 0 } : undefined}>
+        {/* idle (chưa quyết, kể cả HTML server): ẩn bằng class để CSS lúc chưa hydrate lật được cho thẻ đã xem */}
+        <g
+          data-testid="sketch-art"
+          className={state === "idle" ? "sketch-art-idle" : undefined}
+          style={state === "waiting" ? { opacity: 0 } : undefined}
+        >
           {items.map((it, i) => {
             if (it.kind === "pause") return null;
             if (it.kind === "text") {
@@ -315,7 +388,9 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
                   fontSize={s.size}
                   textAnchor={s.anchor}
                   clipPath={`url(#${it.clipId})`}
-                  className={`font-hand ${FILL[s.tone]}`}
+                  className={`font-hand stroke-bg [paint-order:stroke] ${FILL[s.tone]}`}
+                  strokeWidth={SKETCH_TEXT_HALO}
+                  strokeLinejoin="round"
                 >
                   {s.text}
                 </text>

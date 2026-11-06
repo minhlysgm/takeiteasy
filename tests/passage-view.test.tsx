@@ -1,10 +1,12 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { renderToString } from "react-dom/server";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { PassageView } from "@/components/reader/PassageView";
 import { DOCK_QUERY } from "@/lib/breakpoints";
 import { books, firstSentence, getPassages } from "@/lib/content";
 import { getProgress } from "@/lib/progress";
 import { getReadPassages } from "@/lib/readPassages";
+import { sketchSeenKey } from "@/lib/sketchSeen";
 import { speak } from "@/lib/speech";
 
 const push = vi.fn();
@@ -21,7 +23,7 @@ vi.mock("rough-notation", () => ({
 
 const book = books[0];
 const passages = getPassages(book.id, "ch01")!;
-const outline = passages.map((p, i) => ({ index: i + 1, firstSentence: firstSentence(p.original) }));
+const outline = passages.map((p, i) => ({ index: i + 1, firstSentence: firstSentence(p.caption) }));
 const chapterTitle = "Chương 1 · Don't Try";
 
 function renderView() {
@@ -50,10 +52,10 @@ describe("PassageView", () => {
     push.mockClear();
   });
 
-  it("render nguyên văn và header đoạn", () => {
+  it("render đoạn mô tả và header thẻ", () => {
     renderView();
-    expect(screen.getByTestId("original-col").textContent).toContain("Charles Bukowski was an alcoholic");
-    expect(document.querySelector("header")!.textContent).toContain(`đoạn 1/${passages.length}`);
+    expect(screen.getByTestId("caption-col").textContent).toContain("This is Charles Bukowski, and his life is a mess");
+    expect(document.querySelector("header")!.textContent).toContain(`thẻ 1/${passages.length}`);
   });
 
   it("lưu tiến độ khi mở đoạn", () => {
@@ -61,10 +63,10 @@ describe("PassageView", () => {
     expect(getProgress()).toEqual({ bookId: book.id, chapterId: "ch01", passageIndex: 1 });
   });
 
-  it("phím bất kỳ khi đang typing thì skip (hiện đủ bản dịch)", () => {
+  it("phím bất kỳ khi hình đang vẽ → hiện đủ mô tả + bản dịch ngay", () => {
     renderView();
     fireEvent.keyDown(window, { key: "x" });
-    expect(screen.getByTestId("translation-col").textContent).toContain("điểm khởi đầu hoàn hảo");
+    expect(screen.getByTestId("translation-col").textContent).toContain("chưa bao giờ giả vờ làm một người khác");
   });
 
   it("không lùi được khi đang ở đoạn 1, enter đi tới đoạn 2", () => {
@@ -188,20 +190,192 @@ describe("PassageView", () => {
     expect(screen.getByTestId("sketch")).toBeTruthy();
   });
 
-  it("đoạn không có sketch thì không render khung phác thảo", () => {
-    const { sketch: _sketch, ...noSketch } = passages[0];
-    render(
-      <PassageView
-        outline={outline}
-        chapterTitle={chapterTitle}
-        book={book}
-        chapterId="ch01"
-        passage={noSketch}
-        passageIndex={1}
-        passageCount={passages.length}
-      />,
+  it("thẻ nào cũng có hình (sketch bắt buộc), nằm trước đoạn mô tả", () => {
+    renderView();
+    const sketch = screen.getByTestId("sketch");
+    const caption = screen.getByTestId("caption-text");
+    expect(sketch.compareDocumentPosition(caption) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("mở thẻ chưa xem: mô tả + bản dịch chờ hình; phím bất kỳ (trừ Esc) → hiện đủ, chưa chuyển thẻ", () => {
+    renderView();
+    const capWait = screen.getByTestId("caption-waiting");
+    expect(capWait.textContent).toBe("mô tả hiện sau khi vẽ xong.");
+    expect(capWait.getAttribute("aria-hidden")).toBe("true");
+    expect(capWait.className).toContain("text-muted");
+    // chỉ một chỗ báo trạng thái (nhãn của hình)
+    expect(screen.getAllByRole("status")).toHaveLength(1);
+    expect(screen.getByTestId("sketch").contains(screen.getByRole("status"))).toBe(true);
+    expect(screen.getByTestId("caption-text").closest("[hidden]")).not.toBeNull();
+    expect(screen.getByTestId("translation-waiting").textContent).toBe("bản dịch hiện sau khi vẽ xong.");
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryByTestId("caption-waiting")).not.toBeNull();
+    fireEvent.keyDown(window, { key: "Enter" });
+    expect(push).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("caption-waiting")).toBeNull();
+    expect(screen.getByTestId("caption-text").closest("[hidden]")).toBeNull();
+    expect(screen.queryByText("đang gõ…")).toBeNull();
+    expect(screen.getByTestId("credit").textContent).toBe(
+      "Ý tưởng từ chương 1, The Subtle Art of Not Giving a F*ck — Mark Manson. Hình và lời: takeiteasy.",
     );
-    expect(screen.queryByTestId("sketch")).toBeNull();
+    expect(screen.getByTestId("sketch").dataset.state).toBe("done");
+    fireEvent.keyDown(window, { key: "Enter" });
+    expect(push).toHaveBeenCalledWith("/read/the-subtle-art/ch01/2");
+  });
+});
+
+describe("PassageView — đọc to / Space lúc hình đang vẽ", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    push.mockClear();
+    vi.mocked(speak).mockClear();
+    vi.stubGlobal("speechSynthesis", { getVoices: () => [], cancel: () => {}, speak: () => {} });
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("bấm 'đọc to' lúc đang vẽ → hiện đủ mô tả + bản dịch rồi đọc mô tả", () => {
+    renderView();
+    expect(screen.queryByTestId("caption-waiting")).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /đọc to/ }));
+    expect(screen.queryByTestId("caption-waiting")).toBeNull();
+    expect(screen.getByTestId("caption-text").closest("[hidden]")).toBeNull();
+    expect(screen.queryByText("đang gõ…")).toBeNull();
+    expect(speak).toHaveBeenCalledWith(passages[0].caption);
+  });
+
+  it("Space trên nút đang focus lúc đang vẽ → không bị preventDefault (nút tự bấm); Space ở ngoài nút thì có", () => {
+    renderView();
+    const btn = screen.getByRole("button", { name: /giải thích/ });
+    const onBtn = new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true });
+    act(() => void btn.dispatchEvent(onBtn));
+    expect(onBtn.defaultPrevented).toBe(false);
+    expect(screen.queryByTestId("caption-waiting")).toBeNull(); // vẫn hiện đủ
+
+    cleanup();
+    localStorage.clear(); // thẻ vừa hiện đủ đã tính là đã xem
+    renderView();
+    const onBody = new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true });
+    act(() => void document.body.dispatchEvent(onBody));
+    expect(onBody.defaultPrevented).toBe(true);
+  });
+});
+
+describe("PassageView — HTML server (chưa biết thẻ đã xem chưa)", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("dựng cả chỗ chờ lẫn nội dung đủ dưới [data-sketch-gate], kèm CSS chọn theo id thẻ", () => {
+    const html = renderToString(
+      <PassageView outline={outline} chapterTitle={chapterTitle} book={book} chapterId="ch01" passage={passages[0]} passageIndex={1} passageCount={passages.length} />,
+    );
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const gate = doc.querySelector('[data-testid="reader"][data-sketch-gate]')!;
+    expect(gate).not.toBeNull();
+    expect(gate.querySelector('[data-testid="caption-waiting"]')!.classList.contains("gate-wait")).toBe(true);
+    expect(gate.querySelector('[data-testid="translation-waiting"]')!.classList.contains("gate-wait")).toBe(true);
+    expect(gate.querySelector('[data-testid="caption-text"]')!.closest(".gate-full")).not.toBeNull();
+    expect(gate.querySelector('[data-testid="caption-text"]')!.closest("[hidden]")).toBeNull();
+    expect(gate.querySelector('[data-testid="credit"]')!.closest(".gate-full")).not.toBeNull();
+    expect(gate.querySelector('[data-testid="sketch-art"]')!.getAttribute("class")).toBe("sketch-art-idle");
+    expect(doc.querySelector("style")!.textContent).toContain(`[data-sketch-seen~="${passages[0].id}"]`);
+  });
+
+  it("sau khi mở ở client: hết trạng thái chưa biết (không còn gate / style)", () => {
+    renderView();
+    expect(document.querySelector("[data-sketch-gate]")).toBeNull();
+    expect(document.querySelector("style")).toBeNull();
+    expect(screen.queryByTestId("caption-waiting")).not.toBeNull();
+    cleanup();
+    localStorage.setItem(sketchSeenKey(passages[0].id), "1");
+    renderView();
+    expect(document.querySelector("[data-sketch-gate]")).toBeNull();
+    expect(screen.queryByTestId("caption-waiting")).toBeNull();
+    expect(screen.queryByTestId("translation-waiting")).toBeNull();
+    expect(screen.getByTestId("credit")).toBeTruthy();
+  });
+});
+
+describe("PassageView — nhãn bản dịch", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("nhãn '// bản dịch' luôn có (cả lúc chờ vẽ), câu chờ nằm dưới nhãn → cột không nhảy khi vẽ xong", () => {
+    renderView();
+    const col = screen.getByTestId("translation-col");
+    const label = screen.getByText("// bản dịch");
+    expect(col.contains(label)).toBe(true);
+    const wait = screen.getByTestId("translation-waiting");
+    expect(label.compareDocumentPosition(wait) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    fireEvent.keyDown(window, { key: "x" });
+    expect(screen.getByText("// bản dịch")).toBe(label); // cùng phần tử, không dựng lại
+    expect(screen.queryByTestId("translation-waiting")).toBeNull();
+  });
+});
+
+describe("PassageView — phím lúc hình đang vẽ", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    push.mockClear();
+  });
+
+  const waiting = () => screen.queryByTestId("caption-waiting") !== null;
+  const seen = () => localStorage.getItem(sketchSeenKey(passages[0].id));
+  const press = (key: string, init: KeyboardEventInit = {}, target: EventTarget = document.body) => {
+    const ev = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true, ...init });
+    act(() => void target.dispatchEvent(ev));
+    return ev;
+  };
+
+  it("danh sách thẻ đang mở: phím đi tới danh sách (g đóng, ↑↓ không hiện thẻ), không đánh dấu đã xem", () => {
+    renderView();
+    fireEvent.click(screen.getByTestId("jump-trigger"));
+    expect(screen.queryByTestId("jump-list")).toBeTruthy();
+    press("ArrowDown", {}, document.activeElement ?? document.body);
+    press("x");
+    expect(screen.queryByTestId("jump-list")).toBeTruthy();
+    press("g");
+    expect(screen.queryByTestId("jump-list")).toBeNull(); // g lần đầu đã đóng
+    expect(waiting()).toBe(true);
+    expect(screen.getByTestId("sketch").dataset.state).not.toBe("done");
+    expect(seen()).toBeNull();
+  });
+
+  it("phím bổ trợ đứng một mình, tổ hợp Ctrl/Meta/Alt, F1–F12: bỏ qua hẳn (không hiện, không chặn)", () => {
+    renderView();
+    const evs = [
+      press("Shift", { shiftKey: true }),
+      press("Control", { ctrlKey: true }),
+      press("Alt", { altKey: true }),
+      press("Meta", { metaKey: true }),
+      press("r", { ctrlKey: true }),
+      press("r", { metaKey: true }),
+      press("ArrowLeft", { altKey: true }),
+      press("F5"),
+      press("F1"),
+      press("F12"),
+    ];
+    expect(evs.map((e) => e.defaultPrevented)).toEqual(evs.map(() => false));
+    expect(waiting()).toBe(true);
+    expect(seen()).toBeNull();
+  });
+
+  it("phím cuộn (PageUp/PageDown/↑/↓, Home ở thẻ đầu) không bị chặn và không hiện thẻ", () => {
+    renderView();
+    const evs = ["PageDown", "PageUp", "ArrowDown", "ArrowUp", "Home"].map((k) => press(k));
+    expect(evs.map((e) => e.defaultPrevented)).toEqual(evs.map(() => false));
+    expect(waiting()).toBe(true);
+    expect(seen()).toBeNull();
+  });
+
+  it("phím tắt của app (→, End khi chưa ở thẻ cuối) vẫn hiện đủ + chặn, chưa chuyển thẻ", () => {
+    renderView();
+    expect(press("End").defaultPrevented).toBe(true);
+    expect(waiting()).toBe(false);
+    expect(push).not.toHaveBeenCalled();
+    cleanup();
+    localStorage.clear();
+    renderView();
+    expect(press("ArrowRight").defaultPrevented).toBe(true);
+    expect(waiting()).toBe(false);
+    expect(push).not.toHaveBeenCalled();
   });
 });
 
@@ -396,36 +570,36 @@ describe("PassageView — chọn chữ khi chuyển đoạn", () => {
     );
   }
 
-  /** Bôi đen "chronic gambler" trong nguyên văn rồi chờ quá 250ms → popup hiện (jsdom không có matchMedia → desktop). */
-  function selectChronicGambler() {
-    const root = screen.getByTestId("original-text");
+  /** Bôi đen "bets his rent money on horse" trong đoạn mô tả rồi chờ quá 250ms → popup hiện (jsdom không có matchMedia → desktop). */
+  function selectBetsHorse() {
+    const root = screen.getByTestId("caption-text");
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     let node: Text | null = null;
     while (walker.nextNode()) {
       const t = walker.currentNode as Text;
-      if (t.data.includes("chronic")) node = t;
+      if (t.data.includes("bets his rent")) node = t;
       if (node) break;
     }
-    // "chronic" là span cụm riêng; " gambler" nằm ở text node kế tiếp
+    // "bets his rent money on" là span cụm riêng; " horse races…" nằm ở text node kế tiếp
     const next = node!.parentNode!.nextSibling as Text;
     act(() => {
       const range = document.createRange();
       range.setStart(node!, 0);
-      range.setEnd(next, " gambler".length);
+      range.setEnd(next, " horse".length);
       const sel = window.getSelection()!;
       sel.removeAllRanges();
       sel.addRange(range);
       document.dispatchEvent(new Event("selectionchange"));
     });
     act(() => void vi.advanceTimersByTime(300));
-    expect(window.getSelection()!.toString()).toBe("chronic gambler");
+    expect(window.getSelection()!.toString()).toBe("bets his rent money on horse");
     expect(screen.getByTestId("selection-popup")).toBeTruthy();
   }
 
   it("bấm Enter sang đoạn kế (goTo) thì popup tắt ngay, vùng chọn bị bỏ", () => {
     render(view(1));
     fireEvent.keyDown(window, { key: "x" }); // skip typing
-    selectChronicGambler();
+    selectBetsHorse();
     fireEvent.keyDown(window, { key: "Enter" });
     expect(push).toHaveBeenCalledWith("/read/the-subtle-art/ch01/2");
     expect(screen.queryByTestId("selection-popup")).toBeNull();
@@ -435,13 +609,13 @@ describe("PassageView — chọn chữ khi chuyển đoạn", () => {
   it("Escape tắt popup và bỏ vùng chọn", () => {
     render(view(1));
     fireEvent.keyDown(window, { key: "x" });
-    selectChronicGambler();
+    selectBetsHorse();
     fireEvent.keyDown(window, { key: "Escape" });
     expect(screen.queryByTestId("selection-popup")).toBeNull();
     expect(window.getSelection()!.toString()).toBe("");
   });
 
-  it("bôi đen chữ trong ghi chú tay (ngoài nguyên văn nhưng cùng cột) → không có popup", () => {
+  it("bôi đen chữ trong ghi chú tay (ngoài đoạn mô tả nhưng cùng cột) → không có popup", () => {
     render(view(1));
     fireEvent.keyDown(window, { key: "x" });
     fireEvent.keyDown(window, { key: "e" }); // bật giải thích → hiện ghi chú tay
@@ -463,9 +637,9 @@ describe("PassageView — chọn chữ khi chuyển đoạn", () => {
   it("đổi đoạn không qua goTo (back/forward) thì đoạn mới không có popup của đoạn cũ", () => {
     const { rerender } = render(view(1));
     fireEvent.keyDown(window, { key: "x" });
-    selectChronicGambler();
+    selectBetsHorse();
     rerender(view(2));
-    expect(screen.getByTestId("original-text").textContent).toContain("Bukowski wanted to be a writer");
+    expect(screen.getByTestId("caption-text").textContent).toContain("It’s three in the morning");
     expect(screen.queryByTestId("selection-popup")).toBeNull();
   });
 });
@@ -492,9 +666,9 @@ describe("PassageView — tra nghĩa", () => {
     vi.unstubAllGlobals();
   });
 
-  /** Bôi đen `needle` (nằm trọn trong một text node của nguyên văn) rồi chờ quá 250ms → popup / thanh hiện. */
+  /** Bôi đen `needle` (nằm trọn trong một text node của đoạn mô tả) rồi chờ quá 250ms → popup / thanh hiện. */
   function selectWord(needle: string, ui = "selection-popup") {
-    const root = screen.getByTestId("original-text");
+    const root = screen.getByTestId("caption-text");
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     let node: Text | null = null;
     while (walker.nextNode()) {
@@ -538,31 +712,31 @@ describe("PassageView — tra nghĩa", () => {
     return { calls, spy };
   }
 
-  it("tra nghĩa trên 'chronic' mở tấm giải thích, không fetch", () => {
+  it("tra nghĩa trên 'mess' mở tấm giải thích, không fetch", () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch");
     renderView();
     fireEvent.keyDown(window, { key: "x" }); // skip typing
-    selectWord("chronic");
+    selectWord("mess");
     fireEvent.click(screen.getByRole("button", { name: /tra nghĩa/ }));
-    expect(screen.getByRole("dialog").textContent).toContain("chronic + noun");
+    expect(screen.getByRole("dialog").textContent).toContain("be a mess");
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(screen.queryByTestId("lookup-card")).toBeNull();
   });
 
-  it("tra nghĩa trên 'lout' → khung xương rồi thẻ kết quả; gửi đúng sách/đoạn/câu", async () => {
+  it("tra nghĩa trên 'Bukowski' → khung xương rồi thẻ kết quả; gửi đúng sách/đoạn/câu", async () => {
     const { calls } = deferredFetch();
     renderView();
     fireEvent.keyDown(window, { key: "x" });
-    selectWord("lout");
+    selectWord("Bukowski");
     fireEvent.click(screen.getByRole("button", { name: /tra nghĩa/ }));
     expect(screen.getByTestId("selection-popup").contains(screen.getByTestId("lookup-skeleton"))).toBe(true);
     expect(calls).toHaveLength(1);
-    expect(calls[0].body).toMatchObject({ bookId: book.id, chapterId: "ch01", passageIndex: 1, text: "lout" });
-    const p1 = getPassages(book.id, "ch01")![0].original;
+    expect(calls[0].body).toMatchObject({ bookId: book.id, chapterId: "ch01", passageIndex: 1, text: "Bukowski" });
+    const p1 = getPassages(book.id, "ch01")![0].caption;
     const { start, end } = calls[0].body as { start: number; end: number };
-    expect(p1.slice(start, end)).toBe("lout");
-    await act(async () => calls[0].resolve(result("lout")));
-    expect(screen.getByTestId("lookup-card").textContent).toContain("nghĩa của lout");
+    expect(p1.slice(start, end)).toBe("Bukowski");
+    await act(async () => calls[0].resolve(result("Bukowski")));
+    expect(screen.getByTestId("lookup-card").textContent).toContain("nghĩa của Bukowski");
     expect(screen.queryByTestId("lookup-skeleton")).toBeNull();
   });
 
@@ -570,7 +744,7 @@ describe("PassageView — tra nghĩa", () => {
     const { calls } = deferredFetch();
     renderView();
     fireEvent.keyDown(window, { key: "x" });
-    selectWord("lout");
+    selectWord("Bukowski");
     fireEvent.click(screen.getByRole("button", { name: /tra nghĩa/ }));
     await act(async () => calls[0].resolve({ status: "unavailable", reason: "paused" }));
     expect(screen.getByTestId("lookup-card").textContent).toContain("Tạm chưa tra được, thử lại sau nhé.");
@@ -580,28 +754,28 @@ describe("PassageView — tra nghĩa", () => {
     const { calls } = deferredFetch();
     renderView();
     fireEvent.keyDown(window, { key: "x" });
-    selectWord("lout");
+    selectWord("Bukowski");
     fireEvent.click(screen.getByRole("button", { name: /tra nghĩa/ }));
     expect(screen.getByTestId("lookup-skeleton")).toBeTruthy();
-    selectWord("cheapskate");
+    selectWord("drinks");
     expect(screen.queryByTestId("lookup-card")).toBeNull(); // thẻ thuộc vùng chọn cũ
     fireEvent.click(screen.getByRole("button", { name: /tra nghĩa/ }));
     expect(calls).toHaveLength(2);
-    await act(async () => calls[0].resolve(result("lout")));
-    expect(screen.getByTestId("lookup-card").textContent).not.toContain("lout");
+    await act(async () => calls[0].resolve(result("Bukowski")));
+    expect(screen.getByTestId("lookup-card").textContent).not.toContain("Bukowski");
     expect(screen.getByTestId("lookup-skeleton")).toBeTruthy();
-    await act(async () => calls[1].resolve(result("cheapskate")));
-    expect(screen.getByTestId("lookup-card").textContent).toContain("nghĩa của cheapskate");
+    await act(async () => calls[1].resolve(result("drinks")));
+    expect(screen.getByTestId("lookup-card").textContent).toContain("nghĩa của drinks");
   });
 
   it("bôi đen chữ khác (không bấm tra) rồi phản hồi cũ về → không có thẻ", async () => {
     const { calls } = deferredFetch();
     renderView();
     fireEvent.keyDown(window, { key: "x" });
-    selectWord("lout");
+    selectWord("Bukowski");
     fireEvent.click(screen.getByRole("button", { name: /tra nghĩa/ }));
-    selectWord("cheapskate");
-    await act(async () => calls[0].resolve(result("lout")));
+    selectWord("drinks");
+    await act(async () => calls[0].resolve(result("Bukowski")));
     expect(screen.queryByTestId("lookup-card")).toBeNull();
   });
 
@@ -609,9 +783,9 @@ describe("PassageView — tra nghĩa", () => {
     const { calls } = deferredFetch();
     renderView();
     fireEvent.keyDown(window, { key: "x" });
-    selectWord("lout");
+    selectWord("Bukowski");
     fireEvent.click(screen.getByRole("button", { name: /tra nghĩa/ }));
-    await act(async () => calls[0].resolve(result("lout")));
+    await act(async () => calls[0].resolve(result("Bukowski")));
     expect(screen.getByTestId("lookup-card")).toBeTruthy();
     fireEvent.keyDown(window, { key: "Escape" });
     expect(screen.queryByTestId("lookup-card")).toBeNull();
@@ -622,13 +796,13 @@ describe("PassageView — tra nghĩa", () => {
     const { calls, spy } = deferredFetch();
     const { rerender } = renderView();
     fireEvent.keyDown(window, { key: "x" });
-    selectWord("lout");
+    selectWord("Bukowski");
     fireEvent.click(screen.getByRole("button", { name: /tra nghĩa/ }));
     const signal = spy.mock.calls[0][1]!.signal!;
     expect(signal.aborted).toBe(false);
     rerender(view2());
     expect(signal.aborted).toBe(true);
-    await act(async () => calls[0].resolve(result("lout")));
+    await act(async () => calls[0].resolve(result("Bukowski")));
     expect(screen.queryByTestId("lookup-card")).toBeNull();
   });
 
@@ -636,10 +810,10 @@ describe("PassageView — tra nghĩa", () => {
     const { calls } = deferredFetch();
     renderView();
     fireEvent.keyDown(window, { key: "x" });
-    selectWord("lout");
+    selectWord("Bukowski");
     const btn = () => screen.getByRole("button", { name: /tra nghĩa/ });
     fireEvent.click(btn());
-    await act(async () => calls[0].resolve(result("lout")));
+    await act(async () => calls[0].resolve(result("Bukowski")));
     expect(btn().getAttribute("aria-expanded")).toBe("true");
     fireEvent.click(btn());
     expect(screen.queryByTestId("lookup-card")).toBeNull();
@@ -648,21 +822,21 @@ describe("PassageView — tra nghĩa", () => {
     expect(screen.getByTestId("selection-popup")).toBeTruthy(); // vùng chọn vẫn còn
     fireEvent.click(btn());
     expect(calls).toHaveLength(2);
-    await act(async () => calls[1].resolve(result("lout")));
-    expect(screen.getByTestId("lookup-card").textContent).toContain("nghĩa của lout");
+    await act(async () => calls[1].resolve(result("Bukowski")));
+    expect(screen.getByTestId("lookup-card").textContent).toContain("nghĩa của Bukowski");
   });
 
   it("bấm 'tra nghĩa' lần nữa khi đang chờ → đóng thẻ, huỷ request, phản hồi về muộn bị bỏ qua", async () => {
     const { calls, spy } = deferredFetch();
     renderView();
     fireEvent.keyDown(window, { key: "x" });
-    selectWord("lout");
+    selectWord("Bukowski");
     fireEvent.click(screen.getByRole("button", { name: /tra nghĩa/ }));
     expect(screen.getByTestId("lookup-skeleton")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /tra nghĩa/ }));
     expect(screen.queryByTestId("lookup-card")).toBeNull();
     expect(spy.mock.calls[0][1]!.signal!.aborted).toBe(true);
-    await act(async () => calls[0].resolve(result("lout")));
+    await act(async () => calls[0].resolve(result("Bukowski")));
     expect(screen.queryByTestId("lookup-card")).toBeNull();
   });
 
@@ -670,12 +844,12 @@ describe("PassageView — tra nghĩa", () => {
     const { calls, spy } = deferredFetch();
     renderView();
     fireEvent.keyDown(window, { key: "x" });
-    selectWord("lout");
+    selectWord("Bukowski");
     fireEvent.click(screen.getByRole("button", { name: /tra nghĩa/ }));
     fireEvent.click(screen.getByRole("button", { name: "đóng thẻ" }));
     expect(screen.queryByTestId("lookup-card")).toBeNull();
     expect(spy.mock.calls[0][1]!.signal!.aborted).toBe(true);
-    await act(async () => calls[0].resolve(result("lout")));
+    await act(async () => calls[0].resolve(result("Bukowski")));
     expect(screen.queryByTestId("lookup-card")).toBeNull();
     expect(screen.getByTestId("selection-popup")).toBeTruthy();
   });
@@ -685,13 +859,13 @@ describe("PassageView — tra nghĩa", () => {
     const { calls, spy } = deferredFetch();
     renderView();
     fireEvent.keyDown(window, { key: "x" });
-    selectWord("lout", "selection-dock");
+    selectWord("Bukowski", "selection-dock");
     fireEvent.click(screen.getByRole("button", { name: /tra nghĩa/ }));
     expect(screen.getByTestId("selection-dock").contains(screen.getByTestId("lookup-skeleton"))).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "đóng thẻ" }));
     expect(screen.queryByTestId("lookup-card")).toBeNull();
     expect(spy.mock.calls[0][1]!.signal!.aborted).toBe(true);
-    await act(async () => calls[0].resolve(result("lout")));
+    await act(async () => calls[0].resolve(result("Bukowski")));
     expect(screen.queryByTestId("lookup-card")).toBeNull();
     expect(screen.getByTestId("selection-dock")).toBeTruthy(); // vùng chọn vẫn còn, chỉ thẻ đóng
   });

@@ -29,7 +29,7 @@ export function FirstTimeHint({ explainOn, hidden = false }: { explainOn: boolea
       <span className="text-ink">
         <span className="lg:hidden">{'// mẹo: chạm "giải thích" để xem các cụm đáng học, giữ tay lên chữ để bôi đen và nghe phát âm'}</span>
         <span className="hidden lg:inline">
-          {'// mẹo: bấm nút "giải thích" để xem các cụm đáng học được gạch chân và phân tích — tô đen cụm bất kỳ trong nguyên văn để nghe phát âm'}
+          {'// mẹo: bấm nút "giải thích" để xem các cụm đáng học được gạch chân và phân tích — tô đen cụm bất kỳ trong đoạn mô tả để nghe phát âm'}
         </span>
       </span>
       <button

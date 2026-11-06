@@ -18,7 +18,7 @@ export function ChapterReader({ book, chapterId, passages }: Props) {
   const idx = passageIndexOf(passageIndex, passages.length);
   // Tính trước return sớm bên dưới (luật hook). Chỉ câu mở đầu đi xuống danh sách đoạn.
   const outline = useMemo<PassageOutline[]>(
-    () => passages.map((p, i) => ({ index: i + 1, firstSentence: firstSentence(p.original) })),
+    () => passages.map((p, i) => ({ index: i + 1, firstSentence: firstSentence(p.caption) })),
     [passages],
   );
   const label = chapterLabel(chapterId);

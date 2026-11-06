@@ -3,14 +3,14 @@ import type { LookupResponse, LookupResult } from "@/lib/lookupTypes";
 
 // Dùng chung cho e2e/lookup.spec.ts (desktop) và e2e/lookup.mobile.spec.ts. KHÔNG bao giờ gọi AI thật.
 
-export const LOUT: LookupResult = {
-  headword: "lout",
-  ipa: "/laʊt/",
+export const LIFE: LookupResult = {
+  headword: "life",
+  ipa: "/laɪf/",
   pos: "danh từ",
-  meaning: "kẻ thô lỗ, cục cằn, cư xử khó coi",
+  meaning: "cuộc sống, đời sống, cách một người sống",
   example: {
-    en: "Don't be a lout. Say thank you to the waiter.",
-    vi: "Đừng có thô lỗ thế, cảm ơn người phục vụ đi.",
+    en: "Life is short. Say thank you to the waiter.",
+    vi: "Đời ngắn lắm, nhớ cảm ơn người phục vụ nhé.",
   },
 };
 

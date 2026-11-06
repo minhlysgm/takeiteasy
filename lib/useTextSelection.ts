@@ -3,7 +3,7 @@ import { normalizeSelectionText, type Box } from "@/lib/selection";
 
 export interface TextSelection {
   text: string;
-  /** Offset ký tự của vùng chọn trong `container.textContent` (= offset trong `passage.original`). */
+  /** Offset ký tự của vùng chọn trong `container.textContent` (= offset trong `passage.caption`). */
   start: number;
   end: number;
   /** Toạ độ viewport của `getRangeAt(0).getBoundingClientRect()`. */

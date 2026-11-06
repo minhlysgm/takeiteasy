@@ -35,7 +35,7 @@ export function BookShelf({ books }: { books: Book[] }) {
                   href={`/read/${book.id}/${resume.chapterId}/${resume.passageIndex}`}
                   className="mt-6 inline-block border border-accent px-4 py-2 text-sm text-accent transition-colors hover:bg-accent hover:text-bg"
                 >
-                  đang đọc dở {chapterLabel(resume.chapterId)} · đoạn {resume.passageIndex} — đọc tiếp →
+                  đang đọc dở {chapterLabel(resume.chapterId)} · thẻ {resume.passageIndex} — đọc tiếp →
                 </Link>
               )}
 
@@ -53,7 +53,7 @@ export function BookShelf({ books }: { books: Book[] }) {
                       >
                         <span className="whitespace-nowrap text-muted">{chapterLabel(ch.id)}</span>
                         <span className="text-text transition-colors group-hover:text-bright">{ch.title}</span>
-                        <span className="whitespace-nowrap text-xs text-muted">· {ch.passageCount} đoạn</span>
+                        <span className="whitespace-nowrap text-xs text-muted">· {ch.passageCount} thẻ</span>
                         <span className="ml-auto flex items-center gap-3">
                           <span className="h-1 w-20 rounded bg-line sm:w-28">
                             <span
@@ -73,7 +73,8 @@ export function BookShelf({ books }: { books: Book[] }) {
         );
       })}
 
-      <div className="reveal reveal-3 flex items-center justify-between text-sm text-muted">
+      {/* Dưới sm: hai dòng xếp dọc, đừng để "bấm để đổi" gãy dòng cạnh lời nhắc */}
+      <div className="reveal reveal-3 flex flex-col items-start gap-2 text-sm text-muted sm:flex-row sm:items-center sm:justify-between">
         <span>
           {"> chọn chương để bắt đầu"}
           <span className="animate-blink ml-1 inline-block h-[14px] w-[8px] translate-y-[2px] bg-accent" aria-hidden="true" />

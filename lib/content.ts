@@ -30,11 +30,11 @@ export function getPassage(bookId: string, chapterId: string, passageIndex: numb
 
 export interface ChunkRange { chunk: Chunk; start: number; end: number }
 
-export function findChunkRange(original: string, chunk: Chunk): ChunkRange | null {
+export function findChunkRange(caption: string, chunk: Chunk): ChunkRange | null {
   const wanted = chunk.occurrence ?? 1;
   let from = 0;
   for (let n = 1; ; n++) {
-    const at = original.indexOf(chunk.match, from);
+    const at = caption.indexOf(chunk.match, from);
     if (at === -1) return null;
     if (n === wanted) return { chunk, start: at, end: at + chunk.match.length };
     from = at + 1;
@@ -42,12 +42,12 @@ export function findChunkRange(original: string, chunk: Chunk): ChunkRange | nul
 }
 
 /** Hàng rào thứ hai sau test nội dung: chunk không khớp thì bỏ qua, không crash reader. */
-export function findChunkRanges(original: string, chunks: Chunk[]): ChunkRange[] {
+export function findChunkRanges(caption: string, chunks: Chunk[]): ChunkRange[] {
   const out: ChunkRange[] = [];
   for (const chunk of chunks) {
-    const r = findChunkRange(original, chunk);
+    const r = findChunkRange(caption, chunk);
     if (r) out.push(r);
-    else console.warn(`chunk "${chunk.id}": match "${chunk.match}" không có trong original`);
+    else console.warn(`chunk "${chunk.id}": match "${chunk.match}" không có trong caption`);
   }
   return out.sort((a, b) => a.start - b.start);
 }
@@ -61,8 +61,8 @@ const ABBREV = /(?:^|[\s(‘“"'])(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|vs|e\.g|i\.e)\.
  * Câu đầu của đoạn: chỉ xét dòng có chữ đầu tiên, cắt tới dấu . ? ! đầu tiên đứng cuối từ (không phải "3.5"),
  * kèm dấu đóng ngay sau (" ” ’ ' )); bỏ qua chữ viết tắt như "Mr.", "e.g.".
  */
-export function firstSentence(original: string): string {
-  const line = original.split("\n").find((l) => l.trim()) ?? "";
+export function firstSentence(caption: string): string {
+  const line = caption.split("\n").find((l) => l.trim()) ?? "";
   const end = /[.?!]["”’')]*(?=\s|$)/g;
   for (let m = end.exec(line); m; m = end.exec(line)) {
     if (m[0][0] === "." && ABBREV.test(line.slice(0, m.index + 1))) continue;

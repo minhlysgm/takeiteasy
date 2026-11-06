@@ -38,7 +38,7 @@ describe("PassageJumpList", () => {
     expect(rows[0].querySelector(".sr-only")).toBeTruthy();
     expect(rows[1].querySelector(".sr-only")).toBeTruthy();
     expect(rows[2].querySelector(".sr-only")).toBeNull();
-    expect(screen.getByText("2/3 đoạn đã đọc")).toBeTruthy();
+    expect(screen.getByText("2/3 thẻ đã đọc")).toBeTruthy();
     // ✓ ẩn khỏi trình đọc màn hình, thay bằng chữ sr-only
     expect(rows[0].querySelector(".sr-only")?.textContent).toBe("đã đọc");
     expect(rows[0].querySelector('[aria-hidden="true"]')?.textContent).toBe("✓");
@@ -46,7 +46,7 @@ describe("PassageJumpList", () => {
 
   it("đếm đã đọc chỉ tính các đoạn có trong chương (bỏ chỉ số thừa)", () => {
     setup({ read: [1, 2, 9, 10] });
-    expect(screen.getByText("2/3 đoạn đã đọc")).toBeTruthy();
+    expect(screen.getByText("2/3 thẻ đã đọc")).toBeTruthy();
   });
 
   it("focus rời khỏi danh sách sang chỗ khác → onClose('focus-out'); chuyển giữa các dòng / chuột (relatedTarget null) thì không", async () => {
