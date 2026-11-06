@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { P, charBoxes, finishTyping, installSpies, selectText, type Spy } from "./selection-helpers";
+import { markCardsSeen } from "./card-helpers";
 
 // Tiêu chí nghiệm thu 10–12 + RF5 — spec docs/superpowers/specs/2026-11-05-touch-selection-design.md.
 // Desktop 1440×900, chuột.
@@ -15,14 +16,19 @@ async function dragOver(page: Page, needle: string) {
 }
 
 test.beforeEach(async ({ page }) => {
+  await markCardsSeen(page); // không kiểm luồng vẽ trước: mở thẻ là hiện đủ
   await installSpies(page);
 });
 
 // Phía của popup: trên vùng chọn nếu ở đó đủ chỗ cho thẻ tra nghĩa (hoặc rộng hơn phía dưới), không thì dưới
 // — spec docs/superpowers/specs/2026-11-05-in-app-lookup-design.md (thẻ mở ra không làm hàng nút nhảy chỗ).
 test("Khi kéo chuột bôi đen thì lúc đang kéo chưa hiện popup; thả ra thì popup hiện cạnh vùng chọn (dòng đầu: phía dưới)", async ({ page }) => {
+  // Thẻ vẽ trước: mô tả nằm dưới hình. Hạ chiều cao màn để cuộn được dòng đầu của mô tả lên sát header
+  // (phía trên hết chỗ) — đúng tình huống "dòng đầu" mà test này kiểm.
+  await page.setViewportSize({ width: 1440, height: 520 });
   await page.goto(P(1));
   await finishTyping(page, "click");
+  await page.getByTestId("caption-text").evaluate((el) => window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - 60));
   await dragOver(page, "bets his rent money on horse");
   await page.waitForTimeout(400);
   expect(await page.evaluate(() => window.getSelection()!.toString())).toBe("bets his rent money on horse");
@@ -40,7 +46,10 @@ test("Khi bôi đen chữ ở dòng dưới (phía trên đủ chỗ cho thẻ) 
   await page.setViewportSize({ width: 1440, height: 660 });
   await page.goto(P(1));
   await finishTyping(page, "click");
-  await page.evaluate(() => window.scrollTo(0, 0));
+  // Thẻ vẽ trước: mô tả nằm dưới hình → cuộn để dòng cuối của mô tả nằm thấp trên màn (trên footer ~120px)
+  await page
+    .getByTestId("caption-text")
+    .evaluate((el) => window.scrollTo(0, el.getBoundingClientRect().bottom + window.scrollY - (window.innerHeight - 120)));
   await dragOver(page, "anyone else");
   await page.mouse.up();
   await expect(popup(page)).toBeVisible();

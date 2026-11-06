@@ -3,6 +3,7 @@ import type { LookupRequest } from "@/lib/lookupTypes";
 import { getPassage } from "@/lib/content";
 import { LIFE, mockLookup } from "./lookup-helpers";
 import { P, dismissFirstTimeHint, finishTyping, installSpies, selectText, type Spy } from "./selection-helpers";
+import { markCardsSeen } from "./card-helpers";
 
 // Tiêu chí nghiệm thu 1–6 — spec docs/superpowers/specs/2026-11-05-in-app-lookup-design.md.
 // Desktop 1440×900. /api/lookup luôn bị giả (không gọi AI thật).
@@ -17,6 +18,7 @@ async function openCard(page: Page, text: string) {
 }
 
 test.beforeEach(async ({ page }) => {
+  await markCardsSeen(page); // không kiểm luồng vẽ trước: mở thẻ là hiện đủ
   await installSpies(page);
   await dismissFirstTimeHint(page);
 });

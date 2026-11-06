@@ -1,6 +1,12 @@
 import { test, expect, type Page } from "@playwright/test";
 import { LIFE, mockLookup } from "./lookup-helpers";
 import { P, dismissFirstTimeHint, finishTyping, installSpies, selectText } from "./selection-helpers";
+import { markCardsSeen } from "./card-helpers";
+
+// Không kiểm luồng vẽ trước: coi như đã xem hình, mở thẻ là mô tả + bản dịch hiện đủ.
+test.beforeEach(async ({ page }) => {
+  await markCardsSeen(page);
+});
 
 // Tiêu chí nghiệm thu 7 — spec docs/superpowers/specs/2026-11-05-in-app-lookup-design.md.
 // Pixel 7 (390×844, cảm ứng). Vùng chọn tạo bằng script; /api/lookup luôn bị giả.

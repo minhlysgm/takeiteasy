@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { P, dismissFirstTimeHint, finishTyping, selectText } from "./selection-helpers";
+import { markCardsSeen } from "./card-helpers";
 
 // Tiêu chí nghiệm thu 1–8, 12 — spec docs/superpowers/specs/2026-11-05-passage-jump-design.md.
 // Desktop 1440×900.
@@ -13,6 +14,7 @@ async function open(page: Page, n: number) {
 }
 
 test.beforeEach(async ({ page }) => {
+  await markCardsSeen(page); // không kiểm luồng vẽ trước: mở thẻ là hiện đủ
   await dismissFirstTimeHint(page);
 });
 

@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { getPassage } from "@/lib/content";
 import { P, dismissFirstTimeHint, finishTyping, installSpies, selectText, type Spy } from "./selection-helpers";
+import { markCardsSeen } from "./card-helpers";
 
 // Tiêu chí nghiệm thu 1–9 + RF4 — spec docs/superpowers/specs/2026-11-05-touch-selection-design.md.
 // Máy giả lập Pixel 7 (390×844, cảm ứng, pointer: coarse). Vùng chọn tạo bằng script.
@@ -12,6 +13,7 @@ const spy = <K extends keyof Spy>(page: Page, key: K) =>
   page.evaluate((k) => (window as unknown as Spy)[k], key);
 
 test.beforeEach(async ({ page }) => {
+  await markCardsSeen(page); // không kiểm luồng vẽ trước: mở thẻ là hiện đủ
   await installSpies(page);
 });
 

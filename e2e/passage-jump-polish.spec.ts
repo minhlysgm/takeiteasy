@@ -1,5 +1,11 @@
 import { test, expect, type Page } from "@playwright/test";
 import { P, dismissFirstTimeHint, finishTyping, selectText } from "./selection-helpers";
+import { markCardsSeen } from "./card-helpers";
+
+// Không kiểm luồng vẽ trước: coi như đã xem hình, mở thẻ là mô tả + bản dịch hiện đủ.
+test.beforeEach(async ({ page }) => {
+  await markCardsSeen(page);
+});
 
 // Sửa sau trạm ⑥ của "nhảy nhanh tới đoạn" (soi UI + code review). Desktop 1440×900.
 
@@ -57,7 +63,8 @@ test.describe("đã tắt mẹo lần đầu", () => {
     await note.focus();
     await page.keyboard.press("Enter");
     await expect(page.getByRole("dialog")).toBeVisible();
-    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    // Ghi chú nằm cạnh mô tả, dưới hình → cuộn lên đầu trang là ghi chú ra khỏi màn hình
+    await page.evaluate(() => window.scrollTo(0, 0));
     await expect(note).not.toBeInViewport();
     await page.keyboard.press("Escape");
     await expect(page.getByRole("dialog")).toHaveCount(0);

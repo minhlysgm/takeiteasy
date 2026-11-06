@@ -1,18 +1,24 @@
 import { test, expect, type Page } from "@playwright/test";
 import { getPassage } from "@/lib/content";
 import { SKETCH_START_DELAY_MS, SKETCH_TOTAL_MS } from "@/lib/sketch/timeline";
+import { markCardsSeen } from "./card-helpers";
 
 const BOOK = "the-subtle-art";
 const CH = "ch01";
 const P1 = `/read/${BOOK}/${CH}/1`;
 const PASSAGE_2 = getPassage(BOOK, CH, 2)!;
 
-/** Bỏ qua hiệu ứng gõ chữ của bản dịch (click vào cột dịch = skip). */
+/** Bỏ qua hiệu ứng gõ chữ của bản dịch (click vào cột dịch = skip). Chỉ có tác dụng khi hình đã xong. */
 async function finishTyping(page: Page) {
   // Hết "idle" tức là đã hydrate; bấm sớm hơn thì trang chưa kịp nghe
   await expect(page.getByTestId("sketch")).not.toHaveAttribute("data-state", "idle");
   await page.getByTestId("translation-col").click();
   await expect(page.getByText("đang gõ…")).toBeHidden();
+}
+
+/** Đã hydrate (hình rời "idle"). Thẻ vẽ trước: hình tự chạy, không chờ gì khác. */
+async function hydrated(page: Page) {
+  await expect(page.getByTestId("sketch")).not.toHaveAttribute("data-state", "idle");
 }
 
 /** Cuộn khung hình vào màn hình: hình chỉ vẽ khi đã lọt vào màn hình, đừng trông chờ vào chiều cao viewport. */
@@ -21,7 +27,7 @@ async function revealSketch(page: Page) {
 }
 
 async function startDrawing(page: Page) {
-  await finishTyping(page);
+  await hydrated(page);
   await revealSketch(page);
 }
 
@@ -60,16 +66,17 @@ async function expectFullArt(page: Page) {
 
 // Mỗi test dùng context mới của Playwright nên localStorage `tie:sketch-seen:*` không rò giữa các test.
 test.describe("phác thảo đoạn 1", () => {
-  test("1. chờ bản dịch gõ xong thì mới vẽ", async ({ page }) => {
+  test("1. mở thẻ là hình tự vẽ, không chờ bản dịch (bản dịch chờ hình)", async ({ page }) => {
     await page.goto(P1);
     const sketch = page.getByTestId("sketch");
-    await expect(sketch).toHaveAttribute("data-state", "waiting");
-    await expect(sketch).toContainText("chờ bản dịch gõ xong…");
-    await expect(page.getByText("đang gõ…")).toBeVisible();
-    // Khung có mặt nhưng chưa thấy nét nào
+    await expect(sketch).toHaveAttribute("data-state", /waiting|drawing/);
+    await expect(sketch).not.toContainText("chờ bản dịch gõ xong…");
+    await expect(page.getByText("đang gõ…")).toHaveCount(0);
+    await expect(page.getByTestId("translation-waiting")).toBeVisible();
+    // Khung có mặt; không chạm gì cả mà hình vẫn tự bắt đầu vẽ
     await expect(sketch).toBeVisible();
-    await expect(page.getByTestId("sketch-art")).toHaveCSS("opacity", "0");
-    await expect(page.getByTestId("sketch-pencil")).toHaveCount(0);
+    await expect(sketch).toHaveAttribute("data-state", "drawing");
+    await expect(page.getByTestId("sketch-pencil")).toBeVisible();
   });
 
   test("2. gõ xong và hình trên màn hình thì bút chì vẽ rồi dừng ở done", async ({ page }) => {
@@ -139,6 +146,7 @@ test.describe("phác thảo đoạn 1", () => {
     await startDrawing(page);
     await page.getByRole("button", { name: "xem ngay ⏭" }).click();
     await expect(page.getByTestId("sketch")).toHaveAttribute("data-state", "done");
+    await finishTyping(page); // vẽ xong thì bản dịch gõ; đang gõ thì Enter chỉ bỏ qua hiệu ứng gõ
     await page.keyboard.press("Enter");
     await expect(page).toHaveURL(new RegExp(`/${CH}/2$`));
     await page.getByRole("button", { name: "← trước" }).click();
@@ -155,34 +163,31 @@ test.describe("phác thảo đoạn 1", () => {
     await expect(page.getByRole("button", { name: "↻ vẽ lại" })).toHaveCount(0);
   });
 
-  test.describe("7. Enter giữa lúc đang vẽ thì hiệu ứng cũ dừng, đoạn 2 theo luật của nó", () => {
-    /** Vẽ dở đoạn 1 rồi Enter sang đoạn 2. Phải gõ xong trước: lúc đang gõ, Enter chỉ bỏ qua hiệu ứng gõ chứ không chuyển đoạn. */
+  test.describe("7. sang đoạn 2 giữa lúc đang vẽ thì hiệu ứng cũ dừng, đoạn 2 theo luật của nó", () => {
+    /** Vẽ dở đoạn 1 rồi bấm "tiếp →" sang đoạn 2. (Enter lúc đang vẽ chỉ hiện đủ hình, chưa chuyển đoạn.) */
     async function enterMidDraw(page: Page) {
       await page.goto(P1);
       await startDrawing(page);
       await expect(page.getByTestId("sketch")).toHaveAttribute("data-state", "drawing");
-      await page.keyboard.press("Enter");
+      await page.getByRole("button", { name: "tiếp →" }).click();
       await expect(page).toHaveURL(new RegExp(`/${CH}/2$`));
       // data-state nằm trên khung chung, nên chờ đúng hình đoạn 2 để không đọc nhầm trạng thái của hình cũ
       await expect(page.getByRole("img", { name: PASSAGE_2.sketch!.alt, exact: true })).toBeVisible();
     }
 
-    test("đoạn 2 chưa xem: chờ bản dịch gõ xong rồi mới vẽ", async ({ page }) => {
+    test("đoạn 2 chưa xem: vẽ lại từ đầu, mô tả + bản dịch chờ hình", async ({ page }) => {
       const errors: Error[] = [];
       page.on("pageerror", (e) => errors.push(e));
       await enterMidDraw(page);
       const sketch = page.getByTestId("sketch");
-      await expect(sketch).toHaveAttribute("data-state", "waiting");
-      await expect(page.getByText("đang gõ…")).toBeVisible();
-      await expect(page.getByTestId("sketch-pencil")).toHaveCount(0);
-      // Chờ quá độ trễ bắt đầu vẽ: nếu đoạn 2 tưởng bản dịch đã gõ xong thì lúc này nó đã vẽ rồi.
-      await page.waitForTimeout(SKETCH_START_DELAY_MS + 200);
-      await expect(page.getByText("đang gõ…")).toBeVisible();
-      await expect(sketch).toHaveAttribute("data-state", "waiting");
-      await expect(page.getByTestId("sketch-pencil")).toHaveCount(0);
+      await expect(sketch).toHaveAttribute("data-state", /waiting|drawing/);
+      await expect(page.getByTestId("caption-waiting")).toBeVisible();
+      await expect(page.getByTestId("translation-waiting")).toBeVisible();
+      await expect(page.getByText("đang gõ…")).toHaveCount(0);
       await startDrawing(page);
       await expect(sketch).toHaveAttribute("data-state", "drawing");
       await expect(page.getByTestId("sketch-pencil")).toBeVisible();
+      await expect(page.getByTestId("caption-waiting")).toBeVisible();
       expect(errors).toEqual([]);
     });
 
@@ -201,7 +206,7 @@ test.describe("phác thảo đoạn 1", () => {
     await page.goto(P1);
     await startDrawing(page);
     await expect(page.getByTestId("sketch")).toHaveAttribute("data-state", "drawing");
-    await page.keyboard.press("Enter");
+    await page.getByRole("button", { name: "tiếp →" }).click();
     await expect(page).toHaveURL(new RegExp(`/${CH}/2$`));
     await expect(page.getByRole("img", { name: PASSAGE_2.sketch!.alt, exact: true })).toBeVisible();
     const key = `tie:sketch-seen:${getPassage(BOOK, CH, 1)!.id}`;
@@ -210,7 +215,8 @@ test.describe("phác thảo đoạn 1", () => {
     await page.getByRole("button", { name: "← trước" }).click();
     await expect(page).toHaveURL(new RegExp(`/${CH}/1$`));
     await expect(page.getByRole("img", { name: /^Một người đàn ông/ })).toBeVisible();
-    await expect(page.getByTestId("sketch")).toHaveAttribute("data-state", "waiting");
+    await expect(page.getByTestId("sketch")).toHaveAttribute("data-state", /waiting|drawing/);
+    await expect(page.getByTestId("caption-waiting")).toBeVisible();
   });
 
   test("9. bật giải thích thì hình mờ đi", async ({ page }) => {
@@ -240,15 +246,13 @@ test.describe("phác thảo đoạn 1", () => {
 test.describe("12. chỉ vẽ khi hình đã lọt vào màn hình", () => {
   const readSeen = (page: Page) => page.evaluate((k) => localStorage.getItem(k), `tie:sketch-seen:${getPassage(BOOK, CH, 1)!.id}`);
 
+  // Hình nằm đầu cột trái: cửa sổ phải thấp hơn hẳn hình (~320px) thì mới có lúc hình chưa lọt màn hình.
+  // Không chạm phím / chuột nào: lúc hình chưa xong, phím bất kỳ là "hiện đủ ngay".
   test("chưa lọt màn hình: chưa vẽ, báo cuộn tới hình, chưa tính đã xem; cuộn tới thì vẽ", async ({ page }) => {
-    await page.setViewportSize({ width: 1440, height: 480 });
+    await page.setViewportSize({ width: 1440, height: 300 });
     await page.goto(P1);
     const sketch = page.getByTestId("sketch");
-    // Bỏ qua gõ chữ bằng phím, không bấm chuột. Playwright cuộn trước khi bấm, và khi phải thử lại thì căn cột dịch
-    // theo mép dưới: ở viewport thấp thế là đưa luôn hình vào màn hình (đo được 99,9%), test không còn kiểm gì nữa.
-    await expect(sketch).toHaveAttribute("data-state", "waiting"); // đã hydrate, phím không bị rơi
-    await page.keyboard.press("Shift");
-    await expect(page.getByText("đang gõ…")).toBeHidden();
+    await expect(sketch).toHaveAttribute("data-state", "waiting");
     await expect(sketch.locator("svg")).not.toBeInViewport({ ratio: 0.9 });
     await expect(sketch).toContainText("cuộn tới hình để xem vẽ…");
     await page.waitForTimeout(SKETCH_START_DELAY_MS + 300);
@@ -263,12 +267,12 @@ test.describe("12. chỉ vẽ khi hình đã lọt vào màn hình", () => {
   });
 
   test("đã bắt đầu thì cuộn đi vẫn vẽ tiếp tới xong", async ({ page }) => {
-    await page.setViewportSize({ width: 1440, height: 480 });
+    await page.setViewportSize({ width: 1440, height: 300 });
     await page.goto(P1);
     await startDrawing(page);
     const sketch = page.getByTestId("sketch");
     await expect(sketch).toHaveAttribute("data-state", "drawing");
-    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
     await expect(sketch.locator("svg")).not.toBeInViewport({ ratio: 0.9 });
     await expect(sketch).toHaveAttribute("data-state", "drawing");
     await expect(sketch).toHaveAttribute("data-state", "done", { timeout: 8000 });
@@ -351,6 +355,7 @@ test.describe("Enter trên nút đang focus chỉ làm đúng việc của nút"
 
   for (const name of [/giải thích/, /theme/]) {
     test(`bấm chuột vào ${name.source} rồi Enter: Enter sang đoạn sau`, async ({ page }) => {
+      await markCardsSeen(page); // hình chưa xong thì Enter là "hiện đủ ngay", không phải việc của test này
       await page.goto(P1);
       await finishTyping(page);
       await page.getByRole("button", { name }).click();
@@ -378,7 +383,7 @@ type DrawSample = {
   partialSubpaths: number[];
   /** Khoảng cách từ đầu mực của nét đang dở tới mũi bút chì */
   tipGap: number | null;
-  /** Bút chì trùi lên hàng tiêu đề "// phác thảo" bao nhiêu px (≤ 0 là không chạm) */
+  /** Bút chì trùi lên hàng tiêu đề "// hình" bao nhiêu px (≤ 0 là không chạm) */
   pencilOverHeader: number;
 };
 
@@ -483,12 +488,10 @@ test.describe("mobile 390px", () => {
   test("hàng tiêu đề hình không vỡ chữ, hình không xê dịch khi bắt đầu vẽ và khi vẽ xong", async ({ page }) => {
     await page.goto(P1);
     const sketch = page.getByTestId("sketch");
-    // Bỏ qua gõ chữ: ở 390px cột dịch xếp dưới cột gốc, chạm vào là hiện luôn
+    // Hình nằm đầu trang: không chạm gì, hình tự vẽ
     await expect(sketch).toHaveAttribute("data-state", "waiting");
-    await page.getByTestId("translation-col").click();
-    await expect(page.getByText("đang gõ…")).toBeHidden();
     const svg = sketch.locator("svg");
-    const label = sketch.getByText("// phác thảo");
+    const label = sketch.getByText("// hình");
     const lines = () => label.evaluate((el) => el.getClientRects().length);
     const box = async () => {
       const b = (await svg.boundingBox())!;

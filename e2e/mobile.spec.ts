@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { markCardsSeen } from "./card-helpers";
 
 const P1 = "/read/the-subtle-art/ch01/1";
 
@@ -30,6 +31,9 @@ test("nguyên văn và bản dịch nằm trọn bề ngang, bản dịch ở d�
 
 test("chạm bản dịch khi đang gõ thì hiện đủ ngay", async ({ page }) => {
   await page.goto(P1);
+  // Thẻ vẽ trước: bản dịch chỉ bắt đầu gõ khi hình xong → bấm "xem ngay ⏭" lúc đang vẽ
+  await expect(page.getByTestId("sketch")).toHaveAttribute("data-state", "drawing");
+  await page.getByRole("button", { name: "xem ngay ⏭" }).tap();
   await expect(page.getByText("đang gõ…")).toBeVisible();
   await finishTyping(page);
   await expect(page.getByTestId("translation-col")).toContainText("chưa bao giờ giả vờ làm một người khác");
@@ -332,6 +336,7 @@ test("tấm vẫn trọn màn hình khi đổi cỡ qua 1024px", async ({ page }
 test.describe("số tròn không rời cụm, dấu câu không rớt xuống đầu dòng", () => {
   for (const width of [320, 360, 390, 412, 720, 790]) {
     test(`${width}px, cả 3 đoạn`, async ({ page }) => {
+      await markCardsSeen(page); // đo trên mô tả đã hiện
       await page.setViewportSize({ width, height: 844 });
       for (const n of [1, 2, 3]) {
         await page.goto(`/read/the-subtle-art/ch01/${n}`);
@@ -369,6 +374,7 @@ test.describe("số tròn không rời cụm, dấu câu không rớt xuống đ
 });
 
 test("bôi đen nguyên văn khi bật giải thích không dính số", async ({ page }) => {
+  await markCardsSeen(page); // vùng chọn chỉ lấy được chữ của mô tả đang hiện
   await page.goto(P1);
   await finishTyping(page);
   const selected = () =>
