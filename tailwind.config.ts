@@ -3,6 +3,8 @@ const config: Config = {
   content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
   theme: {
     extend: {
+      // Màn đọc chia hai cột (mô tả | bản dịch) từ 1440px; dưới đó là một cột giữa
+      screens: { "2col": "1440px" },
       colors: {
         bg: "var(--bg)", surface: "var(--surface)", text: "var(--text)",
         bright: "var(--bright)", muted: "var(--muted)", line: "var(--line)",

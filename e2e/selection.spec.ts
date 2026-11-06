@@ -64,6 +64,8 @@ test.describe("1024×800", () => {
   test("Khi bôi đen chữ sát mép trái cột thì popup nằm trọn trong màn hình", async ({ page }) => {
     await page.goto(P(1));
     await finishTyping(page, "click");
+    // Dưới 1440px bản dịch nằm dưới mô tả: bấm cột dịch xong thì cuộn mô tả về giữa màn (khỏi header dính)
+    await page.getByTestId("caption-text").evaluate((el) => el.scrollIntoView({ block: "center" }));
     await dragOver(page, "Charles");
     await page.mouse.up();
     await expect(popup(page)).toBeVisible();

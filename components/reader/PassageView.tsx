@@ -400,9 +400,10 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
         </button>
       </header>
 
-      <div ref={readerRef} data-testid="reader" data-sketch-gate={pending ? "" : undefined} className="relative flex grow flex-col overflow-x-clip px-4 py-6 lg:grid lg:grid-cols-[200px_1fr_200px_1fr] lg:px-8 lg:py-12">
-        <div aria-hidden="true" className="hidden lg:block" />
-        <div key={passage.id} ref={captionColRef} data-testid="caption-col" className="animate-passage-in relative mx-auto w-full max-w-[40rem] pr-0 lg:mx-0 lg:max-w-none lg:pr-6">
+      <div ref={readerRef} data-testid="reader" data-sketch-gate={pending ? "" : undefined} className="relative flex grow flex-col overflow-x-clip px-4 py-6 lg:px-8 lg:py-12 2col:grid 2col:grid-cols-[200px_1fr_200px_1fr]">
+        {/* Dưới 1440px: một cột giữa như tablet (hình → mô tả → bản dịch), ghi chú giải thích nằm hai lề. Từ 1440px: lề | mô tả | rãnh | bản dịch */}
+        <div aria-hidden="true" className="hidden 2col:block" />
+        <div key={passage.id} ref={captionColRef} data-testid="caption-col" className="animate-passage-in relative mx-auto w-full max-w-[40rem] pr-0 2col:mx-0 2col:max-w-none 2col:pr-6">
           {/* Div cha key theo thẻ → hình mount lại mỗi thẻ */}
           <PassageSketch
             ref={sketchRef}
@@ -439,11 +440,11 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
             />
           )}
         </div>
-        <div aria-hidden="true" className="hidden border-r border-line lg:block" />
+        <div aria-hidden="true" className="hidden border-r border-line 2col:block" />
         <div
           key={`${passage.id}-vi`}
           data-testid="translation-col"
-          className={`animate-passage-in mx-auto mt-7 w-full max-w-[40rem] border-t border-line pt-6 transition-opacity motion-reduce:transition-none lg:mx-0 lg:mt-0 lg:max-w-none lg:border-t-0 lg:pt-0 lg:pl-12 ${explainOn ? "lg:opacity-30" : ""}`}
+          className={`animate-passage-in mx-auto mt-7 w-full max-w-[40rem] border-t border-line pt-6 transition-opacity motion-reduce:transition-none 2col:mx-0 2col:mt-0 2col:max-w-none 2col:border-t-0 2col:pt-0 2col:pl-12 ${explainOn ? "lg:opacity-30" : ""}`}
           onClick={() => reveal !== "none" && typing.skip()}
         >
           {/* Nhãn luôn có, kể cả lúc chờ vẽ: vẽ xong thì chỉ phần dưới nhãn đổi, cột không nhảy */}

@@ -357,7 +357,7 @@ export function PassageSketch({
         viewBox={sketch.viewBox}
         role="img"
         aria-label={sketch.alt}
-        className={`mt-6 block h-auto w-full max-w-[520px] overflow-visible ${state === "drawing" ? "cursor-pointer" : ""}`}
+        className={`mt-6 block h-auto w-full overflow-visible ${state === "drawing" ? "cursor-pointer" : ""}`}
         onClick={() => state === "drawing" && finish()}
       >
         <defs>
