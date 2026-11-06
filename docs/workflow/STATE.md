@@ -5,7 +5,8 @@
 
 ## Đang làm
 
-_(trống — chờ Minh chọn task kế. Gợi ý: backlog mục đầu "Giọng đọc AI (ElevenLabs)", đang dừng ở ②, bước kế ③ spec + mockup.)_
+**Task:** [M · UI] Giọng đọc AI (ElevenLabs) + chọn 1 trong 5 giọng (chi tiết ② ở mục backlog 0 bên dưới, giữ nguyên làm ghi chú).
+**Trạm:** ③ Chốt spec — spec `docs/superpowers/specs/2026-11-06-ai-voice-design.md` + mockup https://claude.ai/artifact/6CpSz4ffdVoBQtjYvfkYJE (file `...-ai-voice-mockup.html`). Cổng: chờ Minh duyệt spec + chọn chỗ đặt nút chọn giọng trên desktop (A header phải — khuyên / B footer). Nhánh `task/ai-voice` đã tạo sẵn từ main ở ③.
 
 ## Backlog
 
