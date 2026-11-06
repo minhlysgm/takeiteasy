@@ -4,9 +4,9 @@ import { createRef } from "react";
 import type { LookupState } from "@/components/reader/LookupCard";
 import { SelectionDock } from "@/components/reader/SelectionDock";
 import { SelectionPopup } from "@/components/reader/SelectionPopup";
-import { speak } from "@/lib/speech";
+import { play } from "@/lib/audio/player";
 
-vi.mock("@/lib/speech", () => ({ speak: vi.fn() }));
+vi.mock("@/lib/audio/player", () => ({ play: vi.fn() }));
 
 const rect = { left: 40, top: 200, width: 100, height: 20 };
 const sel = (text: string) => ({ text, rect, start: 0, end: text.length });
@@ -24,14 +24,14 @@ afterEach(() => {
 });
 
 describe("SelectionDock", () => {
-  it("dock: hiện chữ trong ngoặc kép, bấm 'nghe' gọi speak với đúng chữ", () => {
+  it("dock: hiện chữ trong ngoặc kép, bấm 'nghe' gọi play (giọng máy) với đúng chữ", () => {
     render(<SelectionDock selection={sel("chronic gambler")} speechOk {...lk()} />);
     const dock = screen.getByTestId("selection-dock");
     const bar = screen.getByRole("toolbar", { name: "chữ đang chọn" });
     expect(dock.contains(bar)).toBe(true);
     expect(dock.textContent).toContain('"chronic gambler"');
     fireEvent.click(screen.getByRole("button", { name: /nghe/ }));
-    expect(speak).toHaveBeenCalledWith("chronic gambler");
+    expect(play).toHaveBeenCalledWith("tts:chronic gambler", { text: "chronic gambler" });
   });
 
   it("dock: 11 từ → không có nút 'tra nghĩa'", () => {

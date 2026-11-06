@@ -2,6 +2,9 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Book, Passage } from "@/content/types";
+import { audioPath } from "@/lib/audio/audioPath";
+import { stopPlayback, togglePlay, usePlaying } from "@/lib/audio/player";
+import { useVoice } from "@/lib/audio/voicePref";
 import { DOCK_QUERY } from "@/lib/breakpoints";
 import { chapterLabel, type PassageOutline } from "@/lib/content";
 import { fetchLookup } from "@/lib/lookupClient";
@@ -10,7 +13,7 @@ import { saveProgress } from "@/lib/progress";
 import { isSketchSeen, sketchGateCss } from "@/lib/sketchSeen";
 import { getReadPassages, markPassageRead } from "@/lib/readPassages";
 import { chunkAt } from "@/lib/selection";
-import { isSpeechAvailable, speak, stopSpeech } from "@/lib/speech";
+import { isSpeechAvailable } from "@/lib/speech";
 import { useMediaQuery } from "@/lib/useMediaQuery";
 import { useTextSelection } from "@/lib/useTextSelection";
 import { useTheme } from "@/lib/useTheme";
@@ -75,6 +78,10 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
   // Đọc khả năng speech sau mount để SSR và client render lần đầu khớp nhau.
   const [speechOk, setSpeechOk] = useState(false);
   useEffect(() => setSpeechOk(isSpeechAvailable()), []);
+  // "đọc to" phát file audio của giọng đang chọn (file lỗi thì bộ phát tự lui về giọng trình duyệt).
+  const voice = useVoice();
+  const playing = usePlaying();
+  const capKey = `caption:${passage.id}`;
   // Thẻ tra nghĩa gắn với đúng vùng chọn đã bấm "tra nghĩa" (kể cả đoạn): vùng chọn đổi / mất → thẻ thôi hiện.
   const [lookup, setLookup] = useState<{ key: string; state: LookupState } | null>(null);
   const lookupAbort = useRef<AbortController | null>(null);
@@ -140,11 +147,16 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
     setReveal((r) => (r === "none" ? "instant" : r));
   }, []);
 
+  const toggleReadAloud = useCallback(
+    () => togglePlay(capKey, { text: passage.caption, src: audioPath(voice, passage.caption) }),
+    [capKey, passage.caption, voice],
+  );
+
   // Việc ngoài React khi chuyển đoạn: huỷ hẹn giờ đóng tấm, tắt speech, bỏ vùng chọn của trình duyệt
   // (cả khi chuyển bằng back/forward). Reduced-motion: hình báo "instant" nên bản dịch hiện đủ ngay.
   useEffect(() => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
-    stopSpeech();
+    stopPlayback();
     cancelLookup();
     clearSelection();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -164,7 +176,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
     markPassageRead(book.id, chapterId, passageIndex);
   }, [book.id, chapterId, passageIndex]);
 
-  useEffect(() => () => stopSpeech(), []);
+  useEffect(() => () => stopPlayback(), []);
   useEffect(() => cancelLookup, [cancelLookup]);
   useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current); }, []);
 
@@ -297,7 +309,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
           setExplainOn((v) => !v);
           break;
         case "s":
-          speak(passage.caption);
+          toggleReadAloud();
           break;
         case "t":
           toggleTheme();
@@ -310,7 +322,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [reveal, revealNow, typing, drawerIndex, drawerClosing, jumpOpen, openJump, closeJump, passageIndex, passageCount, goTo, passage, toggleTheme, requestCloseDrawer, clearSelection]);
+  }, [reveal, revealNow, typing, drawerIndex, drawerClosing, jumpOpen, openJump, closeJump, passageIndex, passageCount, goTo, passage, toggleTheme, toggleReadAloud, requestCloseDrawer, clearSelection]);
 
   const openChunk = (chunkId: string) => {
     const i = passage.chunks.findIndex((c) => c.id === chunkId);
@@ -523,14 +535,13 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
               <Kbd className="max-lg:hidden">e</Kbd> giải thích
             </FooterButton>
             <FooterButton
+              active={playing === capKey}
               onClick={() => {
                 if (reveal === "none") revealNow();
-                speak(passage.caption);
+                toggleReadAloud();
               }}
-              disabled={!speechOk}
-              title={speechOk ? undefined : "trình duyệt không hỗ trợ đọc"}
             >
-              <Kbd className="max-lg:hidden">s</Kbd> đọc to
+              <Kbd className="max-lg:hidden">s</Kbd> {playing === capKey ? "■ dừng" : "đọc to"}
             </FooterButton>
             <FooterButton desktopOnly onClick={toggleTheme}>
               <Kbd>t</Kbd> theme

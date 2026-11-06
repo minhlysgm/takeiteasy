@@ -1,8 +1,16 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ChunkDrawer } from "@/components/reader/ChunkDrawer";
+import { audioPath } from "@/lib/audio/audioPath";
+import { stopPlayback, togglePlay, usePlaying } from "@/lib/audio/player";
 import { MOBILE_QUERY } from "@/lib/breakpoints";
 import { books, getPassages } from "@/lib/content";
+
+vi.mock("@/lib/audio/player", () => ({
+  togglePlay: vi.fn(),
+  stopPlayback: vi.fn(),
+  usePlaying: vi.fn(() => null),
+}));
 
 // neo vào đoạn theo id (không theo vị trí) để thêm đoạn mới không làm test trôi fixture
 const chunks = getPassages(books[0].id, "ch01")!.find((p) => p.id === "ch01-p02")!.chunks;
@@ -77,5 +85,19 @@ describe("ChunkDrawer", () => {
       unmount();
       expect(document.body.style.overflow).toBe("");
     });
+  });
+
+  it("▶ ví dụ phát file audio giọng đang chọn; đang phát thì nhãn thành 'dừng:'; đóng ngăn thì dừng câu ví dụ", () => {
+    const en = chunks[0].examples[0].en;
+    render(<ChunkDrawer chunks={chunks} index={0} onNavigate={() => {}} onClose={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: `nghe: ${en}` }));
+    expect(togglePlay).toHaveBeenCalledWith(`ex:${en}`, { text: en, src: audioPath("will", en) });
+    cleanup();
+    vi.mocked(usePlaying).mockReturnValue(`ex:${en}`);
+    render(<ChunkDrawer chunks={chunks} index={0} onNavigate={() => {}} onClose={() => {}} />);
+    expect(screen.getByRole("button", { name: `dừng: ${en}` })).toBeTruthy();
+    cleanup();
+    vi.mocked(usePlaying).mockReturnValue(null);
+    expect(stopPlayback).toHaveBeenCalledWith("ex:");
   });
 });

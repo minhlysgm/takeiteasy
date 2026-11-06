@@ -1,7 +1,9 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import type { Chunk } from "@/content/types";
-import { isSpeechAvailable, speak } from "@/lib/speech";
+import { audioPath } from "@/lib/audio/audioPath";
+import { stopPlayback, togglePlay, usePlaying } from "@/lib/audio/player";
+import { useVoice } from "@/lib/audio/voicePref";
 import { useSheetBehavior } from "@/lib/useSheetBehavior";
 import { Kbd } from "./Kbd";
 
@@ -25,6 +27,11 @@ export function ChunkDrawer({ chunks, index, closing = false, onNavigate, onClos
   }, [index]);
 
   const sheet = useSheetBehavior(ref);
+
+  const voice = useVoice();
+  const playing = usePlaying();
+  // Đóng ngăn (unmount) thì dừng câu ví dụ đang phát; đang đọc caption thì không đụng tới.
+  useEffect(() => () => stopPlayback("ex:"), []);
 
   // Còn nội dung bên dưới vùng cuộn? (cho dải mờ ở đáy). ResizeObserver báo ngay khi bắt đầu theo dõi,
   // và mỗi khi nội dung đổi cỡ (sang cụm khác, xoay máy); cuộn thì nghe sự kiện scroll.
@@ -52,7 +59,6 @@ export function ChunkDrawer({ chunks, index, closing = false, onNavigate, onClos
   }, []);
 
   if (!chunk) return null;
-  const speechOk = isSpeechAvailable();
   const offscreen = closing || !entered;
 
   return (
@@ -104,18 +110,24 @@ export function ChunkDrawer({ chunks, index, closing = false, onNavigate, onClos
           <div>
             <div className="mb-3 text-[13px] text-muted">{"// ví dụ"}</div>
             <ul className="space-y-4">
-              {chunk.examples.map((ex) => (
+              {chunk.examples.map((ex) => {
+                const exKey = `ex:${ex.en}`;
+                const on = playing === exKey;
+                return (
                 <li key={ex.en}>
                   <div className="flex items-start gap-2">
                     <button
                       type="button"
-                      onClick={() => speak(ex.en)}
-                      disabled={!speechOk}
-                      aria-label={`nghe: ${ex.en}`}
-                      className="-mb-4 -mt-3 -mx-4 shrink-0 p-4 text-accent disabled:opacity-40 max-lg:focus-visible:outline-offset-[-12px] lg:m-0 lg:mt-1 lg:p-0"
+                      onClick={() => togglePlay(exKey, { text: ex.en, src: audioPath(voice, ex.en) })}
+                      aria-label={`${on ? "dừng" : "nghe"}: ${ex.en}`}
+                      className="-mb-4 -mt-3 -mx-4 shrink-0 p-4 text-accent max-lg:focus-visible:outline-offset-[-12px] lg:m-0 lg:mt-1 lg:p-0"
                     >
                       <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true">
-                        <path d="M4 2.5v11l9-5.5z" fill="currentColor" />
+                        {on ? (
+                          <rect x="3" y="3" width="10" height="10" fill="currentColor" />
+                        ) : (
+                          <path d="M4 2.5v11l9-5.5z" fill="currentColor" />
+                        )}
                       </svg>
                     </button>
                     <div>
@@ -124,7 +136,8 @@ export function ChunkDrawer({ chunks, index, closing = false, onNavigate, onClos
                     </div>
                   </div>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           </div>
 

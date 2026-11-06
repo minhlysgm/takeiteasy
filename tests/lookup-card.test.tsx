@@ -3,9 +3,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { LookupCard } from "@/components/reader/LookupCard";
 import type { LookupResult } from "@/lib/lookupTypes";
 import { lookupUrl } from "@/lib/selection";
-import { speak } from "@/lib/speech";
+import { play } from "@/lib/audio/player";
 
-vi.mock("@/lib/speech", () => ({ speak: vi.fn() }));
+vi.mock("@/lib/audio/player", () => ({ play: vi.fn() }));
 
 const LOUT: LookupResult = {
   headword: "lout",
@@ -67,12 +67,12 @@ describe("LookupCard", () => {
     expect(content.className).toContain("motion-reduce:animate-none");
   });
 
-  it("bấm ▶ → speak('lout'); ▶ có nền bg để viền không chìm vào surface", () => {
+  it("bấm ▶ → play qua bộ phát chung, không kèm src (giọng máy); ▶ có nền bg để viền không chìm vào surface", () => {
     render(<LookupCard state={{ phase: "ok", result: LOUT }} text="louts" speechOk />);
-    const play = screen.getByRole("button", { name: "nghe: lout" });
-    expect(play.className.split(" ")).toContain("bg-bg");
-    fireEvent.click(play);
-    expect(speak).toHaveBeenCalledWith("lout");
+    const btn = screen.getByRole("button", { name: "nghe: lout" });
+    expect(btn.className.split(" ")).toContain("bg-bg");
+    fireEvent.click(btn);
+    expect(play).toHaveBeenCalledWith("tts:lout", { text: "lout" });
   });
 
   it("speechOk=false → nút ▶ disabled", () => {

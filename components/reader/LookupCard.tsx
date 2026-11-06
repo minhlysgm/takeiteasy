@@ -2,7 +2,7 @@
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import type { LookupResult } from "@/lib/lookupTypes";
 import { lookupUrl } from "@/lib/selection";
-import { speak } from "@/lib/speech";
+import { play } from "@/lib/audio/player";
 
 export type LookupState = { phase: "loading" } | { phase: "ok"; result: LookupResult } | { phase: "error" };
 
@@ -99,7 +99,7 @@ export function LookupCard({ state, text, speechOk, id }: Props) {
                   <button
                     type="button"
                     aria-label={`nghe: ${state.result.headword}`}
-                    onClick={() => speak(state.result.headword)}
+                    onClick={() => play(`tts:${state.result.headword}`, { text: state.result.headword })}
                     disabled={!speechOk}
                     title={speechOk ? undefined : "trình duyệt không hỗ trợ đọc"}
                     className={`ml-auto flex h-[30px] w-[30px] shrink-0 items-center justify-center border border-line bg-bg transition-colors hover:border-muted disabled:opacity-40 disabled:hover:border-line motion-reduce:transition-none ${TOUCH_44}`}
