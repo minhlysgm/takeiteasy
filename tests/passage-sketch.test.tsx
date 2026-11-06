@@ -558,6 +558,18 @@ describe("PassageSketch", () => {
       expect(onDone).toHaveBeenCalledTimes(1);
     });
 
+    it("ref.finish('instant') → done, đã xem, báo đúng chế độ được yêu cầu", async () => {
+      const ref = createRef<SketchHandle>();
+      const onDone = vi.fn();
+      render(<PassageSketch sketch={sketch} passageId="p" onDone={onDone} ref={ref} />);
+      await advance(450);
+      expect(sketchEl().dataset.state).toBe("drawing");
+      act(() => ref.current!.finish("instant"));
+      expect(sketchEl().dataset.state).toBe("done");
+      expect(localStorage.getItem(sketchSeenKey("p"))).toBe("1");
+      expect(onDone.mock.calls).toEqual([["instant"]]);
+    });
+
     it("ref.finish() khi đang vẽ → done, onDone('animate')", async () => {
       const ref = createRef<SketchHandle>();
       const onDone = vi.fn();

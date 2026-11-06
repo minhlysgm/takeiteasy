@@ -12,7 +12,8 @@ type State = "idle" | "waiting" | "drawing" | "done";
 
 /** "instant": hiện sẵn ngay khi mở (đã xem / giảm chuyển động). "animate": vừa vẽ xong (hoặc bị bỏ qua) trước mắt người đọc. */
 export type SketchDone = "animate" | "instant";
-export type SketchHandle = { finish(): void };
+/** finish(how): hiện đủ ngay, nhớ đã xem, báo `onDone(how)` ("animate" nếu không nói gì). */
+export type SketchHandle = { finish(how?: SketchDone): void };
 type TextStep = Extract<SketchStep, { kind: "text" }>;
 
 type Item =
@@ -156,19 +157,19 @@ export function PassageSketch({
     if (seen) markSketchSeen(passageId);
   }, [passageId, fullRect, go]);
 
-  /** Xem xong (vẽ hết, người đọc bấm xem ngay, hoặc người trên gọi finish()) */
-  const finish = useCallback(() => {
+  /** Xem xong (vẽ hết, người đọc bấm xem ngay, hoặc người trên gọi finish(how)) → báo onDone(how) */
+  const finish = useCallback((how: SketchDone = "animate") => {
     reveal(true);
     setFinished(true);
     finishedFor.current = passageId;
-    onDoneRef.current?.("animate");
+    onDoneRef.current?.(how);
   }, [reveal, passageId]);
 
   useImperativeHandle(
     ref,
     () => ({
-      finish: () => {
-        if (stateRef.current !== "done") finish();
+      finish: (how) => {
+        if (stateRef.current !== "done") finish(how);
       },
     }),
     [finish],
@@ -343,7 +344,7 @@ export function PassageSketch({
           <button
             type="button"
             className="ml-auto whitespace-nowrap px-1 py-0.5 text-xs text-muted transition-colors hover:text-ink motion-reduce:transition-none"
-            onClick={action === "skip" ? finish : begin}
+            onClick={action === "skip" ? () => finish() : begin}
           >
             {action === "skip" ? "xem ngay ⏭" : "↻ vẽ lại"}
           </button>

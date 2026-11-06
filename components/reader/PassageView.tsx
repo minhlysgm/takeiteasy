@@ -133,11 +133,11 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
 
   // Hình báo xong: chỉ nhận lần đầu của thẻ (vẽ lại xong thì bản dịch không gõ lại).
   const onSketchDone = useCallback((how: SketchDone) => setReveal((r) => (r === "none" || r === "pending" ? how : r)), []);
-  // Phím / "giải thích" lúc hình chưa xong: hiện đủ ngay. Đặt "instant" trước rồi mới finish() để
-  // onDone("animate") mà finish() báo về bị bỏ qua.
+  // Phím / "giải thích" lúc hình chưa xong: hiện đủ ngay — hình báo về "instant" (không hiện dần, không gõ).
+  // Tự đặt luôn phòng khi hình đã xong từ trước (finish() khi đó không báo gì nữa).
   const revealNow = useCallback(() => {
-    setReveal("instant");
-    sketchRef.current?.finish();
+    sketchRef.current?.finish("instant");
+    setReveal((r) => (r === "none" ? "instant" : r));
   }, []);
 
   // Việc ngoài React khi chuyển đoạn: huỷ hẹn giờ đóng tấm, tắt speech, bỏ vùng chọn của trình duyệt
