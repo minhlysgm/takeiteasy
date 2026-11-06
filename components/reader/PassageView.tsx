@@ -5,7 +5,8 @@ import type { Book, Passage } from "@/content/types";
 import { audioPath } from "@/lib/audio/audioPath";
 import { stopPlayback, togglePlay, usePlaying } from "@/lib/audio/player";
 import { useVoice } from "@/lib/audio/voicePref";
-import { DOCK_QUERY } from "@/lib/breakpoints";
+import { voiceName } from "@/lib/audio/voices";
+import { DOCK_QUERY, MOBILE_QUERY } from "@/lib/breakpoints";
 import { chapterLabel, type PassageOutline } from "@/lib/content";
 import { fetchLookup } from "@/lib/lookupClient";
 import { prefersReducedMotion } from "@/lib/motion";
@@ -31,6 +32,10 @@ import { PassageJumpList } from "./PassageJumpList";
 import { PassageSketch, type SketchDone, type SketchHandle } from "./PassageSketch";
 import { SelectionDock } from "./SelectionDock";
 import { SelectionPopup } from "./SelectionPopup";
+import { VoicePicker } from "./VoicePicker";
+
+/** Nút mở đang hiện (mobile hoặc desktop) — để trả focus về đúng nút. */
+const visibleOf = (...els: (HTMLElement | null)[]) => els.find((b) => b && b.getClientRects().length > 0) ?? null;
 
 // Phím bổ trợ / phím khoá đứng một mình: không phải phím tắt, cũng không tính là "phím bất kỳ" để hiện thẻ
 const IGNORED_KEYS = new Set(["Shift", "Control", "Alt", "AltGraph", "Meta", "OS", "Fn", "FnLock", "CapsLock", "NumLock", "ScrollLock", "ContextMenu"]);
@@ -63,6 +68,11 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
   // bấm chuột ra ngoài / ✕, back/forward) → không trả focus: phần tử đang focus trong danh sách bị gỡ → về body,
   // để enter lại là "đoạn tiếp" (cùng luật "bấm chuột vào nút xong thì nhả focus").
   const jumpFocusTrigger = useRef(false);
+  // Chỗ chọn giọng (nút loa header mobile / "giọng: Will ▾" header desktop, phím v).
+  const [voiceOpen, setVoiceOpen] = useState(false);
+  const voiceTriggerRef = useRef<HTMLButtonElement>(null);
+  const voiceTriggerMobileRef = useRef<HTMLButtonElement>(null);
+  const voiceFocusTrigger = useRef(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const readerRef = useRef<HTMLDivElement>(null);
   const captionColRef = useRef<HTMLDivElement>(null);
@@ -129,6 +139,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
     setDrawerIndex(null);
     setDrawerClosing(false);
     setJumpOpen(false); // gỡ danh sách → hook của nó trả focus + mở khoá cuộn (cả khi back/forward)
+    setVoiceOpen(false);
     setLookup(null); // request đang chờ được huỷ ở effect bên dưới
   }
   // Gọi sau khối đặt lại ở trên. Ở lượt render này `reveal` vẫn là giá trị của thẻ cũ; React render lại ngay sau
@@ -223,10 +234,28 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
 
   // Danh sách gọi lúc unmount. Không cuộn trang: header mobile không dính, focus() thường sẽ kéo trang lên đầu.
   const jumpRestoreTarget = useCallback(
-    () =>
-      jumpFocusTrigger.current
-        ? ([jumpTriggerRef.current, jumpTriggerMobileRef.current].find((b) => b && b.getClientRects().length > 0) ?? null)
-        : null,
+    () => (jumpFocusTrigger.current ? visibleOf(jumpTriggerRef.current, jumpTriggerMobileRef.current) : null),
+    [],
+  );
+
+  const openVoice = useCallback(() => {
+    clearSelection();
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setDrawerIndex(null);
+    setDrawerClosing(false);
+    voiceFocusTrigger.current = false;
+    setVoiceOpen(true);
+  }, [clearSelection]);
+
+  // Đóng bằng phím (Esc / v / ✕ bằng bàn phím) → focus về nút mở. Mobile: tấm là modal, đóng kiểu nào cũng về nút.
+  // Desktop bấm chuột ra ngoài / ✕ → nhả focus như danh sách thẻ (enter lại là "thẻ tiếp"); Tab ra → focus yên chỗ mới.
+  const closeVoice = useCallback((how: "key" | "pointer" | "focus-out") => {
+    voiceFocusTrigger.current = how === "key" || (how === "pointer" && !!window.matchMedia?.(MOBILE_QUERY).matches);
+    setVoiceOpen(false);
+  }, []);
+
+  const voiceRestoreTarget = useCallback(
+    () => (voiceFocusTrigger.current ? visibleOf(voiceTriggerRef.current, voiceTriggerMobileRef.current) : null),
     [],
   );
 
@@ -236,7 +265,8 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
     const onClick = (e: MouseEvent) => {
       if (e.detail === 0 || !(e.target instanceof Element)) return;
       const btn = e.target.closest("button");
-      if (btn && document.activeElement === btn) btn.blur();
+      // Ô còn mở sau khi bấm (chỗ chọn giọng) thì giữ focus trong ô
+      if (btn && document.activeElement === btn && !btn.closest("[data-keep-focus]")) btn.blur();
     };
     document.addEventListener("click", onClick);
     return () => document.removeEventListener("click", onClick);
@@ -251,12 +281,17 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
       // Enter trên nút đang focus là việc của nút đó, phím tắt không xen vào
       if (e.key === "Enter" && e.target instanceof Element && e.target.closest("button")) return;
       // Danh sách đoạn / tấm giải thích đang mở: phím là của chúng, kể cả lúc hình chưa xong hay bản dịch đang gõ
-      if (drawerIndex !== null || jumpOpen) {
+      if (drawerIndex !== null || jumpOpen || voiceOpen) {
         if (drawerIndex !== null) {
           if (drawerClosing) return;
           if (e.key === "Escape") requestCloseDrawer();
           if (e.key === "j") setDrawerIndex(Math.min(passage.chunks.length - 1, drawerIndex + 1));
           if (e.key === "k") setDrawerIndex(Math.max(0, drawerIndex - 1));
+          return;
+        }
+        // Chỗ chọn giọng: v / Esc đóng (Esc trong ô thì ô tự lo — defaultPrevented). Phím khác để ô tự lo.
+        if (voiceOpen) {
+          if (!e.defaultPrevented && !e.repeat && (e.key === "v" || e.key === "Escape")) closeVoice("key");
           return;
         }
         // Danh sách đoạn: g đóng. Phím khác (Esc, ↑/↓, enter) để danh sách tự lo,
@@ -286,6 +321,10 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
       switch (e.key) {
         case "g":
           openJump();
+          break;
+        case "v":
+          if (e.repeat) break;
+          openVoice();
           break;
         // Đang ở đoạn đầu/cuối thì để Home/End là phím cuộn của trình duyệt
         case "Home":
@@ -324,7 +363,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [reveal, revealNow, typing, drawerIndex, drawerClosing, jumpOpen, openJump, closeJump, passageIndex, passageCount, goTo, passage, toggleTheme, toggleReadAloud, requestCloseDrawer, clearSelection]);
+  }, [reveal, revealNow, typing, drawerIndex, drawerClosing, jumpOpen, openJump, closeJump, voiceOpen, openVoice, closeVoice, passageIndex, passageCount, goTo, passage, toggleTheme, toggleReadAloud, requestCloseDrawer, clearSelection]);
 
   const openChunk = (chunkId: string) => {
     const i = passage.chunks.findIndex((c) => c.id === chunkId);
@@ -369,8 +408,23 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
     <div className="flex min-h-dvh flex-col">
       {pending && <style dangerouslySetInnerHTML={{ __html: sketchGateCss(passage.id) }} />}
       <header className="flex h-11 shrink-0 items-center border-b border-line bg-surface lg:sticky lg:top-0 lg:z-[15] lg:gap-4 lg:px-5">
-        {/* Mobile: ô trống trái cân với nút theme bên phải để tiêu đề nằm giữa */}
-        <div className="w-11 shrink-0 lg:hidden" aria-hidden="true" />
+        {/* Mobile: nút chọn giọng (loa) bên trái, cân với nút theme bên phải để tiêu đề nằm giữa */}
+        <button
+          ref={voiceTriggerMobileRef}
+          type="button"
+          data-testid="voice-trigger-mobile"
+          aria-label={`giọng đọc: ${voiceName(voice)}`}
+          aria-haspopup="dialog"
+          aria-expanded={voiceOpen}
+          onClick={openVoice}
+          className={`flex h-11 w-11 shrink-0 items-center justify-center gap-0.5 transition-colors hover:text-bright motion-reduce:transition-none focus-visible:outline-offset-[-4px] lg:hidden ${voiceOpen ? "text-bright" : "text-muted"}`}
+        >
+          <svg aria-hidden viewBox="0 0 18 18" width="18" height="18">
+            <path d="M2.5 7h3l4-3.5v11l-4-3.5h-3z" fill="currentColor" />
+            <path d="M12 6.2a3.6 3.6 0 0 1 0 5.6M14 4.3a6.3 6.3 0 0 1 0 9.4" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+          </svg>
+          <span aria-hidden="true" className="text-[9px]">▾</span>
+        </button>
         <div className="hidden gap-2 lg:flex" aria-hidden="true">
           <span className="block h-3 w-3 rounded-full bg-danger opacity-70" />
           <span className="block h-3 w-3 rounded-full bg-ink opacity-70" />
@@ -399,7 +453,18 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
             {explainOn && <span className="text-ink"> · explain</span>}
           </span>
         </div>
-        <div className="hidden w-14 shrink-0 lg:block" />
+        {/* Desktop: chọn giọng ở góc phải header (phím v) */}
+        <button
+          ref={voiceTriggerRef}
+          type="button"
+          data-testid="voice-trigger"
+          aria-haspopup="dialog"
+          aria-expanded={voiceOpen}
+          onClick={openVoice}
+          className={`hidden shrink-0 whitespace-nowrap border px-2.5 py-1 text-[13px] transition-colors motion-reduce:transition-none lg:block ${voiceOpen ? "border-ink text-ink" : "border-transparent text-muted hover:border-line hover:text-bright"}`}
+        >
+          giọng: <b className={`font-normal ${voiceOpen ? "text-ink" : "text-bright"}`}>{voiceName(voice)}</b> <span aria-hidden="true">▾</span>
+        </button>
         {/* Mobile: theme ở header cho footer đủ chỗ ở 320px; desktop vẫn ở footer (phím t) */}
         <button
           type="button"
@@ -518,7 +583,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
           />
         )}
         {/* Thanh đang hiện thì mẹo tạm nhường chỗ (màn nhỏ: mẹo + thanh + footer chiếm gần nửa màn) */}
-        <FirstTimeHint explainOn={explainOn} hidden={(showSel && docked) || jumpOpen} />
+        <FirstTimeHint explainOn={explainOn} hidden={(showSel && docked) || jumpOpen || voiceOpen} />
         <footer className="relative flex [&_button:focus-visible]:outline-offset-1 h-[60px] shrink-0 items-center justify-between gap-1.5 border-t border-line bg-bg px-2 text-[13px] text-muted lg:h-14 lg:gap-0 lg:px-8">
           <div
             aria-hidden
@@ -594,6 +659,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
           restoreFocus={jumpRestoreTarget}
         />
       )}
+      {voiceOpen && <VoicePicker onClose={closeVoice} restoreFocus={voiceRestoreTarget} />}
     </div>
   );
 }
