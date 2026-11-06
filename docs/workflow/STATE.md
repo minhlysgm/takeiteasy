@@ -7,7 +7,26 @@
 
 **Task:** Chuyển sang thẻ "vẽ trước" — hình phác thảo là module chính, chạy trước; vẽ xong hiện đoạn mô tả + bình tiếng Anh **do takeiteasy tự viết** (chunk gạch chân, bản dịch, ý chính), dòng ghi công cuối thẻ. Sách chỉ là nguồn ý tưởng (kiểu review sách).
 **Cỡ:** L
-**Trạm:** ⑥ Kiểm thử & soi — **⑤ Build xong 2026-11-06** trên nhánh `task/sketch-first` (11 commit, cf8ad51..6461912; chưa merge). `npm run verify` xanh: vitest 422 / Playwright 209. Mỗi task con đã qua agent soát riêng + 1 lượt soát toàn nhánh (model mạnh nhất) → sửa 7 mục (đọc to lúc đang vẽ thì hiện thẻ trước rồi đọc; Space trên nút; màu preview công cụ biên tập khớp app; dọn comment/tên test). Việc kế ở ⑥: chạy `ui-review` (desktop/mobile × sáng/tối), rồi `/code-review`, gom đề xuất cho Minh chọn.
+**Trạm:** ⑥ Kiểm thử & soi — **⑤ Build xong 2026-11-06** trên nhánh `task/sketch-first` (11 commit, cf8ad51..6461912; chưa merge). `npm run verify` xanh: vitest 422 / Playwright 209. Mỗi task con đã qua agent soát riêng + 1 lượt soát toàn nhánh (model mạnh nhất) → sửa 7 mục (đọc to lúc đang vẽ thì hiện thẻ trước rồi đọc; Space trên nút; màu preview công cụ biên tập khớp app; dọn comment/tên test). **⑥ đã chạy (2026-11-06):** verify xanh lần 2 (lần 1 đỏ 2 test bút chì `e2e/sketch.spec.ts:455/471` kẹt `idle` >5s lúc máy bận chạy code review song song — chạy riêng xanh, chạy lại toàn bộ xanh: vitest 422 / Playwright 209). Đã chạy `ui-review` + `/code-review high`. **Chờ Minh chọn mục trong danh sách dưới.**
+- **Danh sách ⑥ (mã A = lỗi hành vi, B = nhìn thấy, cần mockup, C = dọn/thấp):**
+  - A1 cao: key `tie:sketch-seen:` không đổi version → ai đã xem thẻ cũ (cùng id ch01-p01..03) sẽ không bao giờ thấy thẻ mới vẽ. Sửa: đổi key sang `v2` (lib/sketchSeen.ts).
+  - A2 cao: đang vẽ mà mở danh sách thẻ (g) → phím bị nuốt để hiện thẻ (bấm g 2 lần mới đóng; ↑↓ trong danh sách đánh dấu thẻ đã xem). Sửa: kiểm `jumpOpen`/`drawerIndex` trước nhánh `reveal==="none"` (PassageView:229).
+  - A3 cao: đang vẽ thì F5, PageDown, ↓, Shift… bị chặn/hoặc làm hiện thẻ + đánh dấu đã xem. Sửa: bỏ qua phím bổ trợ + phím có Ctrl/Meta/Alt + F1–F12, không `preventDefault` phím cuộn/trình duyệt (PassageView:234).
+  - A4 vừa: tải lại/vào thẳng thẻ đã xem (hoặc reduced-motion) nháy 1 khung "đang vẽ…" rồi mới hiện đủ. Sửa: quyết `instant` bằng `useLayoutEffect` / trước khi vẽ (PassageView:100).
+  - A5 vừa: chữ trạng thái lệch & đọc 2 lần — mô tả ghi "đang vẽ…" trong khi hình ghi "cuộn tới hình để xem vẽ…" hoặc chưa vẽ; không có aria-live. Sửa: chỉ nhãn hình báo trạng thái (`role=status`), chỗ mô tả ghi trung tính "mô tả hiện sau khi vẽ xong." (`aria-hidden`), vẽ xong status đọc "vẽ xong".
+  - A6 thấp: `revealNow` phụ thuộc thứ tự gọi `setReveal` trước `finish()` → cho `finish("instant")` nhận chế độ.
+  - B1 cao: desktop bật giải thích — mũi tên ghi chú cắt ngang chữ, chỉ sai chữ khi chunk xuống dòng (`getBoundingClientRect` bao 2 dòng). Sửa: `getClientRects()`, đi theo khe giữa dòng, đích `bottom+2` (AnnotationLayer:79,90-107, lib/annotate.ts).
+  - B2 cao: desktop 1024–1279 hình co còn 256px, chữ tay ~8px, dòng mô tả 25–37 ký tự (rãnh ghi chú 2×200px). Sửa: rãnh 140px ở lg, 200px ở xl, và/hoặc hình tràn sang rãnh giữa.
+  - B3 vừa: theme sáng `--accent`=`--ink`=#b45309 → tone accent trong hình không khác (cả `--accent-strong`=`--ink-strong`). Gợi ý accent sáng xanh lá #1a7f37. Kèm: `--ink` trên `--surface` chỉ 4.19:1 (thanh mẹo, "· explain") → ink sáng ~#a34a08.
+  - B4 vừa: nút "xem ngay ⏭"/"↻ vẽ lại" cao ~20px, khó chạm mobile → vùng chạm 44px.
+  - B5 vừa: chữ tay trong hình ~11.7px ở 390px, ~9.6px ở 320px → tăng size (giữ cách nét ≥6) hoặc scale theo bề rộng.
+  - C1: nhãn "// bản dịch" desktop chỉ hiện sau khi vẽ → cột nhảy; luôn render nhãn.
+  - C2: chuyển động lệch checklist: `caption-in` 500ms trùng keyframe `fade-in`; `.arrow-draw` ease 0.6s; `passage-in` 350ms; tiến độ desktop animate `width` (nên scaleX).
+  - C3: `key={passage.id}` trên PassageSketch thừa (div cha đã key) → refs theo passageId thừa.
+  - C4: preview công cụ biên tập chép cứng hex token, đã lệch (halo 5px vs 4) → đọc từ lib/theme.css.
+  - C5: kệ sách mobile: "theme: light — bấm để đổi" xuống dòng mồ côi.
+  - C6: thanh mẹo + footer dính chiếm 17% màn mobile (26% màn ngang) — nghi vấn "đè dòng cuối" đã BÁC BỎ (cuộn hết thì không che).
+  - Ảnh đang vẽ: scratchpad session này `shots/` (mất khi đổi session).
 
 - **Quyết định Claude tự chọn ở ⑤ (Minh xem lại):** (1) nét vẽ để **trơn** (`plain`, giống bản nháp đã duyệt) thay vì rung kiểu roughjs như hình cũ — muốn rung lại thì đổi cờ + chạy lại test chữ-cách-nét; (2) chuyển sang thẻ đã xem → hiện đủ ngay (không nháy "đang vẽ…"); (3) bôi đen đúng một chunk soạn sẵn rồi "tra nghĩa" → mở drawer chunk (hành vi cũ), không gọi API; (4) kệ sách cũng đổi chữ "đoạn" → "thẻ"; (5) Tab lúc đang vẽ = hiện đủ nhưng vẫn chuyển focus; Space trên nút footer lúc đang vẽ = hiện đủ + bấm nút luôn (trừ nút "xem ngay ⏭").
 - **Cần soi ở ⑥:** "đang vẽ…" hiện 2 lần lúc vẽ (nhãn hình + chỗ mô tả) và trình đọc màn hình đọc 2 lần, lúc hiện ra không thông báo (gợi ý: 1 chỗ `role=status`); hình nằm ngoài khung thì hình ghi "cuộn tới hình để xem vẽ…" còn chỗ mô tả ghi "đang vẽ…" (lệch chữ); ảnh full-page mobile thấy thanh mẹo + hàng nút đè dòng cuối mô tả (có thể chỉ do chụp full-page, kiểm ở khung thật); desktop bật giải thích: vài mũi tên ghi chú cắt ngang chữ; theme sáng `--ink` = `--accent` (#b45309) nên tone accent chỉ khác ở theme tối.
