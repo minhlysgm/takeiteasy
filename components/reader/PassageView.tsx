@@ -29,6 +29,11 @@ import { PassageSketch, type SketchDone, type SketchHandle } from "./PassageSket
 import { SelectionDock } from "./SelectionDock";
 import { SelectionPopup } from "./SelectionPopup";
 
+// Phím bổ trợ / phím khoá đứng một mình: không phải phím tắt, cũng không tính là "phím bất kỳ" để hiện thẻ
+const IGNORED_KEYS = new Set(["Shift", "Control", "Alt", "AltGraph", "Meta", "OS", "Fn", "FnLock", "CapsLock", "NumLock", "ScrollLock", "ContextMenu"]);
+// Phím cuộn của trình duyệt mà app không dùng (Home/End xét riêng: chỉ là phím cuộn khi đang ở thẻ đầu/cuối)
+const SCROLL_KEYS = new Set(["PageUp", "PageDown", "ArrowUp", "ArrowDown"]);
+
 interface Props {
   book: Book;
   chapterId: string;
@@ -219,14 +224,34 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      // Phím của trình duyệt / hệ điều hành (tổ hợp Ctrl/Meta/Alt, phím bổ trợ đứng một mình, F1–F12): không đụng tới
+      if (e.metaKey || e.ctrlKey || e.altKey || IGNORED_KEYS.has(e.key) || /^F([1-9]|1[0-2])$/.test(e.key)) return;
       // Shift+←/→/Home/End là phím nới vùng chọn của trình duyệt, không phải chuyển đoạn
       if (e.shiftKey && ["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
       // Enter trên nút đang focus là việc của nút đó, phím tắt không xen vào
       if (e.key === "Enter" && e.target instanceof Element && e.target.closest("button")) return;
-      // Hình chưa xong: phím bất kỳ (trừ Esc) = hiện đủ ngay, chưa làm việc của phím (enter lần 2 mới sang thẻ).
+      // Danh sách đoạn / tấm giải thích đang mở: phím là của chúng, kể cả lúc hình chưa xong hay bản dịch đang gõ
+      if (drawerIndex !== null || jumpOpen) {
+        if (drawerIndex !== null) {
+          if (drawerClosing) return;
+          if (e.key === "Escape") requestCloseDrawer();
+          if (e.key === "j") setDrawerIndex(Math.min(passage.chunks.length - 1, drawerIndex + 1));
+          if (e.key === "k") setDrawerIndex(Math.max(0, drawerIndex - 1));
+          return;
+        }
+        // Danh sách đoạn: g đóng. Phím khác (Esc, ↑/↓, enter) để danh sách tự lo,
+        // không chuyển đoạn hay tắt giải thích phía sau.
+        if (e.key === "g") closeJump(true);
+        return;
+      }
+      // Phím cuộn không phải phím tắt của app (Home ở thẻ đầu, End ở thẻ cuối): để trình duyệt cuộn
+      const scrollKey =
+        SCROLL_KEYS.has(e.key) || (e.key === "Home" && passageIndex === 1) || (e.key === "End" && passageIndex === passageCount);
+      // Hình chưa xong: phím bất kỳ (trừ Esc, phím cuộn) = hiện đủ ngay, chưa làm việc của phím (enter lần 2 mới sang
+      // thẻ). Phím cuộn thì như lăn chuột: hình đang chờ lọt khung vẫn được vẽ khi cuộn tới.
       // Tab vẫn để trình duyệt chuyển focus; Space trên nút đang focus thì để nút tự bấm (như Enter ở trên).
-      if (reveal === "none" && e.key !== "Escape") {
+      if (reveal === "none") {
+        if (e.key === "Escape" || scrollKey) return;
         revealNow();
         // Ngoại lệ: nút trong hình ("xem ngay ⏭") đổi thành "↻ vẽ lại" ngay khi hiện đủ, nên để Space bấm tiếp là vẽ lại.
         const spaceOnButton =
@@ -236,19 +261,6 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
       }
       if (!typing.done && e.key !== "Escape") {
         typing.skip();
-        return;
-      }
-      if (drawerIndex !== null) {
-        if (drawerClosing) return;
-        if (e.key === "Escape") requestCloseDrawer();
-        if (e.key === "j") setDrawerIndex(Math.min(passage.chunks.length - 1, drawerIndex + 1));
-        if (e.key === "k") setDrawerIndex(Math.max(0, drawerIndex - 1));
-        return;
-      }
-      // Danh sách đoạn đang mở: g đóng. Phím khác (Esc, ↑/↓, enter) để danh sách tự lo,
-      // không chuyển đoạn hay tắt giải thích phía sau.
-      if (jumpOpen) {
-        if (e.key === "g") closeJump(true);
         return;
       }
       switch (e.key) {

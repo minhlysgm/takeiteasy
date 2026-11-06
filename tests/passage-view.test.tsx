@@ -5,6 +5,7 @@ import { DOCK_QUERY } from "@/lib/breakpoints";
 import { books, firstSentence, getPassages } from "@/lib/content";
 import { getProgress } from "@/lib/progress";
 import { getReadPassages } from "@/lib/readPassages";
+import { sketchSeenKey } from "@/lib/sketchSeen";
 import { speak } from "@/lib/speech";
 
 const push = vi.fn();
@@ -249,6 +250,75 @@ describe("PassageView — đọc to / Space lúc hình đang vẽ", () => {
     const onBody = new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true });
     act(() => void document.body.dispatchEvent(onBody));
     expect(onBody.defaultPrevented).toBe(true);
+  });
+});
+
+describe("PassageView — phím lúc hình đang vẽ", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    push.mockClear();
+  });
+
+  const waiting = () => screen.queryByTestId("caption-waiting") !== null;
+  const seen = () => localStorage.getItem(sketchSeenKey(passages[0].id));
+  const press = (key: string, init: KeyboardEventInit = {}, target: EventTarget = document.body) => {
+    const ev = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true, ...init });
+    act(() => void target.dispatchEvent(ev));
+    return ev;
+  };
+
+  it("danh sách thẻ đang mở: phím đi tới danh sách (g đóng, ↑↓ không hiện thẻ), không đánh dấu đã xem", () => {
+    renderView();
+    fireEvent.click(screen.getByTestId("jump-trigger"));
+    expect(screen.queryByTestId("jump-list")).toBeTruthy();
+    press("ArrowDown", {}, document.activeElement ?? document.body);
+    press("x");
+    expect(screen.queryByTestId("jump-list")).toBeTruthy();
+    press("g");
+    expect(screen.queryByTestId("jump-list")).toBeNull(); // g lần đầu đã đóng
+    expect(waiting()).toBe(true);
+    expect(screen.getByTestId("sketch").dataset.state).not.toBe("done");
+    expect(seen()).toBeNull();
+  });
+
+  it("phím bổ trợ đứng một mình, tổ hợp Ctrl/Meta/Alt, F1–F12: bỏ qua hẳn (không hiện, không chặn)", () => {
+    renderView();
+    const evs = [
+      press("Shift", { shiftKey: true }),
+      press("Control", { ctrlKey: true }),
+      press("Alt", { altKey: true }),
+      press("Meta", { metaKey: true }),
+      press("r", { ctrlKey: true }),
+      press("r", { metaKey: true }),
+      press("ArrowLeft", { altKey: true }),
+      press("F5"),
+      press("F1"),
+      press("F12"),
+    ];
+    expect(evs.map((e) => e.defaultPrevented)).toEqual(evs.map(() => false));
+    expect(waiting()).toBe(true);
+    expect(seen()).toBeNull();
+  });
+
+  it("phím cuộn (PageUp/PageDown/↑/↓, Home ở thẻ đầu) không bị chặn và không hiện thẻ", () => {
+    renderView();
+    const evs = ["PageDown", "PageUp", "ArrowDown", "ArrowUp", "Home"].map((k) => press(k));
+    expect(evs.map((e) => e.defaultPrevented)).toEqual(evs.map(() => false));
+    expect(waiting()).toBe(true);
+    expect(seen()).toBeNull();
+  });
+
+  it("phím tắt của app (→, End khi chưa ở thẻ cuối) vẫn hiện đủ + chặn, chưa chuyển thẻ", () => {
+    renderView();
+    expect(press("End").defaultPrevented).toBe(true);
+    expect(waiting()).toBe(false);
+    expect(push).not.toHaveBeenCalled();
+    cleanup();
+    localStorage.clear();
+    renderView();
+    expect(press("ArrowRight").defaultPrevented).toBe(true);
+    expect(waiting()).toBe(false);
+    expect(push).not.toHaveBeenCalled();
   });
 });
 
