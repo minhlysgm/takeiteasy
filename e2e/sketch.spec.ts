@@ -494,20 +494,38 @@ test.describe("mobile 390px", () => {
     const svg = sketch.locator("svg");
     const label = sketch.getByText("// hình");
     const lines = () => label.evaluate((el) => el.getClientRects().length);
-    const box = async () => {
-      const b = (await svg.boundingBox())!;
-      return [Math.round(b.x), Math.round(b.width)];
-    };
+    // Toạ độ theo trang (cộng scrollY) để cuộn tới hình không tính là xê dịch
+    const box = () =>
+      Promise.all([svg, label].map((l) => l.evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        return [Math.round(r.x), Math.round(r.y + window.scrollY), Math.round(r.width)];
+      })));
+    // Cột trượt vào (passage-in) xong rồi mới đo, kẻo tính nhầm chuyển động đó là xê dịch
+    await page.getByTestId("caption-col").evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)));
     const before = await box(); // lúc còn chờ (hoặc vừa bắt đầu vẽ)
     await svg.scrollIntoViewIfNeeded();
     await expect(sketch).toHaveAttribute("data-state", "drawing");
     expect(await box()).toEqual(before);
     expect(await lines()).toBe(1);
     const skip = sketch.getByRole("button", { name: "xem ngay ⏭" });
-    expect(await skip.evaluate((el) => el.getBoundingClientRect().height)).toBeLessThan(24); // một dòng
+    await expectTouchTarget(skip);
     await skip.click();
     await expect(sketch).toHaveAttribute("data-state", "done");
     expect(await box()).toEqual(before);
     expect(await lines()).toBe(1);
+    await expectTouchTarget(sketch.getByRole("button", { name: "↻ vẽ lại" }));
   });
 });
+
+/** Vùng chạm ≥ 44px cao, còn chữ trong nút vẫn một dòng cỡ chữ nhỏ (không nong hàng tiêu đề). */
+async function expectTouchTarget(btn: ReturnType<Page["getByRole"]>) {
+  const m = await btn.evaluate((el) => {
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const text = range.getClientRects();
+    return { height: el.getBoundingClientRect().height, textLines: text.length, textHeight: text[0]?.height ?? 0 };
+  });
+  expect(m.height).toBeGreaterThanOrEqual(44);
+  expect(m.textLines).toBe(1);
+  expect(m.textHeight).toBeLessThan(24);
+}

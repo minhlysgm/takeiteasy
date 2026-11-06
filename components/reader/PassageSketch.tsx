@@ -344,7 +344,8 @@ export function PassageSketch({
         {action && (
           <button
             type="button"
-            className="ml-auto whitespace-nowrap px-1 py-0.5 text-xs text-muted transition-colors hover:text-ink motion-reduce:transition-none"
+            // Vùng chạm cao 44px (min-h-11), margin âm trả lại đúng 22px của hàng + self-center (ra khỏi canh baseline): chữ và hình không xê dịch
+            className="-my-[11px] -mr-1 ml-auto inline-flex min-h-11 items-center self-center whitespace-nowrap px-2 text-xs text-muted transition-colors hover:text-ink motion-reduce:transition-none"
             onClick={action === "skip" ? () => finish() : begin}
           >
             {action === "skip" ? "xem ngay ⏭" : "↻ vẽ lại"}
