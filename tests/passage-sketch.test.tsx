@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createRef } from "react";
+import { createRef, useLayoutEffect } from "react";
 import { PassageSketch, type SketchHandle } from "@/components/reader/PassageSketch";
 import type { Sketch } from "@/content/types";
 
@@ -552,6 +552,22 @@ describe("PassageSketch", () => {
       render(<PassageSketch sketch={sketch} passageId="q" onDone={onDone2} ref={ref2} />);
       act(() => ref2.current!.finish());
       expect(onDone2.mock.calls).toEqual([["instant"]]);
+    });
+
+    it("finish() chạy trước effect mở thẻ (người trên gọi trong layout effect) → giữ done, chỉ báo 'animate'", async () => {
+      const ref = createRef<SketchHandle>();
+      const onDone = vi.fn();
+      function Parent() {
+        // layout effect của cha chạy sau khi ref được gắn nhưng trước passive effect mở thẻ của con
+        useLayoutEffect(() => ref.current!.finish(), []);
+        return <PassageSketch sketch={sketch} passageId="p" onDone={onDone} ref={ref} />;
+      }
+      render(<Parent />);
+      expect(sketchEl().dataset.state).toBe("done");
+      expect(onDone.mock.calls).toEqual([["animate"]]);
+      await advance(10000);
+      expect(sketchEl().dataset.state).toBe("done");
+      expect(onDone.mock.calls).toEqual([["animate"]]);
     });
 
     it("vẽ lại → vẽ xong lại gọi onDone('animate')", async () => {

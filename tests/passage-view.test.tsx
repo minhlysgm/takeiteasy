@@ -1,7 +1,6 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { PassageView } from "@/components/reader/PassageView";
-import type { Passage } from "@/content/types";
 import { DOCK_QUERY } from "@/lib/breakpoints";
 import { books, firstSentence, getPassages } from "@/lib/content";
 import { getProgress } from "@/lib/progress";
@@ -189,20 +188,31 @@ describe("PassageView", () => {
     expect(screen.getByTestId("sketch")).toBeTruthy();
   });
 
-  it("đoạn không có sketch thì không render khung phác thảo", () => {
-    const { sketch: _sketch, ...noSketch } = passages[0];
-    render(
-      <PassageView
-        outline={outline}
-        chapterTitle={chapterTitle}
-        book={book}
-        chapterId="ch01"
-        passage={noSketch as Passage}
-        passageIndex={1}
-        passageCount={passages.length}
-      />,
+  it("thẻ nào cũng có hình (sketch bắt buộc), nằm trước đoạn mô tả", () => {
+    renderView();
+    const sketch = screen.getByTestId("sketch");
+    const caption = screen.getByTestId("caption-text");
+    expect(sketch.compareDocumentPosition(caption) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("mở thẻ chưa xem: mô tả + bản dịch chờ hình; phím bất kỳ (trừ Esc) → hiện đủ, chưa chuyển thẻ", () => {
+    renderView();
+    expect(screen.getByTestId("caption-waiting").textContent).toBe("đang vẽ…");
+    expect(screen.getByTestId("caption-text").closest("[hidden]")).not.toBeNull();
+    expect(screen.getByTestId("translation-waiting").textContent).toBe("bản dịch hiện sau khi vẽ xong.");
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryByTestId("caption-waiting")).not.toBeNull();
+    fireEvent.keyDown(window, { key: "Enter" });
+    expect(push).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("caption-waiting")).toBeNull();
+    expect(screen.getByTestId("caption-text").closest("[hidden]")).toBeNull();
+    expect(screen.queryByText("đang gõ…")).toBeNull();
+    expect(screen.getByTestId("credit").textContent).toBe(
+      "Ý tưởng từ chương 1, The Subtle Art of Not Giving a F*ck — Mark Manson. Hình và lời: takeiteasy.",
     );
-    expect(screen.queryByTestId("sketch")).toBeNull();
+    expect(screen.getByTestId("sketch").dataset.state).toBe("done");
+    fireEvent.keyDown(window, { key: "Enter" });
+    expect(push).toHaveBeenCalledWith("/read/the-subtle-art/ch01/2");
   });
 });
 

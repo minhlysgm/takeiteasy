@@ -93,6 +93,20 @@ describe("useTypingText", () => {
       act(() => vi.advanceTimersByTime(1000));
       expect(seen[seen.length - 1]).toBe("hai||false");
     });
+    it("enabled true→false (đang chờ start): đủ chữ + done ngay trong lần vẽ đó, không khung nào rỗng", () => {
+      const seen: string[] = [];
+      const { rerender } = renderHook(
+        ({ e }) => {
+          const r = useTypingText("abc", { charMs: 10, start: false, enabled: e });
+          seen.push(`${r.display}|${r.done}`);
+          return r;
+        },
+        { initialProps: { e: true } },
+      );
+      seen.length = 0;
+      rerender({ e: false });
+      expect(seen[0]).toBe("abc|true");
+    });
     it("skip vẫn hiện đủ khi start=false", () => {
       const { result } = renderHook(() => useTypingText("hello", { charMs: 10, start: false }));
       act(() => result.current.skip());

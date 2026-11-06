@@ -59,6 +59,8 @@ export function PassageSketch({
   });
   // Thẻ nào đã báo "instant" rồi (chống StrictMode chạy effect hai lần)
   const instantFor = useRef<string | null>(null);
+  // Thẻ nào vừa được finish() (người trên có thể gọi trước cả effect mở thẻ, vd. trong layout effect)
+  const finishedFor = useRef<string | null>(null);
   const [reduced, setReduced] = useState(false);
   // Hình có đang trên màn hình không. "yes" giữ nguyên cho tới lúc sắp vẽ;
   // ngay trước khi vẽ kiểm lại một lần, lướt qua rồi cuộn đi thì về "no" và chờ tiếp.
@@ -109,6 +111,9 @@ export function PassageSketch({
   useEffect(() => {
     const rm = prefersReducedMotion();
     setReduced(rm);
+    // finish() đã chạy cho đúng thẻ này trước effect: đã done và đã báo "animate", đừng báo thêm "instant"
+    if (stateRef.current === "done" && finishedFor.current === passageId) return;
+    finishedFor.current = null;
     if (rm || isSketchSeen(passageId)) {
       go("done");
       if (instantFor.current !== passageId) {
@@ -150,8 +155,9 @@ export function PassageSketch({
   /** Xem xong (vẽ hết, người đọc bấm xem ngay, hoặc người trên gọi finish()) */
   const finish = useCallback(() => {
     reveal(true);
+    finishedFor.current = passageId;
     onDoneRef.current?.("animate");
-  }, [reveal]);
+  }, [reveal, passageId]);
 
   useImperativeHandle(
     ref,
@@ -281,6 +287,8 @@ export function PassageSketch({
     };
 
     const tick = (now: number) => {
+      // finish() vừa chạy (state chưa kịp render lại để huỷ rAF): đừng vẽ đè lên hình đã hiện đủ
+      if (stateRef.current !== "drawing") return;
       if (t0 === null) t0 = now;
       const t = now - t0;
       if (t >= end) return finish();

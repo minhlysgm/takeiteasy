@@ -22,6 +22,9 @@ export function useTypingText(text: string, { charMs = 25, enabled = true, start
     setShownText(text);
     setCount(typed);
   }
+  // Tắt hiệu ứng thì luôn đủ chữ ngay trong lần vẽ này, không đợi effect bên dưới (trễ một khung hình,
+  // lộ "đang gõ…" / chữ rỗng khi enabled vừa chuyển true → false).
+  if (!enabled) typed = total;
 
   useEffect(() => {
     if (!enabled) {

@@ -7,6 +7,7 @@ import { chapterLabel, type PassageOutline } from "@/lib/content";
 import { fetchLookup } from "@/lib/lookupClient";
 import { prefersReducedMotion } from "@/lib/motion";
 import { saveProgress } from "@/lib/progress";
+import { isSketchSeen } from "@/lib/sketchSeen";
 import { getReadPassages, markPassageRead } from "@/lib/readPassages";
 import { chunkAt } from "@/lib/selection";
 import { isSpeechAvailable, speak, stopSpeech } from "@/lib/speech";
@@ -22,8 +23,9 @@ import { Kbd } from "./Kbd";
 import type { LookupState } from "./LookupCard";
 import { MobileNoteList } from "./MobileNoteList";
 import { CaptionText } from "./CaptionText";
+import { CreditLine } from "./CreditLine";
 import { PassageJumpList } from "./PassageJumpList";
-import { PassageSketch } from "./PassageSketch";
+import { PassageSketch, type SketchDone, type SketchHandle } from "./PassageSketch";
 import { SelectionDock } from "./SelectionDock";
 import { SelectionPopup } from "./SelectionPopup";
 
@@ -57,7 +59,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
   const readerRef = useRef<HTMLDivElement>(null);
   const captionColRef = useRef<HTMLDivElement>(null);
   const captionTextRef = useRef<HTMLDivElement>(null);
-  const typing = useTypingText(passage.translation);
+  const sketchRef = useRef<SketchHandle>(null);
   const { toggle: toggleTheme } = useTheme();
   // Chỉ chữ nguyên văn mới tính: nhãn, ghi chú tay, hình minh hoạ cùng cột thì không.
   const { selection, clear: clearSelection } = useTextSelection(captionTextRef, { resetKey: passage.id });
@@ -93,24 +95,42 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
   // Chuyển đoạn: PassageView nằm ở layout của chương nên KHÔNG remount. State của đoạn được đặt lại
   // ngay trong lúc vẽ (không đợi effect) để đoạn mới không vẽ lần nào với tấm giải thích / chế độ
   // giải thích của đoạn cũ.
+  // Thẻ "vẽ trước": "none" = hình đang chờ/vẽ, mô tả + bản dịch chưa hiện; "animate" = vừa vẽ xong trước mắt
+  // người đọc → mô tả hiện dần, bản dịch gõ; "instant" = hiện đủ ngay (thẻ đã xem, reduced-motion, phím/giải thích).
+  const [reveal, setReveal] = useState<"none" | SketchDone>("none");
   const [shownId, setShownId] = useState(passage.id);
   if (shownId !== passage.id) {
     setShownId(passage.id);
+    // Chuyển thẻ chỉ xảy ra ở client: thẻ đã xem / reduced-motion thì hiện đủ ngay từ lần vẽ đầu, để trang không
+    // co lại một khung (back/forward khôi phục chỗ cuộn lúc đó sẽ bị kéo về đầu). Lần tải trang đầu (SSR) vẫn là
+    // "none" cho khớp server; hình báo "instant" ngay sau đó.
+    setReveal(isSketchSeen(passage.id) || prefersReducedMotion() ? "instant" : "none");
     setExplainOn(false);
     setDrawerIndex(null);
     setDrawerClosing(false);
     setJumpOpen(false); // gỡ danh sách → hook của nó trả focus + mở khoá cuộn (cả khi back/forward)
     setLookup(null); // request đang chờ được huỷ ở effect bên dưới
   }
+  // Gọi sau khối đặt lại ở trên: lần vẽ đầu của thẻ mới đã thấy `reveal` của thẻ mới, không mang chữ đã gõ của thẻ cũ.
+  // Không gọi typing.skip() khi reveal = "none": lúc start bật lại sẽ loé đủ chữ rồi mới gõ lại từ đầu.
+  const typing = useTypingText(passage.translation, { start: reveal === "animate", enabled: reveal !== "instant" });
+
+  // Hình báo xong: chỉ nhận lần đầu của thẻ (vẽ lại xong thì bản dịch không gõ lại).
+  const onSketchDone = useCallback((how: SketchDone) => setReveal((r) => (r === "none" ? how : r)), []);
+  // Phím / "giải thích" lúc hình chưa xong: hiện đủ ngay. Đặt "instant" trước rồi mới finish() để
+  // onDone("animate") mà finish() báo về bị bỏ qua.
+  const revealNow = useCallback(() => {
+    setReveal("instant");
+    sketchRef.current?.finish();
+  }, []);
 
   // Việc ngoài React khi chuyển đoạn: huỷ hẹn giờ đóng tấm, tắt speech, bỏ vùng chọn của trình duyệt
-  // (cả khi chuyển bằng back/forward), và với user reduced-motion thì hiện đủ bản dịch ngay.
+  // (cả khi chuyển bằng back/forward). Reduced-motion: hình báo "instant" nên bản dịch hiện đủ ngay.
   useEffect(() => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
     stopSpeech();
     cancelLookup();
     clearSelection();
-    if (prefersReducedMotion()) typing.skip();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [passage.id]);
 
@@ -201,6 +221,13 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
       if (e.shiftKey && ["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
       // Enter trên nút đang focus là việc của nút đó, phím tắt không xen vào
       if (e.key === "Enter" && e.target instanceof Element && e.target.closest("button")) return;
+      // Hình chưa xong: phím bất kỳ (trừ Esc) = hiện đủ ngay, chưa làm việc của phím (enter lần 2 mới sang thẻ).
+      // Tab vẫn để trình duyệt chuyển focus.
+      if (reveal === "none" && e.key !== "Escape") {
+        revealNow();
+        if (e.key !== "Tab") e.preventDefault();
+        return;
+      }
       if (!typing.done && e.key !== "Escape") {
         typing.skip();
         return;
@@ -257,7 +284,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [typing, drawerIndex, drawerClosing, jumpOpen, openJump, closeJump, passageIndex, passageCount, goTo, passage, toggleTheme, requestCloseDrawer, clearSelection]);
+  }, [reveal, revealNow, typing, drawerIndex, drawerClosing, jumpOpen, openJump, closeJump, passageIndex, passageCount, goTo, passage, toggleTheme, requestCloseDrawer, clearSelection]);
 
   const openChunk = (chunkId: string) => {
     const i = passage.chunks.findIndex((c) => c.id === chunkId);
@@ -349,11 +376,30 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
       <div ref={readerRef} data-testid="reader" className="relative flex grow flex-col overflow-x-clip px-4 py-6 lg:grid lg:grid-cols-[200px_1fr_200px_1fr] lg:px-8 lg:py-12">
         <div aria-hidden="true" className="hidden lg:block" />
         <div key={passage.id} ref={captionColRef} data-testid="caption-col" className="animate-passage-in relative mx-auto w-full max-w-[40rem] pr-0 lg:mx-0 lg:max-w-none lg:pr-6">
-          <div className="mb-6 text-[13px] text-muted">
-            {"// nguyên văn"}
+          <PassageSketch
+            key={passage.id}
+            ref={sketchRef}
+            sketch={passage.sketch}
+            passageId={passage.id}
+            dimmed={explainOn}
+            onDone={onSketchDone}
+          />
+          <div className="mb-6 mt-8 text-[13px] text-muted">
+            {"// mô tả"}
             {explainOn && <span className="ml-3 text-ink">{passage.chunks.length} chunks đáng học</span>}
           </div>
-          <CaptionText ref={captionTextRef} passage={passage} explainOn={explainOn} onChunkClick={openChunk} />
+          {reveal === "none" && (
+            <p data-testid="caption-waiting" className="text-xs text-accent">
+              đang vẽ…
+            </p>
+          )}
+          {/* Luôn render (giữ ref cho bôi đen chữ), chỉ ẩn khi hình chưa xong */}
+          <div
+            hidden={reveal === "none"}
+            className={reveal === "animate" ? "animate-caption-in motion-reduce:animate-none" : undefined}
+          >
+            <CaptionText ref={captionTextRef} passage={passage} explainOn={explainOn} onChunkClick={openChunk} />
+          </div>
           {explainOn && <MobileNoteList chunks={passage.chunks} onChunkClick={openChunk} />}
           {showSel && !docked && (
             <SelectionPopup
@@ -365,32 +411,38 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
               onCloseLookup={closeLookup}
             />
           )}
-          {passage.sketch && (
-            <PassageSketch key={passage.id} sketch={passage.sketch} passageId={passage.id} dimmed={explainOn} />
-          )}
         </div>
         <div aria-hidden="true" className="hidden border-r border-line lg:block" />
         <div
           key={`${passage.id}-vi`}
           data-testid="translation-col"
           className={`animate-passage-in mx-auto mt-7 w-full max-w-[40rem] border-t border-line pt-6 transition-opacity motion-reduce:transition-none lg:mx-0 lg:mt-0 lg:max-w-none lg:border-t-0 lg:pt-0 lg:pl-12 ${explainOn ? "lg:opacity-30" : ""}`}
-          onClick={() => typing.skip()}
+          onClick={() => reveal !== "none" && typing.skip()}
         >
-          <div className="mb-6 flex items-baseline gap-3 text-[13px]">
-            <span className="text-muted">{"// bản dịch"}</span>
-            {!typing.done && <span className="text-xs text-accent">đang gõ…</span>}
-          </div>
-          <div className="whitespace-pre-line text-[15.5px] leading-[2]">
-            {typing.display}
-            {!typing.done && (
-              <span className="animate-blink ml-0.5 inline-block h-[19px] w-[9px] translate-y-[3px] bg-accent" />
-            )}
-          </div>
-          {typing.done && passage.mainIdea && (
-            <div className="mt-8 border-t border-line pt-5 text-[13.5px] leading-relaxed text-muted">
-              <span className="text-accent">{"// ý chính"}</span>
-              <p className="mt-2">{passage.mainIdea}</p>
-            </div>
+          {reveal === "none" ? (
+            <p data-testid="translation-waiting" className="text-[13px] text-muted">
+              bản dịch hiện sau khi vẽ xong.
+            </p>
+          ) : (
+            <>
+              <div className="mb-6 flex items-baseline gap-3 text-[13px]">
+                <span className="text-muted">{"// bản dịch"}</span>
+                {!typing.done && <span className="text-xs text-accent">đang gõ…</span>}
+              </div>
+              <div className="whitespace-pre-line text-[15.5px] leading-[2]">
+                {typing.display}
+                {!typing.done && (
+                  <span className="animate-blink ml-0.5 inline-block h-[19px] w-[9px] translate-y-[3px] bg-accent" />
+                )}
+              </div>
+              {typing.done && passage.mainIdea && (
+                <div className="mt-8 border-t border-line pt-5 text-[13.5px] leading-relaxed text-muted">
+                  <span className="text-accent">{"// ý chính"}</span>
+                  <p className="mt-2">{passage.mainIdea}</p>
+                </div>
+              )}
+              {typing.done && <CreditLine book={book} chapterId={chapterId} />}
+            </>
           )}
         </div>
         {explainOn && (
@@ -431,7 +483,13 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
             style={{ transform: `scaleX(${passageIndex / passageCount})` }}
           />
           <div className="flex items-center gap-1.5 lg:gap-2.5">
-            <FooterButton active={explainOn} onClick={() => setExplainOn((v) => !v)}>
+            <FooterButton
+              active={explainOn}
+              onClick={() => {
+                if (reveal === "none") revealNow();
+                setExplainOn((v) => !v);
+              }}
+            >
               <Kbd className="max-lg:hidden">e</Kbd> giải thích
             </FooterButton>
             <FooterButton
