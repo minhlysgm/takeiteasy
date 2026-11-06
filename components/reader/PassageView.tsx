@@ -541,8 +541,8 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
           <div className="hidden h-1 w-44 rounded bg-line lg:block">
             <div
               data-testid="desktop-progress"
-              className="h-full rounded bg-accent transition-[width] duration-500 ease-out motion-reduce:transition-none"
-              style={{ width: `${(passageIndex / passageCount) * 100}%` }}
+              className="h-full w-full origin-left rounded bg-accent transition-transform duration-300 ease-out motion-reduce:transition-none"
+              style={{ transform: `scaleX(${passageIndex / passageCount})` }}
             />
           </div>
           <div className="flex items-center gap-4">

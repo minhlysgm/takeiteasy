@@ -13,9 +13,9 @@ const config: Config = {
       // Chỗ dùng luôn kèm `motion-reduce:animate-none`.
       keyframes: {
         "fade-in": { from: { opacity: "0" }, to: { opacity: "1" } },
-        "caption-in": { from: { opacity: "0" }, to: { opacity: "1" } },
       },
-      animation: { "fade-in": "fade-in 180ms ease-out", "caption-in": "caption-in 500ms ease-out" },
+      // caption-in: mô tả hiện dần sau khi vẽ xong — cùng keyframe fade-in, chậm hơn một chút
+      animation: { "fade-in": "fade-in 180ms ease-out", "caption-in": "fade-in 300ms ease-out" },
       fontFamily: {
         mono: ["var(--font-mono)", "SF Mono", "Menlo", "monospace"],
         hand: ["var(--font-hand)", "Comic Sans MS", "cursive"],
