@@ -50,7 +50,7 @@ describe("PassageView", () => {
     push.mockClear();
   });
 
-  it("render nguyên văn và header đoạn", () => {
+  it("render đoạn mô tả và header thẻ", () => {
     renderView();
     expect(screen.getByTestId("caption-col").textContent).toContain("This is Charles Bukowski, and his life is a mess");
     expect(document.querySelector("header")!.textContent).toContain(`thẻ 1/${passages.length}`);

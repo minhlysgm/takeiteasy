@@ -15,7 +15,7 @@ export interface Passage {
 }
 
 export interface Chunk {
-  id: string; // "stem-from"
+  id: string; // "is-a-mess"
   match: string; // chuỗi khớp NGUYÊN VĂN trong caption
   occurrence?: number; // mặc định 1 — khi chuỗi xuất hiện nhiều lần
   label: string; // ghi chú lề ngắn

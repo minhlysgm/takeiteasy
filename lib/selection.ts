@@ -61,7 +61,7 @@ export function sentenceAt(caption: string, start: number, end: number): string 
   }
   const sentence = normalizeSelectionText(caption.slice(from, to));
   if (sentence.length <= MAX_SENTENCE_CHARS) return sentence;
-  // Câu quá dài (server chặn > 600): lấy khung ≤ 600 ký tự quanh vùng chọn, cắt ở khoảng trắng để vẫn là một đoạn của nguyên văn.
+  // Câu quá dài (server chặn > 600): lấy khung ≤ 600 ký tự quanh vùng chọn, cắt ở khoảng trắng để vẫn là một đoạn của đoạn mô tả.
   let a = Math.max(from, start - Math.floor((MAX_SENTENCE_CHARS - (end - start)) / 2));
   let b = Math.min(to, a + MAX_SENTENCE_CHARS);
   a = Math.max(from, b - MAX_SENTENCE_CHARS);

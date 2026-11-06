@@ -65,7 +65,7 @@ export function AnnotationLayer({ containerRef, chunks, onChunkClick }: Props) {
         return;
       }
       const cRect = container.getBoundingClientRect();
-      // Chia ghi chú hai bên theo vị trí thật của chunk trong cột nguyên văn:
+      // Chia ghi chú hai bên theo vị trí thật của chunk trong cột đoạn mô tả:
       // chunk ở nửa trái → ghi chú lề trái, nửa phải → ghi chú rãnh phải.
       // Mũi tên chỉ với sang chunk cùng phía nên ngắn và không cắt qua chữ.
       const colEl = container.querySelector<HTMLElement>('[data-testid="caption-col"]');

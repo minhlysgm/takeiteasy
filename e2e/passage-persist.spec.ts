@@ -6,7 +6,7 @@ import { markShell, shellState } from "./persist-helpers";
 
 const BAR = '[data-testid="desktop-progress"]';
 
-test("Khi bấm đoạn tiếp thì header/footer giữ nguyên (không dựng lại), vạch tiến độ trượt, nội dung sang đoạn 2", async ({ page }) => {
+test("Khi bấm thẻ tiếp thì header/footer giữ nguyên (không dựng lại), vạch tiến độ trượt, nội dung sang thẻ 2", async ({ page }) => {
   await page.goto("/read/the-subtle-art/ch01/1");
   await expect(page.getByTestId("sketch")).not.toHaveAttribute("data-state", "idle");
   await markShell(page, BAR);

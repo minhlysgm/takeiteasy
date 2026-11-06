@@ -31,7 +31,7 @@ async function startDrawing(page: Page) {
   await revealSketch(page);
 }
 
-const SKETCH_1 = getPassage(BOOK, CH, 1)!.sketch!;
+const SKETCH_1 = getPassage(BOOK, CH, 1)!.sketch;
 
 /** Nét và clip đang ra sao trên màn hình, đọc từ DOM thật. Chạy trong trang. */
 function readArt() {
@@ -172,7 +172,7 @@ test.describe("phác thảo đoạn 1", () => {
       await page.getByRole("button", { name: "tiếp →" }).click();
       await expect(page).toHaveURL(new RegExp(`/${CH}/2$`));
       // data-state nằm trên khung chung, nên chờ đúng hình đoạn 2 để không đọc nhầm trạng thái của hình cũ
-      await expect(page.getByRole("img", { name: PASSAGE_2.sketch!.alt, exact: true })).toBeVisible();
+      await expect(page.getByRole("img", { name: PASSAGE_2.sketch.alt, exact: true })).toBeVisible();
     }
 
     test("đoạn 2 chưa xem: vẽ lại từ đầu, mô tả + bản dịch chờ hình", async ({ page }) => {
@@ -208,7 +208,7 @@ test.describe("phác thảo đoạn 1", () => {
     await expect(page.getByTestId("sketch")).toHaveAttribute("data-state", "drawing");
     await page.getByRole("button", { name: "tiếp →" }).click();
     await expect(page).toHaveURL(new RegExp(`/${CH}/2$`));
-    await expect(page.getByRole("img", { name: PASSAGE_2.sketch!.alt, exact: true })).toBeVisible();
+    await expect(page.getByRole("img", { name: PASSAGE_2.sketch.alt, exact: true })).toBeVisible();
     const key = `tie:sketch-seen:${getPassage(BOOK, CH, 1)!.id}`;
     expect(await page.evaluate((k) => localStorage.getItem(k), key)).toBeNull();
     // Quay lại đoạn 1: vẫn được xem hiệu ứng, không hiện sẵn
@@ -470,14 +470,14 @@ test.describe("bút chì đi cùng đầu nét", () => {
 
   test("đoạn 3: nét nhiều đoạn con (mặt ghế đá + chân) có mẫu ở giữa hình, không chỉ ở ranh giới giữa các nét", async ({ page }) => {
     const { samples, steps } = await sampleWholeDrawing(page, `/read/${BOOK}/${CH}/3`);
-    const sketchSteps = getPassage(BOOK, CH, 3)!.sketch!.steps;
-    const stairAt = sketchSteps.findIndex((s) => s.kind === "path" && s.d.startsWith("M360 250 L482 250"));
+    const sketchSteps = getPassage(BOOK, CH, 3)!.sketch.steps;
+    const benchAt = sketchSteps.findIndex((s) => s.kind === "path" && s.d.startsWith("M360 250 L482 250"));
     const slice = (order: string, key: string) => steps.flatMap((k, i) => (k === `${key}-0` ? [order[i]] : [])).join("");
-    const stair = new Set(samples.map((s) => slice(s.order, `${stairAt}`)));
+    const bench = new Set(samples.map((s) => slice(s.order, `${benchAt}`)));
 
-    expect(stairAt).toBeGreaterThanOrEqual(0);
+    expect(benchAt).toBeGreaterThanOrEqual(0);
     // Nét nhiều đoạn con: có lúc đoạn đầu xong, một đoạn đang dở, đoạn sau chưa vẽ
-    expect([...stair].some((o) => /^F+PH+$/.test(o))).toBe(true);
+    expect([...bench].some((o) => /^F+PH+$/.test(o))).toBe(true);
     // (Vòng khoanh `multi` chưa có thẻ nào dùng nên chưa có phép đo "vẽ đủ ~1,2 giây" ở đây.)
   });
 });

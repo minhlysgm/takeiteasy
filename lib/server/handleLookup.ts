@@ -45,8 +45,8 @@ function parse(input: unknown): LookupRequest | null {
 }
 
 /**
- * Trả { text, sentence } nếu hợp lệ, ngược lại null. Câu ngữ cảnh do server tự cắt từ nguyên văn theo vị trí
- * (không tin câu trình duyệt gửi) → khoá cache chỉ gồm các cặp (mẩu nguyên văn ≤ 120 ký tự, câu chứa nó) có thật trong sách.
+ * Trả { text, sentence } nếu hợp lệ, ngược lại null. Câu ngữ cảnh do server tự cắt từ đoạn mô tả theo vị trí
+ * (không tin câu trình duyệt gửi) → khoá cache chỉ gồm các cặp (mẩu đoạn mô tả ≤ 120 ký tự, câu chứa nó) có thật trong sách.
  */
 function validate(input: unknown): { text: string; sentence: string } | null {
   const req = parse(input);

@@ -89,7 +89,7 @@ test("6. Khi tấm giải thích đang mở thì g / Home / End không làm gì"
   await expect(list(page)).toHaveCount(0);
 });
 
-test("7. Khi đã mở đoạn 1 và 2 thì danh sách có ✓ ở dòng 1, 2, không có ở dòng 3; tải lại vẫn còn", async ({ page }) => {
+test("7. Khi đã mở thẻ 1 và 2 thì danh sách có ✓ ở dòng 1, 2, không có ở dòng 3; tải lại vẫn còn", async ({ page }) => {
   await open(page, 1);
   await page.getByRole("button", { name: /tiếp →/ }).click();
   await expect(page).toHaveURL(/\/ch01\/2$/);

@@ -61,7 +61,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
   const captionTextRef = useRef<HTMLDivElement>(null);
   const sketchRef = useRef<SketchHandle>(null);
   const { toggle: toggleTheme } = useTheme();
-  // Chỉ chữ nguyên văn mới tính: nhãn, ghi chú tay, hình minh hoạ cùng cột thì không.
+  // Chỉ chữ trong đoạn mô tả mới tính: nhãn, ghi chú tay, hình minh hoạ cùng cột thì không.
   const { selection, clear: clearSelection } = useTextSelection(captionTextRef, { resetKey: passage.id });
   // Màn hẹp hoặc cảm ứng → thanh dính trên footer; còn lại → popup nổi cạnh vùng chọn.
   const docked = useMediaQuery(DOCK_QUERY);
@@ -111,7 +111,8 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
     setJumpOpen(false); // gỡ danh sách → hook của nó trả focus + mở khoá cuộn (cả khi back/forward)
     setLookup(null); // request đang chờ được huỷ ở effect bên dưới
   }
-  // Gọi sau khối đặt lại ở trên: lần vẽ đầu của thẻ mới đã thấy `reveal` của thẻ mới, không mang chữ đã gõ của thẻ cũ.
+  // Gọi sau khối đặt lại ở trên. Ở lượt render này `reveal` vẫn là giá trị của thẻ cũ; React render lại ngay sau
+  // setState-trong-render, và dòng `if (!enabled) typed = total` trong hook làm lượt đó không mang chữ đã gõ của thẻ cũ.
   // Không gọi typing.skip() khi reveal = "none": lúc start bật lại sẽ loé đủ chữ rồi mới gõ lại từ đầu.
   const typing = useTypingText(passage.translation, { start: reveal === "animate", enabled: reveal !== "instant" });
 
