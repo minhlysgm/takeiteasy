@@ -16,7 +16,8 @@ body { background: var(--bg); color: var(--text); }
 
 /* mũi tên tay vẽ "đang được vẽ" — AnnotationLayer dùng */
 @keyframes draw { to { stroke-dashoffset: 0; } }
-.arrow-draw { stroke-dasharray: 600; stroke-dashoffset: 600; animation: draw 0.4s ease-out forwards; }
+/* path đặt pathLength=100: mũi tên ngắn hay dài cũng vẽ hết đúng 0.4s */
+.arrow-draw { stroke-dasharray: 100; stroke-dashoffset: 100; animation: draw 0.4s ease-out forwards; }
 
 /* các dòng hiện tuần tự như terminal đang in — BookShelf dùng */
 @keyframes reveal { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }

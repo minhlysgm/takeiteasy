@@ -3,11 +3,34 @@ export interface Pt {
   y: number;
 }
 
-/** Đường cong "tay vẽ" từ ghi chú lề tới chunk — hoạt động cả hai chiều (lề trái lẫn lề phải). */
-export function buildArrowPath(from: Pt, to: Pt): string {
-  const dir = to.x >= from.x ? 1 : -1;
-  const dx = Math.max(24, Math.abs(to.x - from.x) * 0.4) * dir;
-  return `M ${from.x} ${from.y} C ${from.x + dx} ${from.y - 24}, ${to.x - dx} ${to.y + 28}, ${to.x} ${to.y}`;
+export interface Box {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+}
+
+export type NoteSide = "left" | "right";
+
+/**
+ * Chọn lề cho ghi chú của một cụm từ các rect của nó (`getClientRects()`, mỗi dòng một rect):
+ * đầu cụm (rect đầu) cách mép trái cột bao xa, cuối cụm (rect cuối) cách mép phải bao xa — gần bên nào thì
+ * ghi chú nằm lề bên đó, ngang đúng dòng chứa rect ấy. Hoà thì lề trái.
+ */
+export function pickNoteSide(rects: Box[], col: { left: number; right: number }): { side: NoteSide; line: Box } {
+  const first = rects[0];
+  const last = rects[rects.length - 1];
+  return first.left - col.left <= col.right - last.right ? { side: "left", line: first } : { side: "right", line: last };
+}
+
+/**
+ * Mũi tên ngắn "tay vẽ" từ ghi chú tới sát mép cột chữ, ngang tâm dòng có cụm. Điểm điều khiển đều nằm giữa
+ * hai đầu theo trục ngang nên đường cong không bao giờ lấn vào vùng chữ; đoạn cuối nằm ngang để đầu mũi tên
+ * chỉ thẳng vào dòng.
+ */
+export function buildEdgeArrow(from: Pt, to: Pt): string {
+  const mx = (from.x + to.x) / 2;
+  return `M ${from.x} ${from.y} C ${mx} ${from.y - 4}, ${mx} ${to.y}, ${to.x} ${to.y}`;
 }
 
 /** Xếp ghi chú theo trục dọc: mỗi ghi chú nằm gần dòng chứa chunk nhất có thể, đẩy xuống nếu đè lên ghi chú trước. */
