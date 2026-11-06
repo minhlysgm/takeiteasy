@@ -35,7 +35,7 @@ chọn 1 trong 5 giọng.
 ### C. Chọn giọng
 - **Mobile:** nút loa ở ô trống bên trái header (đang để trống cho cân với nút theme), mở tấm từ dưới lên
   (cùng kiểu danh sách thẻ).
-- **Desktop:** nút "giọng: Will ▾" ở **bên phải header** (khuyên dùng — xem mockup, phương án B là ở footer), phím `v`,
+- **Desktop:** nút "giọng: Will ▾" ở **bên phải header** (Minh chốt phương án A của mockup), phím `v`,
   mở ô nổi ngay dưới nút.
 - Danh sách 5 giọng, mỗi dòng: tên + mô tả ngắn tiếng Việt (vd. "nam · thoải mái") + nút **▶ nghe thử**.
   Bấm dòng = chọn (✓ chuyển sang, ô vẫn mở để so tiếp); ▶ nghe thử = phát câu mẫu, **không** đổi giọng đang chọn.
@@ -61,6 +61,7 @@ Tô chữ đang đọc, chỉnh tốc độ, giọng AI cho chữ bôi đen / t�
 - ElevenLabs `eleven_multilingual_v2`, mặc định Will, 5 giọng (② — Minh nghe 10 mẫu).
 - Bấm lại khi đang phát = dừng; nút "■ dừng" (②).
 - Audio commit trong `public/audio/`, tạo bằng lệnh chạy tay, bỏ qua câu đã có; thiếu audio → test đỏ; lỗi → giọng trình duyệt (Claude chọn ở ②, Minh không phản đối).
+- Desktop: nút chọn giọng ở góc phải header (phương án A, Minh chốt ③).
 - Claude chọn ở ③: câu nghe thử riêng cho mỗi giọng; bấm dòng = chọn, ▶ = nghe thử; đổi giọng thì dừng; phím `v`; đóng drawer thì dừng ví dụ.
 
 ## Tiêu chí nghiệm thu (mỗi dòng → một test e2e)
