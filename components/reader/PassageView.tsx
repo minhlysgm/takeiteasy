@@ -228,7 +228,9 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
       // Tab vẫn để trình duyệt chuyển focus; Space trên nút đang focus thì để nút tự bấm (như Enter ở trên).
       if (reveal === "none" && e.key !== "Escape") {
         revealNow();
-        const spaceOnButton = e.key === " " && e.target instanceof Element && !!e.target.closest("button");
+        // Ngoại lệ: nút trong hình ("xem ngay ⏭") đổi thành "↻ vẽ lại" ngay khi hiện đủ, nên để Space bấm tiếp là vẽ lại.
+        const spaceOnButton =
+          e.key === " " && e.target instanceof Element && !!e.target.closest("button") && !e.target.closest('[data-testid="sketch"]');
         if (e.key !== "Tab" && !spaceOnButton) e.preventDefault();
         return;
       }
