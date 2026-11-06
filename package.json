@@ -15,7 +15,8 @@
     "e2e": "playwright test",
     "ui:snap": "node scripts/ui-snap.mjs",
     "content": "node scripts/content/cards.ts",
-    "verify": "tsc --noEmit && eslint . --max-warnings=0 && vitest run && playwright test"
+    "verify": "tsc --noEmit && eslint . --max-warnings=0 && vitest run && playwright test",
+    "audio": "tsx scripts/audio/generate.ts"
   },
   "repository": {
     "type": "git",
@@ -55,6 +56,7 @@
     "jsdom": "^29.1.1",
     "postcss": "^8.5.21",
     "tailwindcss": "^3.4.19",
+    "tsx": "^4.23.15",
     "typescript": "^6.0.3",
     "vitest": "^4.1.10"
   }

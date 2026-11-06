@@ -78,7 +78,7 @@ Minh nói "duyệt" → `trang-thai: 6 đã soát`, `ledger`, commit trên nhán
 `docs/content/<sách>/` (không bao giờ `git add -A`, không add `content-src/`): `chore(content): <id> đã soát`.
 
 **⑦ Vào app** — chỉ khi task "vẽ trước" đã merge. Chép thẻ sang `content/books/<sách>/chXX.ts` theo định dạng
-trong code, chạy `npm run verify`, theo skill `workflow` cho phần code (nhánh, test, Minh duyệt merge). `trang-thai: 7 trong app`.
+trong code, chạy `npm run audio` (tạo file giọng cho câu mới), rồi `npm run verify`, theo skill `workflow` cho phần code (nhánh, test, Minh duyệt merge). `trang-thai: 7 trong app`.
 
 ## Luật cứng
 
