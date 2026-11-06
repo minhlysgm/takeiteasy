@@ -73,7 +73,8 @@ export function BookShelf({ books }: { books: Book[] }) {
         );
       })}
 
-      <div className="reveal reveal-3 flex items-center justify-between text-sm text-muted">
+      {/* Dưới sm: hai dòng xếp dọc, đừng để "bấm để đổi" gãy dòng cạnh lời nhắc */}
+      <div className="reveal reveal-3 flex flex-col items-start gap-2 text-sm text-muted sm:flex-row sm:items-center sm:justify-between">
         <span>
           {"> chọn chương để bắt đầu"}
           <span className="animate-blink ml-1 inline-block h-[14px] w-[8px] translate-y-[2px] bg-accent" aria-hidden="true" />
