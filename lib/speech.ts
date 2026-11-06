@@ -12,8 +12,11 @@ function pickVoice(): SpeechSynthesisVoice | null {
   );
 }
 
-/** Đọc to `text` bằng giọng tiếng Anh. Tính năng phụ: mọi lỗi nuốt lặng lẽ, không kéo sập reader. */
-export function speak(text: string, opts: { rate?: number } = {}): void {
+/**
+ * Đọc to `text` bằng giọng tiếng Anh. Tính năng phụ: mọi lỗi nuốt lặng lẽ, không kéo sập reader.
+ * `onEnd` chạy khi đọc xong, bị ngắt (cancel) hoặc lỗi — người gọi tự kiểm tra lượt còn hiệu lực.
+ */
+export function speak(text: string, opts: { rate?: number; onEnd?: () => void } = {}): void {
   if (!isSpeechAvailable()) return;
   try {
     const synth = window.speechSynthesis;
@@ -23,9 +26,13 @@ export function speak(text: string, opts: { rate?: number } = {}): void {
     u.rate = opts.rate ?? 0.9; // chậm hơn bình thường một chút cho người học
     const v = pickVoice();
     if (v) u.voice = v;
+    if (opts.onEnd) {
+      u.onend = opts.onEnd;
+      u.onerror = opts.onEnd;
+    }
     synth.speak(u);
   } catch {
-    /* ignore */
+    opts.onEnd?.(); // không đọc được thì cũng là "xong", để nút không kẹt
   }
 }
 

@@ -15,6 +15,8 @@ function stubSynth(voices: Partial<SpeechSynthesisVoice>[] = []) {
       lang = "";
       rate = 1;
       voice: unknown = null;
+      onend: (() => void) | null = null;
+      onerror: (() => void) | null = null;
       constructor(text: string) { this.text = text; }
     },
   );
@@ -45,5 +47,16 @@ describe("speech", () => {
     const synth = stubSynth([{ lang: "vi-VN" }, gb]);
     speak("hi");
     expect(synth.speak.mock.calls[0][0].voice).toBe(gb);
+  });
+  it("onEnd được gọi khi utterance onend hoặc onerror", () => {
+    const synth = stubSynth();
+    const onEnd = vi.fn();
+    speak("hi", { onEnd });
+    const u = synth.speak.mock.calls[0][0];
+    expect(onEnd).not.toHaveBeenCalled();
+    u.onend();
+    expect(onEnd).toHaveBeenCalledTimes(1);
+    u.onerror();
+    expect(onEnd).toHaveBeenCalledTimes(2);
   });
 });
