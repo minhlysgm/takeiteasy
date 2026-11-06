@@ -171,6 +171,16 @@ test("RF1: bấm 'giải thích' lúc đang vẽ → hiện đủ + bật giải
   await expect(page.getByText(/chunks đáng học/)).toBeVisible();
 });
 
+test("RF1: Space trên nút 'giải thích' lúc đang vẽ → hiện đủ + bật giải thích", async ({ page }) => {
+  await page.goto(P(1));
+  await expect(page.getByTestId("sketch")).toHaveAttribute("data-state", "drawing");
+  await page.getByRole("button", { name: /giải thích/ }).focus();
+  await page.keyboard.press("Space");
+  await expectAllShown(page);
+  await expect(page.locator("header")).toContainText("explain");
+  await expect(page.getByText(/chunks đáng học/)).toBeVisible();
+});
+
 test("RF2: chuyển sang thẻ 2 giữa lúc vẽ → thẻ 2 bắt đầu lại 'đang vẽ…'", async ({ page }) => {
   await page.goto(P(1));
   await expect(page.getByTestId("sketch")).toHaveAttribute("data-state", "drawing");

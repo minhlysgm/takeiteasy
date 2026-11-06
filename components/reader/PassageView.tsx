@@ -112,7 +112,9 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
     setLookup(null); // request đang chờ được huỷ ở effect bên dưới
   }
   // Gọi sau khối đặt lại ở trên. Ở lượt render này `reveal` vẫn là giá trị của thẻ cũ; React render lại ngay sau
-  // setState-trong-render, và dòng `if (!enabled) typed = total` trong hook làm lượt đó không mang chữ đã gõ của thẻ cũ.
+  // setState-trong-render. Từ thẻ "instant" sang thẻ chưa xem, lượt đầu còn `enabled:false` nên hook lưu chữ mới ở
+  // độ dài đủ, và lượt commit với reveal = "none" có `typing.done === true` cho tới khi effect của hook đặt lại về 0.
+  // Vô hại: nhánh "none" không render `typing`, và trình xử lý phím kiểm `reveal` trước `typing.done`.
   // Không gọi typing.skip() khi reveal = "none": lúc start bật lại sẽ loé đủ chữ rồi mới gõ lại từ đầu.
   const typing = useTypingText(passage.translation, { start: reveal === "animate", enabled: reveal !== "instant" });
 
@@ -223,10 +225,11 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
       // Enter trên nút đang focus là việc của nút đó, phím tắt không xen vào
       if (e.key === "Enter" && e.target instanceof Element && e.target.closest("button")) return;
       // Hình chưa xong: phím bất kỳ (trừ Esc) = hiện đủ ngay, chưa làm việc của phím (enter lần 2 mới sang thẻ).
-      // Tab vẫn để trình duyệt chuyển focus.
+      // Tab vẫn để trình duyệt chuyển focus; Space trên nút đang focus thì để nút tự bấm (như Enter ở trên).
       if (reveal === "none" && e.key !== "Escape") {
         revealNow();
-        if (e.key !== "Tab") e.preventDefault();
+        const spaceOnButton = e.key === " " && e.target instanceof Element && !!e.target.closest("button");
+        if (e.key !== "Tab" && !spaceOnButton) e.preventDefault();
         return;
       }
       if (!typing.done && e.key !== "Escape") {
@@ -494,7 +497,10 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
               <Kbd className="max-lg:hidden">e</Kbd> giải thích
             </FooterButton>
             <FooterButton
-              onClick={() => speak(passage.caption)}
+              onClick={() => {
+                if (reveal === "none") revealNow();
+                speak(passage.caption);
+              }}
               disabled={!speechOk}
               title={speechOk ? undefined : "trình duyệt không hỗ trợ đọc"}
             >

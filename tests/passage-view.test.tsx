@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { PassageView } from "@/components/reader/PassageView";
 import { DOCK_QUERY } from "@/lib/breakpoints";
@@ -61,7 +61,7 @@ describe("PassageView", () => {
     expect(getProgress()).toEqual({ bookId: book.id, chapterId: "ch01", passageIndex: 1 });
   });
 
-  it("phím bất kỳ khi đang typing thì skip (hiện đủ bản dịch)", () => {
+  it("phím bất kỳ khi hình đang vẽ → hiện đủ mô tả + bản dịch ngay", () => {
     renderView();
     fireEvent.keyDown(window, { key: "x" });
     expect(screen.getByTestId("translation-col").textContent).toContain("chưa bao giờ giả vờ làm một người khác");
@@ -213,6 +213,42 @@ describe("PassageView", () => {
     expect(screen.getByTestId("sketch").dataset.state).toBe("done");
     fireEvent.keyDown(window, { key: "Enter" });
     expect(push).toHaveBeenCalledWith("/read/the-subtle-art/ch01/2");
+  });
+});
+
+describe("PassageView — đọc to / Space lúc hình đang vẽ", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    push.mockClear();
+    vi.mocked(speak).mockClear();
+    vi.stubGlobal("speechSynthesis", { getVoices: () => [], cancel: () => {}, speak: () => {} });
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("bấm 'đọc to' lúc đang vẽ → hiện đủ mô tả + bản dịch rồi đọc mô tả", () => {
+    renderView();
+    expect(screen.queryByTestId("caption-waiting")).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /đọc to/ }));
+    expect(screen.queryByTestId("caption-waiting")).toBeNull();
+    expect(screen.getByTestId("caption-text").closest("[hidden]")).toBeNull();
+    expect(screen.queryByText("đang gõ…")).toBeNull();
+    expect(speak).toHaveBeenCalledWith(passages[0].caption);
+  });
+
+  it("Space trên nút đang focus lúc đang vẽ → không bị preventDefault (nút tự bấm); Space ở ngoài nút thì có", () => {
+    renderView();
+    const btn = screen.getByRole("button", { name: /giải thích/ });
+    const onBtn = new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true });
+    act(() => void btn.dispatchEvent(onBtn));
+    expect(onBtn.defaultPrevented).toBe(false);
+    expect(screen.queryByTestId("caption-waiting")).toBeNull(); // vẫn hiện đủ
+
+    cleanup();
+    localStorage.clear(); // thẻ vừa hiện đủ đã tính là đã xem
+    renderView();
+    const onBody = new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true });
+    act(() => void document.body.dispatchEvent(onBody));
+    expect(onBody.defaultPrevented).toBe(true);
   });
 });
 
@@ -407,7 +443,7 @@ describe("PassageView — chọn chữ khi chuyển đoạn", () => {
     );
   }
 
-  /** Bôi đen "bets his rent money on horse" trong nguyên văn rồi chờ quá 250ms → popup hiện (jsdom không có matchMedia → desktop). */
+  /** Bôi đen "bets his rent money on horse" trong đoạn mô tả rồi chờ quá 250ms → popup hiện (jsdom không có matchMedia → desktop). */
   function selectBetsHorse() {
     const root = screen.getByTestId("caption-text");
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
@@ -452,7 +488,7 @@ describe("PassageView — chọn chữ khi chuyển đoạn", () => {
     expect(window.getSelection()!.toString()).toBe("");
   });
 
-  it("bôi đen chữ trong ghi chú tay (ngoài nguyên văn nhưng cùng cột) → không có popup", () => {
+  it("bôi đen chữ trong ghi chú tay (ngoài đoạn mô tả nhưng cùng cột) → không có popup", () => {
     render(view(1));
     fireEvent.keyDown(window, { key: "x" });
     fireEvent.keyDown(window, { key: "e" }); // bật giải thích → hiện ghi chú tay
@@ -503,7 +539,7 @@ describe("PassageView — tra nghĩa", () => {
     vi.unstubAllGlobals();
   });
 
-  /** Bôi đen `needle` (nằm trọn trong một text node của nguyên văn) rồi chờ quá 250ms → popup / thanh hiện. */
+  /** Bôi đen `needle` (nằm trọn trong một text node của đoạn mô tả) rồi chờ quá 250ms → popup / thanh hiện. */
   function selectWord(needle: string, ui = "selection-popup") {
     const root = screen.getByTestId("caption-text");
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
