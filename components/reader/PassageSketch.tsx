@@ -58,10 +58,11 @@ export function PassageSketch({
   useEffect(() => {
     onDoneRef.current = onDone;
   });
-  // Thẻ nào đã báo "instant" rồi (chống StrictMode chạy effect hai lần)
-  const instantFor = useRef<string | null>(null);
-  // Thẻ nào vừa được finish() (người trên có thể gọi trước cả effect mở thẻ, vd. trong layout effect)
-  const finishedFor = useRef<string | null>(null);
+  // Mỗi thẻ một lần mount (PassageView key theo thẻ), nên chỉ cần cờ, không cần nhớ theo passageId.
+  // Đã báo "instant" rồi (chống StrictMode chạy effect hai lần)
+  const reportedInstant = useRef(false);
+  // finish() đã chạy (người trên có thể gọi trước cả effect mở thẻ, vd. trong layout effect của mình)
+  const finishedRef = useRef(false);
   const [reduced, setReduced] = useState(false);
   // Đã vẽ xong (hoặc bị bỏ qua) ngay trước mắt người đọc → nhãn trạng thái báo "vẽ xong" cho trình đọc màn hình
   const [finished, setFinished] = useState(false);
@@ -116,13 +117,12 @@ export function PassageSketch({
   useLayoutEffect(() => {
     const rm = prefersReducedMotion();
     setReduced(rm);
-    // finish() đã chạy cho đúng thẻ này trước effect: đã done và đã báo "animate", đừng báo thêm "instant"
-    if (stateRef.current === "done" && finishedFor.current === passageId) return;
-    finishedFor.current = null;
+    // finish() đã chạy trước effect: đã done và đã báo rồi, đừng báo thêm "instant"
+    if (stateRef.current === "done" && finishedRef.current) return;
     if (rm || isSketchSeen(passageId)) {
       go("done");
-      if (instantFor.current !== passageId) {
-        instantFor.current = passageId;
+      if (!reportedInstant.current) {
+        reportedInstant.current = true;
         onDoneRef.current?.("instant");
       }
     } else go("waiting");
@@ -161,9 +161,9 @@ export function PassageSketch({
   const finish = useCallback((how: SketchDone = "animate") => {
     reveal(true);
     setFinished(true);
-    finishedFor.current = passageId;
+    finishedRef.current = true;
     onDoneRef.current?.(how);
-  }, [reveal, passageId]);
+  }, [reveal]);
 
   useImperativeHandle(
     ref,

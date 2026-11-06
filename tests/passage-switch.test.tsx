@@ -93,6 +93,8 @@ describe("PassageView — chuyển đoạn không remount", () => {
     fireEvent.keyDown(window, { key: "x" });
     rerender(view(2));
     expect(screen.getByTestId("caption-waiting").textContent).toBe("mô tả hiện sau khi vẽ xong.");
+    // hình của thẻ mới là một lần mount mới (div cha key theo thẻ): không mang "done" của thẻ cũ
+    expect(screen.getByTestId("sketch").dataset.state).toBe("waiting");
     expect(screen.getByTestId("translation-waiting")).toBeTruthy();
     expect(screen.getByTestId("translation-col").textContent).not.toContain(passages[0].translation.slice(0, 20));
     expect(screen.queryByTestId("credit")).toBeNull();

@@ -638,15 +638,6 @@ describe("PassageSketch", () => {
       expect(b.mock.calls).toEqual([["animate"]]);
     });
 
-    it("đổi passageId (không remount) sang thẻ đã xem → báo 'instant' cho thẻ mới", () => {
-      localStorage.setItem(sketchSeenKey("p"), "1");
-      localStorage.setItem(sketchSeenKey("q"), "1");
-      const onDone = vi.fn();
-      const { rerender } = render(<PassageSketch sketch={sketch} passageId="p" onDone={onDone} />);
-      rerender(<PassageSketch sketch={sketch} passageId="q" onDone={onDone} />);
-      expect(onDone.mock.calls).toEqual([["instant"], ["instant"]]);
-    });
-
     it("không truyền onDone / ref cũng không lỗi", async () => {
       render(<PassageSketch sketch={sketch} passageId="p" />);
       await advance(450);

@@ -403,8 +403,8 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
       <div ref={readerRef} data-testid="reader" data-sketch-gate={pending ? "" : undefined} className="relative flex grow flex-col overflow-x-clip px-4 py-6 lg:grid lg:grid-cols-[200px_1fr_200px_1fr] lg:px-8 lg:py-12">
         <div aria-hidden="true" className="hidden lg:block" />
         <div key={passage.id} ref={captionColRef} data-testid="caption-col" className="animate-passage-in relative mx-auto w-full max-w-[40rem] pr-0 lg:mx-0 lg:max-w-none lg:pr-6">
+          {/* Div cha key theo thẻ → hình mount lại mỗi thẻ */}
           <PassageSketch
-            key={passage.id}
             ref={sketchRef}
             sketch={passage.sketch}
             passageId={passage.id}
