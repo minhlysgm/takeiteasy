@@ -5,6 +5,7 @@ import type { Sketch, SketchStep, SketchTone } from "@/content/types";
 import { buildTimeline, drawMs, ease, frameAt, locateOnSubpaths, pencilAngle, SKETCH_EMPHASIS_MS, SKETCH_START_DELAY_MS, visibleRatio, visibleThreshold, type MeasuredStep, type Pt, type TimedStep } from "@/lib/sketch/timeline";
 import { waitFonts } from "@/lib/sketch/fonts";
 import { pointOn, splitSubpaths, stepPaths } from "@/lib/sketch/paths";
+import { SKETCH_TEXT_HALO } from "@/lib/sketch/style";
 import { isSketchSeen, markSketchSeen } from "@/lib/sketchSeen";
 import { prefersReducedMotion } from "@/lib/motion";
 
@@ -387,7 +388,7 @@ export function PassageSketch({
                   textAnchor={s.anchor}
                   clipPath={`url(#${it.clipId})`}
                   className={`font-hand stroke-bg [paint-order:stroke] ${FILL[s.tone]}`}
-                  strokeWidth={4}
+                  strokeWidth={SKETCH_TEXT_HALO}
                   strokeLinejoin="round"
                 >
                   {s.text}

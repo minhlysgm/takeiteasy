@@ -13,6 +13,7 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { SKETCH_TEXT_HALO } from "../../lib/sketch/style.ts";
 
 export type Pos = [number, number]; // [trang, ¶]
 export type Range = { from: Pos; to: Pos };
@@ -360,6 +361,17 @@ function underline(caption: string, chunks: CardChunk[]): string {
   return html + esc(caption.slice(pos));
 }
 
+/**
+ * Màu của app, đọc thẳng từ lib/theme.css lúc dựng trang (không chép hex): theme tối mặc định như app,
+ * máy đang để sáng thì lấy khối theme sáng.
+ */
+function themeCss(): string {
+  const css = readFileSync(join(ROOT, "lib/theme.css"), "utf8");
+  const light = css.match(/:root\[data-theme="light"\]\s*\{([^}]*)\}/)?.[1];
+  if (!light) throw new Error("lib/theme.css: không thấy khối :root[data-theme=\"light\"]");
+  return `${css}\n@media (prefers-color-scheme: light){:root:not([data-theme=dark]){${light}}}`;
+}
+
 export function previewHtml(card: Card, sketch: SketchLike | null, book: { title: string; author: string }): string {
   const chunks = card.chunks
     .map(
@@ -373,16 +385,14 @@ ${c.mistake ? `<p class="ms"><s>${esc(c.mistake.wrong)}</s> → ${esc(c.mistake.
 <title>${esc(card.id)} xem trước</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Patrick+Hand&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f6f3ec;--text:#44403c;--bright:#1c1917;--muted:#6f6862;--line:#e2dccd;--ink:#b45309;--accent:#b45309;}
-@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0f1317;--text:#d6dee6;--bright:#e6edf3;--muted:#7d8590;--line:#1f262e;--ink:#e3b341;--accent:#3fb950;}}
-:root[data-theme=dark]{--bg:#0f1317;--text:#d6dee6;--bright:#e6edf3;--muted:#7d8590;--line:#1f262e;--ink:#e3b341;--accent:#3fb950;}
+${themeCss()}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.65 "IBM Plex Mono",monospace}
 main{max-width:1100px;margin:0 auto;padding:24px 16px 64px}.meta{color:var(--muted);font-size:12px}
 .grid{display:grid;gap:28px;grid-template-columns:1fr}@media(min-width:900px){.grid{grid-template-columns:1fr 1fr}}
 .lbl{color:var(--muted);font-size:13px;margin:18px 0 6px}.lbl.acc{color:var(--accent)}
 svg.sk{width:100%;height:auto;display:block}
 .sk path,.sk ellipse{fill:none;stroke-linecap:round;stroke-linejoin:round}.sk .line{stroke:var(--text)}.sk .ink{stroke:var(--ink)}.sk .accent{stroke:var(--accent)}
-.sk text{font-family:"Patrick Hand",cursive;paint-order:stroke;stroke:var(--bg);stroke-width:5px;stroke-linejoin:round}
+.sk text{font-family:"Patrick Hand",cursive;paint-order:stroke;stroke:var(--bg);stroke-width:${SKETCH_TEXT_HALO}px;stroke-linejoin:round}
 .sk text.line{fill:var(--text)}.sk text.name{fill:var(--bright)}.sk text.ink{fill:var(--ink)}.sk text.accent{fill:var(--accent)}
 .cap{font-size:16px;color:var(--text)}u{text-decoration-color:var(--accent);text-underline-offset:4px}sup{color:var(--accent);font-size:10px}
 .ck{border-top:1px solid var(--line);padding-top:10px;margin-top:14px}.ck h3{font-size:14px;margin:0 0 4px}.ck small{color:var(--muted);font-weight:400}

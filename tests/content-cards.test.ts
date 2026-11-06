@@ -1,4 +1,6 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { SKETCH_TEXT_HALO } from "@/lib/sketch/style";
 import {
   uncoveredParts,
   checkCard,
@@ -263,5 +265,20 @@ describe("previewHtml", () => {
     expect(html).toContain("text.ink{fill:var(--ink)}");
     expect(html).toContain("text.accent{fill:var(--accent)}");
     expect(html).toMatch(/--bright:/);
+  });
+
+  it("màu đọc từ lib/theme.css (không chép cứng hex), theo theme máy; viền chữ trong hình khớp PassageSketch", () => {
+    const html = previewHtml(parseCard(OK_CARD, "ch01-t01.md"), null, { title: "T", author: "A" });
+    const theme = readFileSync("lib/theme.css", "utf8");
+    for (const [, name, value] of theme.matchAll(/(--[\w-]+):\s*([^;]+);/g)) expect(html).toContain(`${name}: ${value};`);
+    expect(html).toContain("@media (prefers-color-scheme: light){:root:not([data-theme=dark]){");
+    // ngoài khối theme thì không có mã màu nào
+    const rest = html
+      .slice(html.indexOf("<style>"), html.indexOf("</style>"))
+      .replace(theme, "")
+      .replace(/@media \(prefers-color-scheme: light\)\{:root:not\(\[data-theme=dark\]\)\{[^}]*\}\}/, "");
+    expect(rest).not.toMatch(/#[0-9a-f]{3,8}\b/i);
+    expect(html).toContain(`stroke-width:${SKETCH_TEXT_HALO}px`);
+    expect(SKETCH_TEXT_HALO).toBe(4);
   });
 });
