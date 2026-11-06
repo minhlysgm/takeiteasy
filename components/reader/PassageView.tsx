@@ -446,6 +446,11 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
           className={`animate-passage-in mx-auto mt-7 w-full max-w-[40rem] border-t border-line pt-6 transition-opacity motion-reduce:transition-none lg:mx-0 lg:mt-0 lg:max-w-none lg:border-t-0 lg:pt-0 lg:pl-12 ${explainOn ? "lg:opacity-30" : ""}`}
           onClick={() => reveal !== "none" && typing.skip()}
         >
+          {/* Nhãn luôn có, kể cả lúc chờ vẽ: vẽ xong thì chỉ phần dưới nhãn đổi, cột không nhảy */}
+          <div className="mb-6 flex items-baseline gap-3 text-[13px]">
+            <span className="text-muted">{"// bản dịch"}</span>
+            {reveal !== "none" && !typing.done && <span className="text-xs text-accent">đang gõ…</span>}
+          </div>
           {waiting && (
             <p data-testid="translation-waiting" className="gate-wait text-[13px] text-muted">
               bản dịch hiện sau khi vẽ xong.
@@ -453,10 +458,6 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
           )}
           {reveal !== "none" && (
             <div className={pending ? "gate-full" : undefined}>
-              <div className="mb-6 flex items-baseline gap-3 text-[13px]">
-                <span className="text-muted">{"// bản dịch"}</span>
-                {!typing.done && <span className="text-xs text-accent">đang gõ…</span>}
-              </div>
               <div className="whitespace-pre-line text-[15.5px] leading-[2]">
                 {typing.display}
                 {!typing.done && (

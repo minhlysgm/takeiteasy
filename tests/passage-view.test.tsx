@@ -294,6 +294,22 @@ describe("PassageView — HTML server (chưa biết thẻ đã xem chưa)", () =
   });
 });
 
+describe("PassageView — nhãn bản dịch", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("nhãn '// bản dịch' luôn có (cả lúc chờ vẽ), câu chờ nằm dưới nhãn → cột không nhảy khi vẽ xong", () => {
+    renderView();
+    const col = screen.getByTestId("translation-col");
+    const label = screen.getByText("// bản dịch");
+    expect(col.contains(label)).toBe(true);
+    const wait = screen.getByTestId("translation-waiting");
+    expect(label.compareDocumentPosition(wait) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    fireEvent.keyDown(window, { key: "x" });
+    expect(screen.getByText("// bản dịch")).toBe(label); // cùng phần tử, không dựng lại
+    expect(screen.queryByTestId("translation-waiting")).toBeNull();
+  });
+});
+
 describe("PassageView — phím lúc hình đang vẽ", () => {
   beforeEach(() => {
     localStorage.clear();
