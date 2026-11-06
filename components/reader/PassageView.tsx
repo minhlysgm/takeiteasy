@@ -366,7 +366,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
             />
           )}
           {passage.sketch && (
-            <PassageSketch key={passage.id} sketch={passage.sketch} passageId={passage.id} start={typing.done} dimmed={explainOn} />
+            <PassageSketch key={passage.id} sketch={passage.sketch} passageId={passage.id} dimmed={explainOn} />
           )}
         </div>
         <div aria-hidden="true" className="hidden border-r border-line lg:block" />

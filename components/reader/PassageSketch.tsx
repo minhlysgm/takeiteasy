@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useImperativeHandle, useMemo, useRef, useState, type Ref } from "react";
 import type { Sketch, SketchStep, SketchTone } from "@/content/types";
 import { buildTimeline, drawMs, ease, frameAt, locateOnSubpaths, pencilAngle, SKETCH_EMPHASIS_MS, SKETCH_START_DELAY_MS, visibleRatio, visibleThreshold, type MeasuredStep, type Pt, type TimedStep } from "@/lib/sketch/timeline";
 import { waitFonts } from "@/lib/sketch/fonts";
@@ -9,6 +9,10 @@ import { isSketchSeen, markSketchSeen } from "@/lib/sketchSeen";
 import { prefersReducedMotion } from "@/lib/motion";
 
 type State = "idle" | "waiting" | "drawing" | "done";
+
+/** "instant": hiện sẵn ngay khi mở (đã xem / giảm chuyển động). "animate": vừa vẽ xong (hoặc bị bỏ qua) trước mắt người đọc. */
+export type SketchDone = "animate" | "instant";
+export type SketchHandle = { finish(): void };
 type TextStep = Extract<SketchStep, { kind: "text" }>;
 
 type Item =
@@ -28,10 +32,35 @@ type Live =
 const STROKE: Record<"line" | "ink" | "accent", string> = { line: "stroke-text", ink: "stroke-ink", accent: "stroke-accent" };
 const FILL: Record<SketchTone, string> = { ink: "fill-ink", name: "fill-bright", line: "fill-text", accent: "fill-accent" };
 
-export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sketch: Sketch; passageId: string; start: boolean; dimmed?: boolean }) {
+export function PassageSketch({
+  sketch,
+  passageId,
+  dimmed = false,
+  onDone,
+  ref,
+}: {
+  sketch: Sketch;
+  passageId: string;
+  dimmed?: boolean;
+  onDone?: (how: SketchDone) => void;
+  ref?: Ref<SketchHandle>;
+}) {
   const [state, setState] = useState<State>("idle");
+  // Bản state đồng bộ cho finish() qua ref: gọi hai lần liên tiếp trước khi render lại vẫn chỉ báo một lần
+  const stateRef = useRef<State>("idle");
+  const go = useCallback((next: State) => {
+    stateRef.current = next;
+    setState(next);
+  }, []);
+  // onDone mới nhất, để callback trong effect/rAF không gọi bản cũ
+  const onDoneRef = useRef(onDone);
+  useEffect(() => {
+    onDoneRef.current = onDone;
+  });
+  // Thẻ nào đã báo "instant" rồi (chống StrictMode chạy effect hai lần)
+  const instantFor = useRef<string | null>(null);
   const [reduced, setReduced] = useState(false);
-  // Hình có đang trên màn hình không. Chỉ đo sau khi bản dịch gõ xong. "yes" giữ nguyên cho tới lúc sắp vẽ;
+  // Hình có đang trên màn hình không. "yes" giữ nguyên cho tới lúc sắp vẽ;
   // ngay trước khi vẽ kiểm lại một lần, lướt qua rồi cuộn đi thì về "no" và chờ tiếp.
   const [onScreen, setOnScreen] = useState<"unknown" | "no" | "yes">("unknown");
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
@@ -76,12 +105,18 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
   const pencil = useRef<SVGGElement>(null);
   const pencilBody = useRef<SVGGElement>(null);
 
-  // Khi mount: giảm chuyển động hoặc đã xem → hiện sẵn; còn lại chờ bản dịch gõ xong
+  // Khi mở: giảm chuyển động hoặc đã xem → hiện sẵn và báo "instant"; còn lại chờ hình lọt khung rồi tự vẽ
   useEffect(() => {
     const rm = prefersReducedMotion();
     setReduced(rm);
-    setState(rm || isSketchSeen(passageId) ? "done" : "waiting");
-  }, [passageId]);
+    if (rm || isSketchSeen(passageId)) {
+      go("done");
+      if (instantFor.current !== passageId) {
+        instantFor.current = passageId;
+        onDoneRef.current?.("instant");
+      }
+    } else go("waiting");
+  }, [passageId, go]);
 
   const setP = (l: Live, p: number) => {
     if (l.kind === "path") {
@@ -108,12 +143,25 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
         for (const [k, v] of Object.entries(fullRect)) l.rect.setAttribute(k, String(v));
       }
     });
-    setState("done");
+    go("done");
     if (seen) markSketchSeen(passageId);
-  }, [passageId, fullRect]);
+  }, [passageId, fullRect, go]);
 
-  /** Xem xong (vẽ hết hoặc người đọc bấm xem ngay) */
-  const finish = useCallback(() => reveal(true), [reveal]);
+  /** Xem xong (vẽ hết, người đọc bấm xem ngay, hoặc người trên gọi finish()) */
+  const finish = useCallback(() => {
+    reveal(true);
+    onDoneRef.current?.("animate");
+  }, [reveal]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      finish: () => {
+        if (stateRef.current !== "done") finish();
+      },
+    }),
+    [finish],
+  );
 
   /**
    * Đo DOM, dựng timeline, xoá trắng hình rồi chuyển sang "drawing". Đo lỗi thì hiện đủ hình, đừng để hình ẩn mãi,
@@ -164,17 +212,18 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
       items.forEach((it, i) => next.push(measure(it, i)));
       timeline.current = buildTimeline(measured, home);
       next.forEach((l) => setP(l, 0));
-      setState("drawing");
+      go("drawing");
     } catch {
       reveal(false);
+      onDoneRef.current?.("animate");
     }
-  }, [items, home, reveal]);
+  }, [items, home, reveal, go]);
 
   const visible = onScreen === "yes";
 
-  // waiting + start → đợi hình lọt vào màn hình
+  // waiting → đợi hình lọt vào màn hình
   useEffect(() => {
-    if (state !== "waiting" || !start || visible) return;
+    if (state !== "waiting" || visible) return;
     if (typeof IntersectionObserver === "undefined") return setOnScreen("yes");
     const el = svg.current;
     if (!el) return;
@@ -188,11 +237,11 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [state, start, visible]);
+  }, [state, visible]);
 
-  // đủ 2 điều kiện → chờ delay → chờ font → đo và vẽ
+  // hình đã lọt khung → chờ delay → chờ font → đo và vẽ
   useEffect(() => {
-    if (state !== "waiting" || !start || !visible) return;
+    if (state !== "waiting" || !visible) return;
     let alive = true;
     let fonts: ReturnType<typeof waitFonts> | undefined;
     const go = () => {
@@ -214,7 +263,7 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
       clearTimeout(timer);
       fonts?.cancel();
     };
-  }, [state, start, visible, begin]);
+  }, [state, visible, begin]);
 
   // vòng rAF khi đang vẽ
   useEffect(() => {
@@ -259,7 +308,7 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
   }, [state, finish]);
 
   const hidden = state === "idle" || state === "waiting";
-  const waitingFor = !start ? "chờ bản dịch gõ xong…" : onScreen === "no" ? "cuộn tới hình để xem vẽ…" : null;
+  const waitingFor = onScreen === "no" ? "cuộn tới hình để xem vẽ…" : null;
   const status = state === "waiting" ? waitingFor : state === "drawing" ? "đang vẽ…" : null;
   // Một nút duy nhất, chỉ đổi nhãn: bấm bằng bàn phím xong focus vẫn còn ở nút
   const action = state === "drawing" ? "skip" : state === "done" && !reduced ? "replay" : null;
@@ -268,11 +317,11 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
     <section
       data-testid="sketch"
       data-state={state}
-      className={`mt-9 transition-opacity motion-reduce:transition-none ${dimmed ? "opacity-30 focus-within:opacity-100" : ""}`}
+      className={`transition-opacity motion-reduce:transition-none ${dimmed ? "opacity-30 focus-within:opacity-100" : ""}`}
     >
       {/* flex-wrap: cột hẹp thì xuống dòng, đừng nong cột ra theo tổng chiều dài các nhãn */}
       <div className="flex min-h-[22px] flex-wrap items-baseline gap-x-3 gap-y-1 text-[13px]">
-        <span className="whitespace-nowrap text-muted">{"// phác thảo"}</span>
+        <span className="whitespace-nowrap text-muted">{"// hình"}</span>
         {status && <span className="text-xs text-accent">{status}</span>}
         {action && (
           <button
@@ -315,7 +364,9 @@ export function PassageSketch({ sketch, passageId, start, dimmed = false }: { sk
                   fontSize={s.size}
                   textAnchor={s.anchor}
                   clipPath={`url(#${it.clipId})`}
-                  className={`font-hand ${FILL[s.tone]}`}
+                  className={`font-hand stroke-bg [paint-order:stroke] ${FILL[s.tone]}`}
+                  strokeWidth={4}
+                  strokeLinejoin="round"
                 >
                   {s.text}
                 </text>
