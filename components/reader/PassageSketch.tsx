@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId, useImperativeHandle, useMemo, useRef, useState, type Ref } from "react";
+import { useCallback, useEffect, useId, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type Ref } from "react";
 import type { Sketch, SketchStep, SketchTone } from "@/content/types";
 import { buildTimeline, drawMs, ease, frameAt, locateOnSubpaths, pencilAngle, SKETCH_EMPHASIS_MS, SKETCH_START_DELAY_MS, visibleRatio, visibleThreshold, type MeasuredStep, type Pt, type TimedStep } from "@/lib/sketch/timeline";
 import { waitFonts } from "@/lib/sketch/fonts";
@@ -107,8 +107,10 @@ export function PassageSketch({
   const pencil = useRef<SVGGElement>(null);
   const pencilBody = useRef<SVGGElement>(null);
 
-  // Khi mở: giảm chuyển động hoặc đã xem → hiện sẵn và báo "instant"; còn lại chờ hình lọt khung rồi tự vẽ
-  useEffect(() => {
+  // Khi mở: giảm chuyển động hoặc đã xem → hiện sẵn và báo "instant"; còn lại chờ hình lọt khung rồi tự vẽ.
+  // Layout effect: quyết trước khi trình duyệt vẽ khung đầu (lúc hydrate hay mở bằng điều hướng trong app),
+  // để thẻ đã xem không loé một khung hình trống / "chờ vẽ".
+  useLayoutEffect(() => {
     const rm = prefersReducedMotion();
     setReduced(rm);
     // finish() đã chạy cho đúng thẻ này trước effect: đã done và đã báo "animate", đừng báo thêm "instant"
@@ -315,7 +317,6 @@ export function PassageSketch({
     return () => cancelAnimationFrame(raf);
   }, [state, finish]);
 
-  const hidden = state === "idle" || state === "waiting";
   const waitingFor = onScreen === "no" ? "cuộn tới hình để xem vẽ…" : null;
   const status = state === "waiting" ? waitingFor : state === "drawing" ? "đang vẽ…" : null;
   // Một nút duy nhất, chỉ đổi nhãn: bấm bằng bàn phím xong focus vẫn còn ở nút
@@ -358,7 +359,12 @@ export function PassageSketch({
             ) : null,
           )}
         </defs>
-        <g data-testid="sketch-art" style={hidden ? { opacity: 0 } : undefined}>
+        {/* idle (chưa quyết, kể cả HTML server): ẩn bằng class để CSS lúc chưa hydrate lật được cho thẻ đã xem */}
+        <g
+          data-testid="sketch-art"
+          className={state === "idle" ? "sketch-art-idle" : undefined}
+          style={state === "waiting" ? { opacity: 0 } : undefined}
+        >
           {items.map((it, i) => {
             if (it.kind === "pause") return null;
             if (it.kind === "text") {

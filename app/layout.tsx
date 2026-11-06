@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Patrick_Hand } from "next/font/google";
+import { SKETCH_SEEN_BOOT_SCRIPT } from "@/lib/sketchSeen";
 import "@/lib/theme.css";
 import "./globals.css";
 
@@ -25,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var t=localStorage.getItem("tie:theme");document.documentElement.dataset.theme=t==="light"?"light":"dark"}catch(e){document.documentElement.dataset.theme="dark"}`,
+            __html: `try{var t=localStorage.getItem("tie:theme");document.documentElement.dataset.theme=t==="light"?"light":"dark"}catch(e){document.documentElement.dataset.theme="dark"}${SKETCH_SEEN_BOOT_SCRIPT}`,
           }}
         />
       </head>

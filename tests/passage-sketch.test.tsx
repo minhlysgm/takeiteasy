@@ -464,6 +464,19 @@ describe("PassageSketch", () => {
       expect(screen.queryByTestId("sketch-pencil")).toBeNull();
     });
 
+    it("đã xem: quyết trước khi trình duyệt vẽ (layout effect), không đợi passive effect", () => {
+      localStorage.setItem(sketchSeenKey("p"), "1");
+      const onDone = vi.fn();
+      let callsInLayout = -1;
+      function Parent() {
+        // layout effect của cha chạy ngay sau layout effect của con, cùng nhịp trước khi vẽ
+        useLayoutEffect(() => void (callsInLayout = onDone.mock.calls.length), []);
+        return <PassageSketch sketch={sketch} passageId="p" onDone={onDone} />;
+      }
+      render(<Parent />);
+      expect(callsInLayout).toBe(1);
+    });
+
     it("reduced-motion → onDone('instant')", () => {
       vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: true })));
       const onDone = vi.fn();

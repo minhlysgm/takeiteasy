@@ -29,7 +29,16 @@ body { background: var(--bg); color: var(--text); }
 @keyframes passage-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 .animate-passage-in { animation: passage-in 0.35s ease-out; }
 
+/* Thẻ "vẽ trước" lúc chưa hydrate (PassageView reveal = "pending", có [data-sketch-gate]): server không biết thẻ đã xem
+   chưa nên dựng cả chỗ chờ (.gate-wait) lẫn nội dung đủ (.gate-full). Mặc định = chưa xem; thẻ đã xem thì <style> của
+   thẻ (sketchGateCss) lật lại, giảm chuyển động thì lật ở dưới. Hình chưa quyết (idle) thì ẩn như lúc chờ vẽ. */
+[data-sketch-gate] .gate-full { display: none; }
+.sketch-art-idle { opacity: 0; }
+
 @media (prefers-reduced-motion: reduce) {
+  [data-sketch-gate] .gate-wait { display: none; }
+  [data-sketch-gate] .gate-full { display: block; }
+  [data-sketch-gate] .sketch-art-idle { opacity: 1; }
   .animate-blink { animation: none; }
   .arrow-draw { animation: none; stroke-dashoffset: 0; }
   .reveal, .reveal-1, .reveal-2, .reveal-3 { animation: none; opacity: 1; }

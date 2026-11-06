@@ -1,4 +1,5 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { renderToString } from "react-dom/server";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { PassageView } from "@/components/reader/PassageView";
 import { DOCK_QUERY } from "@/lib/breakpoints";
@@ -250,6 +251,40 @@ describe("PassageView — đọc to / Space lúc hình đang vẽ", () => {
     const onBody = new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true });
     act(() => void document.body.dispatchEvent(onBody));
     expect(onBody.defaultPrevented).toBe(true);
+  });
+});
+
+describe("PassageView — HTML server (chưa biết thẻ đã xem chưa)", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("dựng cả chỗ chờ lẫn nội dung đủ dưới [data-sketch-gate], kèm CSS chọn theo id thẻ", () => {
+    const html = renderToString(
+      <PassageView outline={outline} chapterTitle={chapterTitle} book={book} chapterId="ch01" passage={passages[0]} passageIndex={1} passageCount={passages.length} />,
+    );
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const gate = doc.querySelector('[data-testid="reader"][data-sketch-gate]')!;
+    expect(gate).not.toBeNull();
+    expect(gate.querySelector('[data-testid="caption-waiting"]')!.classList.contains("gate-wait")).toBe(true);
+    expect(gate.querySelector('[data-testid="translation-waiting"]')!.classList.contains("gate-wait")).toBe(true);
+    expect(gate.querySelector('[data-testid="caption-text"]')!.closest(".gate-full")).not.toBeNull();
+    expect(gate.querySelector('[data-testid="caption-text"]')!.closest("[hidden]")).toBeNull();
+    expect(gate.querySelector('[data-testid="credit"]')!.closest(".gate-full")).not.toBeNull();
+    expect(gate.querySelector('[data-testid="sketch-art"]')!.getAttribute("class")).toBe("sketch-art-idle");
+    expect(doc.querySelector("style")!.textContent).toContain(`[data-sketch-seen~="${passages[0].id}"]`);
+  });
+
+  it("sau khi mở ở client: hết trạng thái chưa biết (không còn gate / style)", () => {
+    renderView();
+    expect(document.querySelector("[data-sketch-gate]")).toBeNull();
+    expect(document.querySelector("style")).toBeNull();
+    expect(screen.queryByTestId("caption-waiting")).not.toBeNull();
+    cleanup();
+    localStorage.setItem(sketchSeenKey(passages[0].id), "1");
+    renderView();
+    expect(document.querySelector("[data-sketch-gate]")).toBeNull();
+    expect(screen.queryByTestId("caption-waiting")).toBeNull();
+    expect(screen.queryByTestId("translation-waiting")).toBeNull();
+    expect(screen.getByTestId("credit")).toBeTruthy();
   });
 });
 
