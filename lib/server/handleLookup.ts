@@ -57,9 +57,9 @@ function validate(input: unknown): { text: string; sentence: string } | null {
   const passage = getPassage(req.bookId, req.chapterId, req.passageIndex);
   if (!passage) return null;
   const { start, end } = req;
-  if (start < 0 || end <= start || end > passage.original.length) return null;
-  if (normalizeSelectionText(passage.original.slice(start, end)) !== text) return null;
-  return { text, sentence: sentenceAt(passage.original, start, end) };
+  if (start < 0 || end <= start || end > passage.caption.length) return null;
+  if (normalizeSelectionText(passage.caption.slice(start, end)) !== text) return null;
+  return { text, sentence: sentenceAt(passage.caption, start, end) };
 }
 
 const isPaymentError = (err: unknown) =>

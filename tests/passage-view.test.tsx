@@ -21,7 +21,7 @@ vi.mock("rough-notation", () => ({
 
 const book = books[0];
 const passages = getPassages(book.id, "ch01")!;
-const outline = passages.map((p, i) => ({ index: i + 1, firstSentence: firstSentence(p.original) }));
+const outline = passages.map((p, i) => ({ index: i + 1, firstSentence: firstSentence(p.caption) }));
 const chapterTitle = "Chương 1 · Don't Try";
 
 function renderView() {
@@ -52,7 +52,7 @@ describe("PassageView", () => {
 
   it("render nguyên văn và header đoạn", () => {
     renderView();
-    expect(screen.getByTestId("original-col").textContent).toContain("Charles Bukowski was an alcoholic");
+    expect(screen.getByTestId("caption-col").textContent).toContain("Charles Bukowski was an alcoholic");
     expect(document.querySelector("header")!.textContent).toContain(`đoạn 1/${passages.length}`);
   });
 
@@ -398,7 +398,7 @@ describe("PassageView — chọn chữ khi chuyển đoạn", () => {
 
   /** Bôi đen "chronic gambler" trong nguyên văn rồi chờ quá 250ms → popup hiện (jsdom không có matchMedia → desktop). */
   function selectChronicGambler() {
-    const root = screen.getByTestId("original-text");
+    const root = screen.getByTestId("caption-text");
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     let node: Text | null = null;
     while (walker.nextNode()) {
@@ -465,7 +465,7 @@ describe("PassageView — chọn chữ khi chuyển đoạn", () => {
     fireEvent.keyDown(window, { key: "x" });
     selectChronicGambler();
     rerender(view(2));
-    expect(screen.getByTestId("original-text").textContent).toContain("Bukowski wanted to be a writer");
+    expect(screen.getByTestId("caption-text").textContent).toContain("Bukowski wanted to be a writer");
     expect(screen.queryByTestId("selection-popup")).toBeNull();
   });
 });
@@ -494,7 +494,7 @@ describe("PassageView — tra nghĩa", () => {
 
   /** Bôi đen `needle` (nằm trọn trong một text node của nguyên văn) rồi chờ quá 250ms → popup / thanh hiện. */
   function selectWord(needle: string, ui = "selection-popup") {
-    const root = screen.getByTestId("original-text");
+    const root = screen.getByTestId("caption-text");
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     let node: Text | null = null;
     while (walker.nextNode()) {
@@ -558,7 +558,7 @@ describe("PassageView — tra nghĩa", () => {
     expect(screen.getByTestId("selection-popup").contains(screen.getByTestId("lookup-skeleton"))).toBe(true);
     expect(calls).toHaveLength(1);
     expect(calls[0].body).toMatchObject({ bookId: book.id, chapterId: "ch01", passageIndex: 1, text: "lout" });
-    const p1 = getPassages(book.id, "ch01")![0].original;
+    const p1 = getPassages(book.id, "ch01")![0].caption;
     const { start, end } = calls[0].body as { start: number; end: number };
     expect(p1.slice(start, end)).toBe("lout");
     await act(async () => calls[0].resolve(result("lout")));

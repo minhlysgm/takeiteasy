@@ -10,14 +10,14 @@ async function finishTyping(page: Page) {
 
 test("trang không cuộn ngang ở 390px", async ({ page }) => {
   await page.goto(P1);
-  await expect(page.getByTestId("original-col")).toBeVisible();
+  await expect(page.getByTestId("caption-col")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
 
 test("nguyên văn và bản dịch nằm trọn bề ngang, bản dịch ở dưới", async ({ page }) => {
   await page.goto(P1);
-  await expect(page.getByTestId("original-col")).toBeVisible();
-  const o = await page.getByTestId("original-col").boundingBox();
+  await expect(page.getByTestId("caption-col")).toBeVisible();
+  const o = await page.getByTestId("caption-col").boundingBox();
   const t = await page.getByTestId("translation-col").boundingBox();
   expect(o).not.toBeNull();
   expect(t).not.toBeNull();
@@ -58,7 +58,7 @@ test("không có lỗi hydration", async ({ page }) => {
     if (m.type() === "error") errors.push(m.text());
   });
   await page.goto(P1);
-  await expect(page.getByTestId("original-col")).toBeVisible();
+  await expect(page.getByTestId("caption-col")).toBeVisible();
   expect(errors.filter((e) => /hydrat/i.test(e))).toEqual([]);
 });
 
@@ -341,7 +341,7 @@ test.describe("số tròn không rời cụm, dấu câu không rớt xuống đ
         await expect(page.getByTestId("chunk-badge").first()).toBeVisible();
         const broken = await page.evaluate(() => {
           const out: string[] = [];
-          const chunks = document.querySelectorAll('[data-testid="original-text"] [data-chunk-id]');
+          const chunks = document.querySelectorAll('[data-testid="caption-text"] [data-chunk-id]');
           const badges = document.querySelectorAll<HTMLElement>('[data-testid="chunk-badge"]');
           for (const [i, badge] of badges.entries()) {
             const b = badge.getBoundingClientRect();
@@ -373,7 +373,7 @@ test("bôi đen nguyên văn khi bật giải thích không dính số", async (
   await finishTyping(page);
   const selected = () =>
     page.evaluate(() => {
-      const el = document.querySelector('[data-testid="original-text"]')!;
+      const el = document.querySelector('[data-testid="caption-text"]')!;
       const sel = window.getSelection()!;
       sel.removeAllRanges();
       const r = document.createRange();
@@ -457,7 +457,7 @@ test('nút "đã hiểu" của mẹo lần đầu có vùng chạm ≥ 44px', as
 test("tablet 900px: cột đọc không trải hết bề ngang, căn giữa", async ({ page }) => {
   await page.setViewportSize({ width: 900, height: 1000 });
   await page.goto(P1);
-  for (const id of ["original-col", "translation-col"]) {
+  for (const id of ["caption-col", "translation-col"]) {
     const b = (await page.getByTestId(id).boundingBox())!;
     expect(b.width, id).toBeLessThanOrEqual(640);
     expect(Math.abs(b.x - (900 - (b.x + b.width))), `${id} căn giữa`).toBeLessThanOrEqual(2);

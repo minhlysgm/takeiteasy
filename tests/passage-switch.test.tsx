@@ -30,7 +30,7 @@ vi.mock("@/components/reader/SelectionPopup", () => ({
 
 const book = books[0];
 const passages = getPassages(book.id, "ch01")!;
-const outline = passages.map((p, i) => ({ index: i + 1, firstSentence: firstSentence(p.original) }));
+const outline = passages.map((p, i) => ({ index: i + 1, firstSentence: firstSentence(p.caption) }));
 const view = (i: number) => (
   <PassageView outline={outline} chapterTitle="Chương 1 · Don't Try" book={book} chapterId="ch01" passage={passages[i - 1]} passageIndex={i} passageCount={passages.length} />
 );
@@ -71,7 +71,7 @@ describe("PassageView — chuyển đoạn không remount", () => {
   it("đang có popup chọn chữ: đổi đoạn (back/forward) thì đoạn mới không vẽ popup lần nào", () => {
     const { rerender } = render(view(1));
     fireEvent.keyDown(window, { key: "x" });
-    const text = [...document.querySelectorAll('[data-testid="original-text"]')][0].firstChild as Text;
+    const text = [...document.querySelectorAll('[data-testid="caption-text"]')][0].firstChild as Text;
     act(() => {
       const range = document.createRange();
       range.setStart(text, 0);

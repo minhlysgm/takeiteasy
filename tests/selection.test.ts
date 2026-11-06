@@ -20,26 +20,26 @@ describe("canLookUp", () => {
 
 const p1 = getPassages("the-subtle-art", "ch01")![0];
 const at = (s: string) => {
-  const i = p1.original.indexOf(s);
+  const i = p1.caption.indexOf(s);
   return [i, i + s.length] as const;
 };
 
 describe("sentenceAt", () => {
   it("câu chứa 'lout'", () =>
-    expect(sentenceAt(p1.original, ...at("lout"))).toBe(
+    expect(sentenceAt(p1.caption, ...at("lout"))).toBe(
       "Charles Bukowski was an alcoholic, a womanizer, a chronic gambler, a lout, a cheapskate, a deadbeat, and on his worst days, a poet.",
     ));
   it("câu đứng riêng sau dòng trống", () =>
-    expect(sentenceAt(p1.original, ...at("perfect place"))).toBe("Which is why he's the perfect place to start."));
+    expect(sentenceAt(p1.caption, ...at("perfect place"))).toBe("Which is why he's the perfect place to start."));
   it("câu dài quá 600 ký tự → cắt khung ≤ 600 quanh vùng chọn, vẫn chứa vùng chọn và vẫn nằm trong đoạn", () => {
     const words = Array.from({ length: 200 }, (_, i) => `word${i}`);
-    const original = words.join(" ") + ".";
+    const caption = words.join(" ") + ".";
     for (const target of ["word0", "word100", "word199"]) {
-      const s = original.indexOf(target + " ") >= 0 ? original.indexOf(target + " ") : original.indexOf(target + ".");
-      const got = sentenceAt(original, s, s + target.length);
+      const s = caption.indexOf(target + " ") >= 0 ? caption.indexOf(target + " ") : caption.indexOf(target + ".");
+      const got = sentenceAt(caption, s, s + target.length);
       expect(got.length).toBeLessThanOrEqual(600);
       expect(got).toContain(target);
-      expect(original).toContain(got);
+      expect(caption).toContain(got);
     }
   });
 });

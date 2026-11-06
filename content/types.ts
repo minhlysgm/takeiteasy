@@ -7,7 +7,7 @@ export interface Book {
 
 export interface Passage {
   id: string; // "ch01-p01"
-  original: string; // đoạn tiếng Anh nguyên văn
+  caption: string; // đoạn mô tả tiếng Anh do takeiteasy viết
   translation: string; // bản dịch tự nhiên (nguồn cho hiệu ứng typing)
   mainIdea?: string; // "ý chính của đoạn"
   chunks: Chunk[];
@@ -16,7 +16,7 @@ export interface Passage {
 
 export interface Chunk {
   id: string; // "stem-from"
-  match: string; // chuỗi khớp NGUYÊN VĂN trong original
+  match: string; // chuỗi khớp NGUYÊN VĂN trong caption
   occurrence?: number; // mặc định 1 — khi chuỗi xuất hiện nhiều lần
   label: string; // ghi chú lề ngắn
 

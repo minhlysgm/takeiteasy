@@ -19,15 +19,15 @@ const LOUT: LookupResult = {
 };
 const SENTENCE =
   "Charles Bukowski was an alcoholic, a womanizer, a chronic gambler, a lout, a cheapskate, a deadbeat, and on his worst days, a poet.";
-const P1 = getPassage("the-subtle-art", "ch01", 1)!.original;
+const P1 = getPassage("the-subtle-art", "ch01", 1)!.caption;
 /** Chữ tra + vị trí của nó trong nguyên văn (lần xuất hiện đầu, hoặc cuối nếu `last`). */
-const at = (text: string, original = P1, last = false) => {
-  const start = last ? original.lastIndexOf(text) : original.indexOf(text);
+const at = (text: string, caption = P1, last = false) => {
+  const start = last ? caption.lastIndexOf(text) : caption.indexOf(text);
   return { text, start, end: start + text.length };
 };
 const req = { bookId: "the-subtle-art", chapterId: "ch01", passageIndex: 1, ...at("lout") };
-const mockOriginal = (original: string) =>
-  vi.mocked(getPassage).mockReturnValue({ original } as ReturnType<typeof getPassage>);
+const mockCaption = (caption: string) =>
+  vi.mocked(getPassage).mockReturnValue({ caption } as ReturnType<typeof getPassage>);
 const HOUR = 3_600_000;
 
 let store: LookupStore;
@@ -75,11 +75,11 @@ describe("handleLookup", () => {
   });
 
   it("server tự cắt câu theo vị trí; chữ có ở 2 câu thì lấy đúng câu của vị trí đó", async () => {
-    const original = "I met a lout at the bar.\nLater he was a lout again.";
-    mockOriginal(original);
-    await handleLookup({ ...req, ...at("lout", original, true) }, deps());
+    const caption = "I met a lout at the bar.\nLater he was a lout again.";
+    mockCaption(caption);
+    await handleLookup({ ...req, ...at("lout", caption, true) }, deps());
     expect(ask).toHaveBeenLastCalledWith("lout", "Later he was a lout again.");
-    await handleLookup({ ...req, ...at("lout", original) }, deps());
+    await handleLookup({ ...req, ...at("lout", caption) }, deps());
     expect(ask).toHaveBeenLastCalledWith("lout", "I met a lout at the bar.");
   });
 
@@ -134,17 +134,17 @@ describe("handleLookup", () => {
 
   it("text > 120 ký tự → 400 (dù ≤ 10 từ); đúng 120 thì được", async () => {
     const long = "x".repeat(121);
-    mockOriginal(`a ${long} b`);
+    mockCaption(`a ${long} b`);
     expect((await handleLookup({ ...req, ...at(long, `a ${long} b`) }, deps())).status).toBe(400);
     const ok = "x".repeat(120);
-    mockOriginal(`a ${ok} b`);
+    mockCaption(`a ${ok} b`);
     expect((await handleLookup({ ...req, ...at(ok, `a ${ok} b`) }, deps())).status).toBe(200);
   });
 
   it("câu dài quá 600 ký tự → server gửi AI khung ≤ 600 ký tự quanh chữ tra", async () => {
-    const original = "word ".repeat(150) + "lout " + "word ".repeat(150);
-    mockOriginal(original);
-    expect((await handleLookup({ ...req, ...at("lout", original) }, deps())).status).toBe(200);
+    const caption = "word ".repeat(150) + "lout " + "word ".repeat(150);
+    mockCaption(caption);
+    expect((await handleLookup({ ...req, ...at("lout", caption) }, deps())).status).toBe(200);
     const sentence = ask.mock.calls[0][1] as string;
     expect(sentence.length).toBeLessThanOrEqual(600);
     expect(sentence).toContain("lout");

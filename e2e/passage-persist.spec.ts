@@ -10,17 +10,17 @@ test("Khi bấm đoạn tiếp thì header/footer giữ nguyên (không dựng l
   await page.goto("/read/the-subtle-art/ch01/1");
   await expect(page.getByTestId("sketch")).not.toHaveAttribute("data-state", "idle");
   await markShell(page, BAR);
-  const before = await page.getByTestId("original-text").textContent();
+  const before = await page.getByTestId("caption-text").textContent();
   await page.getByRole("button", { name: /tiếp →/ }).click();
   await expect(page).toHaveURL(/\/ch01\/2$/);
-  await expect(page.getByTestId("original-text")).not.toHaveText(before!);
+  await expect(page.getByTestId("caption-text")).not.toHaveText(before!);
   await expect(page.locator("header")).toContainText("đoạn 2/");
   await expect.poll(() => shellState(page)).toMatchObject({ header: true, footer: true, transitions: ["width"] });
 
   // Nút back của trình duyệt cũng vậy
   await page.goBack();
   await expect(page).toHaveURL(/\/ch01\/1$/);
-  await expect(page.getByTestId("original-text")).toHaveText(before!);
+  await expect(page.getByTestId("caption-text")).toHaveText(before!);
   expect((await shellState(page)).header).toBe(true);
 });
 

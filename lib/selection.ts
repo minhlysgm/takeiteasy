@@ -26,63 +26,63 @@ export function canLookUp(text: string): boolean {
 }
 
 /**
- * Câu chứa vùng chọn [start, end) trong `original`: lùi tới sau `[.?!]` + khoảng trắng gần nhất (hoặc sau `\n`,
+ * Câu chứa vùng chọn [start, end) trong `caption`: lùi tới sau `[.?!]` + khoảng trắng gần nhất (hoặc sau `\n`,
  * hoặc đầu chuỗi), tiến tới hết `[.?!]` đầu tiên (kèm `"`/`”` đóng liền sau) có khoảng trắng/hết chuỗi theo sau
  * (hoặc trước `\n`, hoặc cuối chuỗi). Trả về đã `normalizeSelectionText`.
  */
-export function sentenceAt(original: string, start: number, end: number): string {
+export function sentenceAt(caption: string, start: number, end: number): string {
   let from = 0;
   for (let i = start - 1; i >= 0; i--) {
-    const c = original[i];
+    const c = caption[i];
     if (c === "\n") {
       from = i + 1;
       break;
     }
-    if (/\s/.test(c) && i > 0 && /[.?!]/.test(original[i - 1])) {
+    if (/\s/.test(c) && i > 0 && /[.?!]/.test(caption[i - 1])) {
       from = i + 1;
       break;
     }
   }
-  let to = original.length;
-  for (let i = Math.max(end, from); i < original.length; i++) {
-    const c = original[i];
+  let to = caption.length;
+  for (let i = Math.max(end, from); i < caption.length; i++) {
+    const c = caption[i];
     if (c === "\n") {
       to = i;
       break;
     }
     if (/[.?!]/.test(c)) {
       let j = i + 1;
-      if (original[j] === '"' || original[j] === "”") j++;
-      if (j >= original.length || /\s/.test(original[j])) {
+      if (caption[j] === '"' || caption[j] === "”") j++;
+      if (j >= caption.length || /\s/.test(caption[j])) {
         to = j;
         break;
       }
     }
   }
-  const sentence = normalizeSelectionText(original.slice(from, to));
+  const sentence = normalizeSelectionText(caption.slice(from, to));
   if (sentence.length <= MAX_SENTENCE_CHARS) return sentence;
   // Câu quá dài (server chặn > 600): lấy khung ≤ 600 ký tự quanh vùng chọn, cắt ở khoảng trắng để vẫn là một đoạn của nguyên văn.
   let a = Math.max(from, start - Math.floor((MAX_SENTENCE_CHARS - (end - start)) / 2));
   let b = Math.min(to, a + MAX_SENTENCE_CHARS);
   a = Math.max(from, b - MAX_SENTENCE_CHARS);
   if (a > from) {
-    const ws = original.slice(a, start).search(/\s/);
+    const ws = caption.slice(a, start).search(/\s/);
     if (ws >= 0) a += ws + 1;
   }
   if (b < to) {
-    const tail = original.slice(end, b);
+    const tail = caption.slice(end, b);
     const ws = Math.max(tail.lastIndexOf(" "), tail.lastIndexOf("\n"), tail.lastIndexOf("\t"));
     if (ws >= 0) b = end + ws;
   }
-  return normalizeSelectionText(original.slice(a, b));
+  return normalizeSelectionText(caption.slice(a, b));
 }
 
 /** Cụm soạn sẵn của đoạn mà vùng chọn [start, end) (bỏ khoảng trắng đầu/cuối) nằm trọn trong; không có thì null. */
 export function chunkAt(passage: Passage, start: number, end: number): Chunk | null {
-  const raw = passage.original.slice(start, end);
+  const raw = passage.caption.slice(start, end);
   const s = start + (raw.length - raw.trimStart().length);
   const e = end - (raw.length - raw.trimEnd().length);
-  const hit = findChunkRanges(passage.original, passage.chunks).find((r) => r.start <= s && e <= r.end);
+  const hit = findChunkRanges(passage.caption, passage.chunks).find((r) => r.start <= s && e <= r.end);
   return hit?.chunk ?? null;
 }
 

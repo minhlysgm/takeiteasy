@@ -36,7 +36,7 @@ test("2. Khi bấm dòng 1 thì danh sách đóng, sang đoạn 1 và trang ở 
   await row(page, 1).click();
   await expect(page).toHaveURL(/\/ch01\/1$/);
   await expect(list(page)).toHaveCount(0);
-  await expect(page.getByTestId("original-text")).toContainText("Charles Bukowski");
+  await expect(page.getByTestId("caption-text")).toContainText("Charles Bukowski");
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
 });
 
@@ -109,7 +109,7 @@ test("8. Khi bấm ra ngoài danh sách thì danh sách đóng", async ({ page }
   await open(page, 2);
   await page.getByTestId("jump-trigger").click();
   await expect(list(page)).toBeVisible();
-  const box = (await page.getByTestId("original-col").boundingBox())!;
+  const box = (await page.getByTestId("caption-col").boundingBox())!;
   await page.mouse.click(box.x + box.width / 2, box.y + 40);
   await expect(list(page)).toHaveCount(0);
   await expect(page).toHaveURL(/\/ch01\/2$/);
@@ -129,7 +129,7 @@ test("Danh sách đang mở mà bấm Back thì danh sách đóng, trang không 
 
 test("Đang bôi đen chữ mà nhấn g thì popup chọn chữ tắt", async ({ page }) => {
   await open(page, 1);
-  expect(await selectText(page, "original-text", "chronic gambler", "selection-popup")).toBeGreaterThanOrEqual(0);
+  expect(await selectText(page, "caption-text", "chronic gambler", "selection-popup")).toBeGreaterThanOrEqual(0);
   await page.keyboard.press("g");
   await expect(list(page)).toBeVisible();
   await expect(page.getByTestId("selection-popup")).toHaveCount(0);

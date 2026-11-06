@@ -84,7 +84,7 @@ test("Khi đổi cỡ từ 1280px xuống 390px lúc đang chọn thì popup nh�
     };
     new MutationObserver(check).observe(document.body, { childList: true, subtree: true });
   });
-  await selectText(page, "original-text", "chronic gambler");
+  await selectText(page, "caption-text", "chronic gambler");
   await expect(popup(page)).toBeVisible();
   await expect(page.getByTestId("selection-dock")).toHaveCount(0);
   await page.setViewportSize({ width: 390, height: 844 });

@@ -13,7 +13,7 @@ async function openCard(page: Page) {
   await dismissFirstTimeHint(page);
   await page.goto(P(1));
   await finishTyping(page, "tap");
-  await selectText(page, "original-text", "lout");
+  await selectText(page, "caption-text", "lout");
   await expect(dock(page)).toBeVisible();
   await dock(page).getByRole("button", { name: "tra nghĩa" }).tap();
   await expect(dock(page).getByTestId("lookup-card")).toContainText("kẻ thô lỗ");
@@ -63,7 +63,7 @@ test.describe("390×560 (màn thấp)", () => {
     await dismissFirstTimeHint(page);
     await page.goto(P(1));
     await finishTyping(page, "tap");
-    await selectText(page, "original-text", "lout");
+    await selectText(page, "caption-text", "lout");
     await dock(page).getByRole("button", { name: "tra nghĩa" }).tap();
     const c = dock(page).getByTestId("lookup-card");
     await expect(c).toContainText("đám cưới");
@@ -100,7 +100,7 @@ test.describe("320×640", () => {
     await dismissFirstTimeHint(page);
     await page.goto(P(1));
     await finishTyping(page, "tap");
-    await selectText(page, "original-text", "lout");
+    await selectText(page, "caption-text", "lout");
     await dock(page).getByRole("button", { name: "tra nghĩa" }).tap();
     await expect(dock(page).getByTestId("lookup-card")).toContainText("extraordinaire");
     const { sw, cw, doc } = await dock(page).evaluate((el) => ({

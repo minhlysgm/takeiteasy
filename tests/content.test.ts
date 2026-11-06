@@ -20,7 +20,7 @@ describe("content validation", () => {
           const ids = p.chunks.map((c) => c.id);
           expect(new Set(ids).size, "id chunk trùng").toBe(ids.length);
           for (const c of p.chunks) {
-            expect(findChunkRange(p.original, c), `chunk "${c.id}" — match "${c.match}" không có trong original`).not.toBeNull();
+            expect(findChunkRange(p.caption, c), `chunk "${c.id}" — match "${c.match}" không có trong caption`).not.toBeNull();
             expect(c.examples.length, `chunk "${c.id}" thiếu examples`).toBeGreaterThan(0);
           }
         });
@@ -84,7 +84,7 @@ describe("firstSentence", () => {
   });
   it("firstSentence của 3 đoạn ch01 khớp mockup", () => {
     const ps = getPassages("the-subtle-art", "ch01")!;
-    expect(firstSentence(ps[1].original)).toBe("Bukowski wanted to be a writer.");
-    expect(firstSentence(ps[2].original)).toBe("See, despite the book sales and the fame, Bukowski was a loser.");
+    expect(firstSentence(ps[1].caption)).toBe("Bukowski wanted to be a writer.");
+    expect(firstSentence(ps[2].caption)).toBe("See, despite the book sales and the fame, Bukowski was a loser.");
   });
 });

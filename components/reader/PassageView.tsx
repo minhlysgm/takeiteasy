@@ -21,7 +21,7 @@ import { FooterButton } from "./FooterButton";
 import { Kbd } from "./Kbd";
 import type { LookupState } from "./LookupCard";
 import { MobileNoteList } from "./MobileNoteList";
-import { OriginalText } from "./OriginalText";
+import { CaptionText } from "./CaptionText";
 import { PassageJumpList } from "./PassageJumpList";
 import { PassageSketch } from "./PassageSketch";
 import { SelectionDock } from "./SelectionDock";
@@ -55,12 +55,12 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
   const jumpFocusTrigger = useRef(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const readerRef = useRef<HTMLDivElement>(null);
-  const originalColRef = useRef<HTMLDivElement>(null);
-  const originalTextRef = useRef<HTMLDivElement>(null);
+  const captionColRef = useRef<HTMLDivElement>(null);
+  const captionTextRef = useRef<HTMLDivElement>(null);
   const typing = useTypingText(passage.translation);
   const { toggle: toggleTheme } = useTheme();
   // Chỉ chữ nguyên văn mới tính: nhãn, ghi chú tay, hình minh hoạ cùng cột thì không.
-  const { selection, clear: clearSelection } = useTextSelection(originalTextRef, { resetKey: passage.id });
+  const { selection, clear: clearSelection } = useTextSelection(captionTextRef, { resetKey: passage.id });
   // Màn hẹp hoặc cảm ứng → thanh dính trên footer; còn lại → popup nổi cạnh vùng chọn.
   const docked = useMediaQuery(DOCK_QUERY);
   // Tấm/ngăn giải thích đang mở thì không hiện thanh/popup chọn chữ.
@@ -244,7 +244,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
           setExplainOn((v) => !v);
           break;
         case "s":
-          speak(passage.original);
+          speak(passage.caption);
           break;
         case "t":
           toggleTheme();
@@ -348,17 +348,17 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
 
       <div ref={readerRef} data-testid="reader" className="relative flex grow flex-col overflow-x-clip px-4 py-6 lg:grid lg:grid-cols-[200px_1fr_200px_1fr] lg:px-8 lg:py-12">
         <div aria-hidden="true" className="hidden lg:block" />
-        <div key={passage.id} ref={originalColRef} data-testid="original-col" className="animate-passage-in relative mx-auto w-full max-w-[40rem] pr-0 lg:mx-0 lg:max-w-none lg:pr-6">
+        <div key={passage.id} ref={captionColRef} data-testid="caption-col" className="animate-passage-in relative mx-auto w-full max-w-[40rem] pr-0 lg:mx-0 lg:max-w-none lg:pr-6">
           <div className="mb-6 text-[13px] text-muted">
             {"// nguyên văn"}
             {explainOn && <span className="ml-3 text-ink">{passage.chunks.length} chunks đáng học</span>}
           </div>
-          <OriginalText ref={originalTextRef} passage={passage} explainOn={explainOn} onChunkClick={openChunk} />
+          <CaptionText ref={captionTextRef} passage={passage} explainOn={explainOn} onChunkClick={openChunk} />
           {explainOn && <MobileNoteList chunks={passage.chunks} onChunkClick={openChunk} />}
           {showSel && !docked && (
             <SelectionPopup
               selection={selection}
-              containerRef={originalColRef}
+              containerRef={captionColRef}
               speechOk={speechOk}
               lookup={shownLookup}
               onLookUp={lookUp}
@@ -435,7 +435,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
               <Kbd className="max-lg:hidden">e</Kbd> giải thích
             </FooterButton>
             <FooterButton
-              onClick={() => speak(passage.original)}
+              onClick={() => speak(passage.caption)}
               disabled={!speechOk}
               title={speechOk ? undefined : "trình duyệt không hỗ trợ đọc"}
             >

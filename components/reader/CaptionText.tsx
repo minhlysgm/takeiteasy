@@ -10,12 +10,12 @@ interface Props {
   ref?: Ref<HTMLDivElement>;
 }
 
-export function OriginalText({ passage, explainOn, onChunkClick, ref }: Props) {
-  const ranges = findChunkRanges(passage.original, passage.chunks);
+export function CaptionText({ passage, explainOn, onChunkClick, ref }: Props) {
+  const ranges = findChunkRanges(passage.caption, passage.chunks);
   const parts: React.ReactNode[] = [];
   let cursor = 0;
   for (const r of ranges) {
-    if (r.start > cursor) parts.push(passage.original.slice(cursor, r.start));
+    if (r.start > cursor) parts.push(passage.caption.slice(cursor, r.start));
     const n = passage.chunks.indexOf(r.chunk) + 1;
     parts.push(
       <span
@@ -24,7 +24,7 @@ export function OriginalText({ passage, explainOn, onChunkClick, ref }: Props) {
         className={explainOn ? "cursor-pointer text-ink-strong" : undefined}
         onClick={explainOn ? () => onChunkClick(r.chunk.id) : undefined}
       >
-        {passage.original.slice(r.start, r.end)}
+        {passage.caption.slice(r.start, r.end)}
       </span>,
     );
     if (explainOn) {
@@ -44,6 +44,6 @@ export function OriginalText({ passage, explainOn, onChunkClick, ref }: Props) {
     }
     cursor = r.end;
   }
-  if (cursor < passage.original.length) parts.push(passage.original.slice(cursor));
-  return <div ref={ref} data-testid="original-text" className="whitespace-pre-line text-[17px] leading-[1.9] text-bright">{parts}</div>;
+  if (cursor < passage.caption.length) parts.push(passage.caption.slice(cursor));
+  return <div ref={ref} data-testid="caption-text" className="whitespace-pre-line text-[17px] leading-[1.9] text-bright">{parts}</div>;
 }

@@ -15,7 +15,7 @@ test.describe("kệ sách → đọc", () => {
     await expect(page.getByRole("heading", { level: 1 })).toContainText("The Subtle Art");
     await page.getByRole("link", { name: /Don't Try/ }).click();
     await expect(page).toHaveURL(new RegExp(`/read/${BOOK}/${CH}/1$`));
-    await expect(page.getByTestId("original-col")).toContainText("Charles Bukowski");
+    await expect(page.getByTestId("caption-col")).toContainText("Charles Bukowski");
   });
 
   test("số đoạn không hợp lệ được chuyển về đoạn 1", async ({ page }) => {
@@ -27,8 +27,8 @@ test.describe("kệ sách → đọc", () => {
 test.describe("bố cục desktop", () => {
   test("nguyên văn và bản dịch nằm cạnh nhau ở 1440px", async ({ page }) => {
     await page.goto(`/read/${BOOK}/${CH}/1`);
-    await expect(page.getByTestId("original-col")).toBeVisible();
-    const o = await page.getByTestId("original-col").boundingBox();
+    await expect(page.getByTestId("caption-col")).toBeVisible();
+    const o = await page.getByTestId("caption-col").boundingBox();
     const t = await page.getByTestId("translation-col").boundingBox();
     expect(o && t).toBeTruthy();
     expect(t!.x).toBeGreaterThanOrEqual(o!.x + o!.width);
@@ -47,7 +47,7 @@ test.describe("điều hướng đoạn", () => {
 
   test("kệ sách hiện nút đọc tiếp sau khi đã đọc", async ({ page }) => {
     await page.goto(`/read/${BOOK}/${CH}/2`);
-    await expect(page.getByTestId("original-col")).toBeVisible();
+    await expect(page.getByTestId("caption-col")).toBeVisible();
     await page.goto("/");
     await expect(page.getByRole("link", { name: /đọc tiếp/ })).toHaveAttribute("href", `/read/${BOOK}/${CH}/2`);
   });
@@ -78,7 +78,7 @@ test.describe("mẹo lần đầu", () => {
     await ok.click();
     await expect(ok).toBeHidden();
     await page.reload();
-    await expect(page.getByTestId("original-col")).toBeVisible();
+    await expect(page.getByTestId("caption-col")).toBeVisible();
     await expect(page.getByRole("button", { name: "đã hiểu" })).toBeHidden();
   });
 });

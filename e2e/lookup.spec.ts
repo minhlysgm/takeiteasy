@@ -11,7 +11,7 @@ const popup = (page: Page) => page.getByTestId("selection-popup");
 const card = (page: Page) => page.getByTestId("lookup-card");
 
 async function openCard(page: Page, text: string) {
-  await selectText(page, "original-text", text);
+  await selectText(page, "caption-text", text);
   await expect(popup(page)).toBeVisible();
   await popup(page).getByRole("button", { name: "tra nghĩa" }).click();
 }
@@ -68,7 +68,7 @@ test('Khi bôi đen "lout" rồi bấm "tra nghĩa" thì thẻ hiện khung xư�
   const body = calls[0] as LookupRequest;
   expect(body.text).toBe("lout");
   expect(body.passageIndex).toBe(1);
-  expect(getPassage("the-subtle-art", "ch01", 1)!.original.slice(body.start, body.end)).toBe("lout");
+  expect(getPassage("the-subtle-art", "ch01", 1)!.caption.slice(body.start, body.end)).toBe("lout");
 });
 
 for (const explain of [false, true]) {
@@ -83,7 +83,7 @@ for (const explain of [false, true]) {
       await expect.poll(() => calls.length).toBeGreaterThan(0);
       const body = calls.pop() as LookupRequest;
       expect(body.text).toBe(word);
-      expect(getPassage("the-subtle-art", "ch01", index)!.original.slice(body.start, body.end)).toBe(word);
+      expect(getPassage("the-subtle-art", "ch01", index)!.caption.slice(body.start, body.end)).toBe(word);
     }
   });
 }
@@ -111,10 +111,10 @@ test('Khi thẻ "lout" đang hiện mà bấm nút nghe trong thẻ thì đọc 
 test('Khi bôi đen đúng 10 từ thì có "tra nghĩa"; thêm từ thứ 11 thì nút biến mất, hiện "dài quá để tra"', async ({ page }) => {
   await mockLookup(page, { status: "ok", result: LOUT });
   await openReader(page);
-  await selectText(page, "original-text", "Charles Bukowski was an alcoholic, a womanizer, a chronic gambler,");
+  await selectText(page, "caption-text", "Charles Bukowski was an alcoholic, a womanizer, a chronic gambler,");
   await expect(popup(page)).toBeVisible();
   await expect(popup(page).getByRole("button", { name: "tra nghĩa" })).toBeVisible();
-  await selectText(page, "original-text", "Charles Bukowski was an alcoholic, a womanizer, a chronic gambler, a");
+  await selectText(page, "caption-text", "Charles Bukowski was an alcoholic, a womanizer, a chronic gambler, a");
   await expect(popup(page).getByRole("button", { name: "tra nghĩa" })).toHaveCount(0);
   await expect(popup(page)).toContainText("dài quá để tra · xem bản dịch bên cạnh");
 });
@@ -165,7 +165,7 @@ for (const word of ["lout", "perfect"]) {
   test(`Khi bấm "tra nghĩa" trên "${word}" thì nút "tra nghĩa" đứng yên (±2px) từ lúc bấm, lúc chờ tới lúc có kết quả`, async ({ page }) => {
     await mockLookupSlow(page, LOUT);
     await openReader(page);
-    await selectText(page, "original-text", word);
+    await selectText(page, "caption-text", word);
     const btn = popup(page).getByRole("button", { name: "tra nghĩa" });
     await expect(btn).toBeVisible();
     const b0 = (await btn.boundingBox())!;
@@ -193,7 +193,7 @@ for (const word of ["lout", "perfect"]) {
     await page.setViewportSize({ width: 1280, height: 640 });
     await mockLookup(page, { status: "ok", result: LONG });
     await openReader(page);
-    await selectText(page, "original-text", word);
+    await selectText(page, "caption-text", word);
     await popup(page).getByRole("button", { name: "tra nghĩa" }).click();
     await expect(card(page)).toContainText("đám cưới");
     const p = (await popup(page).boundingBox())!;
