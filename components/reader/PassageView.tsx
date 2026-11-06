@@ -309,6 +309,8 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
           setExplainOn((v) => !v);
           break;
         case "s":
+          // giữ phím (auto-repeat) không được bật/tắt liên tục
+          if (e.repeat) break;
           toggleReadAloud();
           break;
         case "t":

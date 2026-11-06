@@ -49,6 +49,18 @@ test.describe("đọc to dùng file audio", () => {
     expect(await pausedCount(page)).toBeGreaterThan(before);
   });
 
+  test("giữ phím s (auto-repeat) chỉ bật một lần, không bật/tắt liên tục", async ({ page }) => {
+    await page.goto(URL1);
+    await page.keyboard.press("s");
+    await expect(readAloud(page)).toContainText("■ dừng");
+    await page.evaluate(() => {
+      for (let i = 0; i < 5; i++) window.dispatchEvent(new KeyboardEvent("keydown", { key: "s", repeat: true, bubbles: true }));
+    });
+    await expect(readAloud(page)).toContainText("■ dừng");
+    expect(await played(page)).toEqual([captionSrc]);
+    expect(await pausedCount(page)).toBe(0); // không có lần dừng nào do lặp phím
+  });
+
   test("TC3 phát hết (ended) thì nút về 'đọc to'", async ({ page }) => {
     await page.goto(URL1);
     await readAloud(page).click();
