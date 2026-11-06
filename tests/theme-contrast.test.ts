@@ -62,3 +62,27 @@ describe("dòng đang đọc trong danh sách đoạn (nền --accent-soft)", ()
     });
   }
 });
+
+describe("màu nhấn (--accent) và màu mực (--ink) đọc được, tách bạch", () => {
+  for (const [name, t] of Object.entries(themes)) {
+    for (const bg of ["bg", "surface"]) {
+      it(`${name}: --accent trên --${bg} ≥ 4.5:1 (nhãn "// ý chính", "đang gõ…")`, () => {
+        expect(contrast(t.accent, t[bg])).toBeGreaterThanOrEqual(4.5);
+      });
+      it(`${name}: --ink trên --${bg} ≥ 4.5:1 (thanh mẹo, "· explain", ghi chú tay)`, () => {
+        expect(contrast(t.ink, t[bg])).toBeGreaterThanOrEqual(4.5);
+      });
+      it(`${name}: --ink-strong trên --${bg} ≥ 4.5:1`, () => {
+        expect(contrast(t["ink-strong"], t[bg])).toBeGreaterThanOrEqual(4.5);
+      });
+    }
+    it(`${name}: --accent trên --accent-soft ≥ 4.5:1 (dấu ✓ ở dòng đang đọc)`, () => {
+      expect(contrast(t.accent, t["accent-soft"])).toBeGreaterThanOrEqual(4.5);
+    });
+    it(`${name}: --accent khác --ink, --ink-strong khác --ink (tone nhấn trong hình khác tone mực)`, () => {
+      expect(t.accent.toLowerCase()).not.toBe(t.ink.toLowerCase());
+      expect(t["ink-strong"].toLowerCase()).not.toBe(t.ink.toLowerCase());
+      expect(t["accent-strong"].toLowerCase()).not.toBe(t["ink-strong"].toLowerCase());
+    });
+  }
+});
