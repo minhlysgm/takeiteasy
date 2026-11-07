@@ -6,8 +6,17 @@
 ## Đang làm
 
 **Task:** [M · UI] Giọng đọc AI (ElevenLabs) + chọn 1 trong 5 giọng (chi tiết ② ở mục backlog 0 bên dưới, giữ nguyên làm ghi chú).
-**Trạm:** ⑤ Build — ④ plan đã duyệt 2026-11-06. Spec `docs/superpowers/specs/2026-11-06-ai-voice-design.md`, mockup https://claude.ai/artifact/6CpSz4ffdVoBQtjYvfkYJE (phương án A). Plan `docs/superpowers/plans/2026-11-06-ai-voice.md` (5 task). Nhánh `task/ai-voice` (đã có, chứa spec+plan). Bước kế: build bằng `superpowers:subagent-driven-development`, bắt đầu Task 1; cập nhật STATE sau mỗi task. **Task 5 Step 6 phải DỪNG chờ Minh đăng ký Starter** rồi mới tạo audio thật.
-**Tiến độ ⑤:** Task 1–4 xong + Task 5 Step 1–5 xong (d7455df, đã review). **ĐANG DỪNG ở Task 5 Step 6: chờ Minh đăng ký ElevenLabs Starter.** Minh báo "đã đăng ký" → chạy `npm run audio` (140 file, 9.490 credit), kiểm `--dry-run` ra 0, nghe thử 2–3 file, `npm run verify`, commit audio, rồi review toàn nhánh. Sổ chi tiết + các mục nhỏ hoãn: `.superpowers/sdd/2026-11-06-ai-voice/progress.md` (gitignored). Tui tự quyết 2 việc chờ Minh xem: tắt nút "N" của Next lúc dev (đè nút loa mobile); desktop đóng ô chọn giọng bằng chuột thì không trả focus về nút (giống danh sách thẻ).
+**Trạm:** ⑥ Kiểm thử & soi — ⑤ xong 2026-11-07. Spec `docs/superpowers/specs/2026-11-06-ai-voice-design.md`, mockup https://claude.ai/artifact/6CpSz4ffdVoBQtjYvfkYJE (phương án A), plan `docs/superpowers/plans/2026-11-06-ai-voice.md`. Nhánh `task/ai-voice` (HEAD ce1d2f5 + commit state).
+**Kết quả ⑤:** 5 task xong, mỗi task có review riêng + review toàn nhánh (opus): **sẵn sàng merge, không có lỗi Critical/Important trong code**. Minh đăng ký Starter 2026-11-07 → tạo 140 file (9.490 credit, 4,7 MB). `npm run verify` xanh: vitest 511 / e2e 249.
+**Bước kế ⑥:** (1) `npm run verify` lại; (2) skill `ui-review` desktop/mobile × sáng/tối — **phải xem theme sáng** (agent chưa chụp được); (3) bỏ `/code-review` riêng vì đã có review toàn nhánh; (4) gom danh sách cho Minh chọn, gồm các mục dưới đây.
+**Danh sách cho ⑥ (từ review, mức thấp):**
+- UI: tiêu đề header desktop lệch trái ~30px vì nút "giọng: Will ▾" rộng hơn ô chấm bên trái; nút mẫu "■ dừng" dùng màu ink trong khi mockup dùng accent; Safari: bấm dòng radio có thể không focus nút.
+- Trợ năng: ký tự "■"/"▶" bị trình đọc màn hình đọc lên → bọc `aria-hidden`; nhóm radio chỉ nhận ↑/↓ (chưa có ←/→), nút "thử" nằm trong radiogroup.
+- Dự phòng giọng máy: utterance không được giữ tham chiếu (Chrome có thể bỏ `onend` → kẹt "■ dừng"); iOS có thể chặn đọc giọng máy ngoài cú chạm. Chỉ xảy ra khi file lỗi.
+- Script audio: **chặn file 0 byte** (thêm kiểm `byteLength` + test coverage kiểm size > 1 KB) — nên làm trước lần `npm run audio` kế; `.env.local` hỏng báo nhầm "thiếu key"; không thử lại khi 429.
+- Hiệu năng/quy mô: header cache `immutable` cho `/audio/*`; ~1,6 MB audio mỗi thẻ → tính Git LFS/kho ngoài trước ~50 thẻ.
+- Dọn code/test: VoicePicker chép logic focus-out/backdrop của PassageJumpList (tách hook); `setVoice` khi localStorage bị chặn thì mất lựa chọn (thêm biến nhớ tạm); vài test yếu (chunk-drawer assert rỗng, route 200 thừa trong `e2e/audio-helpers.ts`, `waitForTimeout(500)`, thiếu test: mẫu dừng khi đóng ô, chọn giọng lúc mẫu đang phát, ✕ desktop, Tab ra ngoài, không Web Speech); comment cũ ở SelectionActions.tsx:7; `<li>` ChunkDrawer lệch thụt; giữ phím `e`/`t` vẫn nháy (có từ trước).
+**Chờ Minh xác nhận ở ⑦ (Claude tự quyết):** (a) tắt nút "N" của Next lúc dev (`devIndicators: false`) vì đè nút loa mobile; (b) desktop đóng ô chọn giọng bằng chuột thì focus không về nút mở (lệch chữ spec TC12, làm giống danh sách thẻ để Enter vẫn là "thẻ tiếp"); (c) `--dry-run` chạy được khi không có key.
 
 ## Backlog
 
