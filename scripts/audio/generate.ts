@@ -16,6 +16,7 @@ import { TTS_FORMAT, TTS_MODEL, VOICES } from "../../lib/audio/voices";
 
 const PUBLIC_DIR = join(process.cwd(), "public");
 const AUDIO_DIR = join(PUBLIC_DIR, "audio");
+const MIN_BYTES = 1024; // khớp test tests/audio-coverage.test.ts
 
 function scanExisting(): Set<string> {
   const found = new Set<string>();
@@ -72,9 +73,15 @@ async function main() {
       console.error(`Lỗi HTTP ${res.status} ở "${item.label}" · ${item.voice}. Dừng (đã tạo ${done} file, giữ nguyên).`);
       process.exit(1);
     }
+    const audio = Buffer.from(await res.arrayBuffer());
+    // File rỗng / gần rỗng (lỗi mạng) mà ghi ra thì lần sau bị coi là "đã có" → chặn, không ghi.
+    if (audio.byteLength <= MIN_BYTES) {
+      console.error(`File trả về chỉ ${audio.byteLength} byte ở "${item.label}" · ${item.voice}. Dừng (đã tạo ${done} file, giữ nguyên).`);
+      process.exit(1);
+    }
     const file = join(PUBLIC_DIR, audioPath(item.voice, item.text));
     mkdirSync(dirname(file), { recursive: true });
-    writeFileSync(file, Buffer.from(await res.arrayBuffer()));
+    writeFileSync(file, audio);
     done++;
     console.log(`[${done}/${plan.todo.length}] ${item.label} · ${item.voice}`);
   }
