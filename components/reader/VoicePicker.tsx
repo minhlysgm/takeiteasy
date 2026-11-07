@@ -5,6 +5,7 @@ import { stopPlayback, togglePlay, usePlaying } from "@/lib/audio/player";
 import { setVoice, useVoice } from "@/lib/audio/voicePref";
 import { DEFAULT_VOICE, VOICES, voiceName, type VoiceId } from "@/lib/audio/voices";
 import { useSheetBehavior } from "@/lib/useSheetBehavior";
+import { Glyph } from "./Glyph";
 
 interface Props {
   /**
@@ -136,16 +137,21 @@ export function VoicePicker({ onClose, restoreFocus }: Props) {
                   <span className="min-w-0">
                     <span className="text-[14px] text-bright">{v.name}</span>
                     {v.id === DEFAULT_VOICE && <span className="ml-1.5 text-[11px] text-accent-strong"> mặc định</span>}
-                    <span className="block text-xs text-muted"> {v.desc}</span>
+                    {/* dòng đang chọn: muted trên accent-soft chỉ ~4.1:1 → dùng text (như danh sách thẻ) */}
+                    <span className={`block text-xs ${selected ? "text-text" : "text-muted"}`}> {v.desc}</span>
                   </span>
                 </button>
                 <button
                   type="button"
                   aria-label={`nghe thử ${v.name}`}
                   onClick={() => togglePlay(sampleKey, { text: v.sample, src: audioPath(v.id, v.sample) })}
-                  className={`mr-2 flex h-11 min-w-11 shrink-0 items-center justify-center whitespace-nowrap px-2.5 text-[12.5px] transition-colors motion-reduce:transition-none hover:text-bright focus-visible:outline-offset-[-4px] ${sampling ? "text-ink" : "text-accent-strong"}`}
+                  // bề rộng đủ cho "■ dừng" để chữ không nhảy khi bật/tắt
+                  className="mr-2 flex h-11 min-w-[calc(6ch+1.25rem)] shrink-0 items-center justify-center whitespace-nowrap px-2.5 text-[12.5px] text-accent-strong transition-colors motion-reduce:transition-none hover:text-bright focus-visible:outline-offset-[-4px]"
                 >
-                  {sampling ? "■ dừng" : "▶ thử"}
+                  {/* bọc span: trong flex, khoảng trắng đứng đầu nhãn bị nuốt */}
+                  <span>
+                    <Glyph>{sampling ? "■" : "▶"}</Glyph> {sampling ? "dừng" : "thử"}
+                  </span>
                 </button>
               </div>
             );

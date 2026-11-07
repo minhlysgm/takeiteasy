@@ -14,7 +14,7 @@ test.beforeEach(async ({ page }) => {
   await markCardsSeen(page);
 });
 
-const readAloud = (page: Page) => page.getByRole("button", { name: /đọc to|■ dừng/ });
+const readAloud = (page: Page) => page.getByRole("button", { name: /^(s )?(đọc to|dừng)$/ });
 
 async function openFirstChunk(page: Page) {
   await page.getByRole("button", { name: /giải thích/ }).click();

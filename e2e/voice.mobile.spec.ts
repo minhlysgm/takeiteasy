@@ -39,7 +39,7 @@ test("TC8 mobile: nút loa (≥ 44×44) mở tấm 5 giọng; ✕ đóng → foc
 test("320px: đang đọc to ('■ dừng') footer vẫn vừa màn, không cuộn ngang", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 640 });
   await page.goto(URL1);
-  const read = page.getByRole("button", { name: /đọc to|■ dừng/ });
+  const read = page.getByRole("button", { name: /^(s )?(đọc to|dừng)$/ });
   await read.tap();
   await expect(read).toContainText("■ dừng");
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);

@@ -120,7 +120,7 @@ export function ChunkDrawer({ chunks, index, closing = false, onNavigate, onClos
                       type="button"
                       onClick={() => togglePlay(exKey, { text: ex.en, src: audioPath(voice, ex.en) })}
                       aria-label={`${on ? "dừng" : "nghe"}: ${ex.en}`}
-                      className="-mb-4 -mt-3 -mx-4 shrink-0 p-4 text-accent max-lg:focus-visible:outline-offset-[-12px] lg:m-0 lg:mt-1 lg:p-0"
+                      className="-mb-4 -mt-3 -mx-4 shrink-0 p-4 text-accent max-lg:focus-visible:outline-offset-[-12px] lg:-m-1.5 lg:-mt-0.5 lg:p-1.5 lg:focus-visible:outline-offset-[-4px]"
                     >
                       <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true">
                         {on ? (

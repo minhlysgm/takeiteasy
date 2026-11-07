@@ -33,6 +33,7 @@ import { PassageSketch, type SketchDone, type SketchHandle } from "./PassageSket
 import { SelectionDock } from "./SelectionDock";
 import { SelectionPopup } from "./SelectionPopup";
 import { VoicePicker } from "./VoicePicker";
+import { Glyph } from "./Glyph";
 
 /** Nút mở đang hiện (mobile hoặc desktop) — để trả focus về đúng nút. */
 const visibleOf = (...els: (HTMLElement | null)[]) => els.find((b) => b && b.getClientRects().length > 0) ?? null;
@@ -425,7 +426,8 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
           </svg>
           <span aria-hidden="true" className="text-[9px]">▾</span>
         </button>
-        <div className="hidden gap-2 lg:flex" aria-hidden="true">
+        {/* Desktop: 2 bên header cùng bề rộng (w-40) để tiêu đề nằm đúng giữa dù tên giọng dài ngắn */}
+        <div className="hidden gap-2 lg:flex lg:w-40 lg:shrink-0" aria-hidden="true">
           <span className="block h-3 w-3 rounded-full bg-danger opacity-70" />
           <span className="block h-3 w-3 rounded-full bg-ink opacity-70" />
           <span className="block h-3 w-3 rounded-full bg-accent opacity-70" />
@@ -454,6 +456,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
           </span>
         </div>
         {/* Desktop: chọn giọng ở góc phải header (phím v) */}
+        <div className="hidden w-40 shrink-0 justify-end lg:flex">
         <button
           ref={voiceTriggerRef}
           type="button"
@@ -461,10 +464,11 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
           aria-haspopup="dialog"
           aria-expanded={voiceOpen}
           onClick={openVoice}
-          className={`hidden shrink-0 whitespace-nowrap border px-2.5 py-1 text-[13px] transition-colors motion-reduce:transition-none lg:block ${voiceOpen ? "border-ink text-ink" : "border-transparent text-muted hover:border-line hover:text-bright"}`}
+          className={`shrink-0 whitespace-nowrap border px-2.5 py-1 text-[13px] transition-colors motion-reduce:transition-none ${voiceOpen ? "border-ink text-ink" : "border-transparent text-muted hover:border-line hover:text-bright"}`}
         >
           giọng: <b className={`font-normal ${voiceOpen ? "text-ink" : "text-bright"}`}>{voiceName(voice)}</b> <span aria-hidden="true">▾</span>
         </button>
+        </div>
         {/* Mobile: theme ở header cho footer đủ chỗ ở 320px; desktop vẫn ở footer (phím t) */}
         <button
           type="button"
@@ -608,7 +612,14 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
                 toggleReadAloud();
               }}
             >
-              <Kbd className="max-lg:hidden">s</Kbd> {playing === capKey ? "■ dừng" : "đọc to"}
+              <Kbd className="max-lg:hidden">s</Kbd>{" "}
+              {playing === capKey ? (
+                <>
+                  <Glyph>■</Glyph> dừng
+                </>
+              ) : (
+                "đọc to"
+              )}
             </FooterButton>
             <FooterButton desktopOnly onClick={toggleTheme}>
               <Kbd>t</Kbd> theme
