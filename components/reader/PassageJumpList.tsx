@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import type { PassageOutline } from "@/lib/content";
 import { useSheetBehavior } from "@/lib/useSheetBehavior";
+import { useCloseOnFocusOut } from "@/lib/useCloseOnFocusOut";
 import { Kbd } from "./Kbd";
 
 interface Props {
@@ -40,24 +41,8 @@ export function PassageJumpList({ title, outline, current, read, onPick, onClose
   const readIds = new Set(read);
   const readSet = new Set(outline.filter((o) => readIds.has(o.index)).map((o) => o.index));
 
-  // Popover desktop không khoá focus: focus rơi vào chỗ khác ngoài danh sách (Tab ra, kể cả vòng qua đầu trang)
-  // thì đóng ("focus-out") và để focus yên ở chỗ vừa tới. Bấm chuột ra ngoài không đổi focus → backdrop lo.
-  // Kiểm lại SAU khi focus ổn định: StrictMode (dev) chạy cleanup của useSheetBehavior (trả focus) rồi focus lại khung.
-  const onCloseRef = useRef(onClose);
-  useEffect(() => {
-    onCloseRef.current = onClose;
-  });
-  useEffect(() => {
-    const onFocusIn = (e: FocusEvent) => {
-      if (!(e.target instanceof Node) || ref.current?.contains(e.target)) return;
-      queueMicrotask(() => {
-        const at = document.activeElement;
-        if (ref.current?.isConnected && at && at !== document.body && !ref.current.contains(at)) onCloseRef.current("focus-out");
-      });
-    };
-    document.addEventListener("focusin", onFocusIn);
-    return () => document.removeEventListener("focusin", onFocusIn);
-  }, []);
+  // Desktop: focus rơi ra ngoài ô (Tab ra) thì đóng, để focus yên chỗ vừa tới
+  useCloseOnFocusOut(ref, () => onClose("focus-out"));
 
   // Mount ngoài màn hình rồi flip ở frame kế để transition chạy (giống ChunkDrawer)
   const [entered, setEntered] = useState(false);
