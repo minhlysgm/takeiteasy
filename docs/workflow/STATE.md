@@ -5,7 +5,10 @@
 
 ## Đang làm
 
-_(trống — đề xuất kế: "[S · UI] Header mobile không dính", chờ Minh đồng ý)_
+**Task:** [S · UI] Header mobile không dính → phải cuộn lên mới mở được danh sách thẻ / chọn giọng / theme.
+**Cỡ:** S (chỉ đổi header mobile trong `components/reader/PassageView.tsx` + test e2e mobile). Nhánh `task/sticky-mobile-header`.
+**Trạm:** ② Làm rõ — mockup https://claude.ai/artifact/MQCiiRy7KPJkK38nsARH9i (file `docs/superpowers/specs/2026-11-07-sticky-mobile-header-mockup.html`): A dính luôn / B ẩn khi cuộn xuống, hiện khi cuộn lên (khuyên). Bỏ phương án nút "≡" ở footer (320px hết chỗ, nút giọng vẫn ở header). Chờ Minh chọn.
+**Claude tự chọn:** chỉ mobile (< lg, desktop đã dính); ở gần đầu trang (≤ 44px) luôn hiện; đổi thẻ (cuộn về đầu) thì hiện; Tab vào nút trong header thì hiện; đang mở tấm (drawer/danh sách/chọn giọng) thì giữ nguyên trạng thái; có `motion-reduce`.
 
 ## Backlog
 
