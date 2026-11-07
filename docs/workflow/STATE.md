@@ -7,8 +7,9 @@
 
 **Task:** [S · UI] Header mobile không dính → phải cuộn lên mới mở được danh sách thẻ / chọn giọng / theme.
 **Cỡ:** S (chỉ đổi header mobile trong `components/reader/PassageView.tsx` + test e2e mobile). Nhánh `task/sticky-mobile-header`.
-**Trạm:** ② Làm rõ — mockup https://claude.ai/artifact/MQCiiRy7KPJkK38nsARH9i (file `docs/superpowers/specs/2026-11-07-sticky-mobile-header-mockup.html`): A dính luôn / B ẩn khi cuộn xuống, hiện khi cuộn lên (khuyên). Bỏ phương án nút "≡" ở footer (320px hết chỗ, nút giọng vẫn ở header). Chờ Minh chọn.
-**Claude tự chọn:** chỉ mobile (< lg, desktop đã dính); ở gần đầu trang (≤ 44px) luôn hiện; đổi thẻ (cuộn về đầu) thì hiện; Tab vào nút trong header thì hiện; đang mở tấm (drawer/danh sách/chọn giọng) thì giữ nguyên trạng thái; có `motion-reduce`.
+**Trạm:** ⑦ Nghiệm thu — Minh chọn **B (ẩn khi cuộn xuống, hiện khi cuộn lên)**, mockup https://claude.ai/artifact/MQCiiRy7KPJkK38nsARH9i. Commit c4dfd33: `lib/useHideOnScroll.ts` (hàm thuần `stepHideOnScroll`: ≤ 44px luôn hiện, ngưỡng rung 8px) gắn vào `<header>` của PassageView (sticky mọi cỡ, `max-lg:-translate-y-full` 200ms ease-out, motion-reduce). Test `tests/hide-on-scroll.test.ts`, `e2e/header-autohide(.mobile).spec.ts`. `npm run verify` xanh: vitest 517 / e2e 261 (1 lần trình duyệt test tự đóng, chạy lại 25/25 xanh).
+**Claude tự chọn (chờ Minh xác nhận ở ⑦):** chỉ mobile (desktop vẫn dính như cũ); đổi thẻ → về đầu → header hiện; Tab/focus vào header đang ẩn → hiện và **giữ nguyên chỗ đang đọc** (Chrome tự cuộn tới nút, hook trả trang về chỗ cũ); mở tấm không đổi trạng thái header. Chưa thử máy thật: iOS nảy (bounce) ở cuối trang có thể làm header hiện thoáng qua.
+**Bước kế:** Minh "ok" → merge `task/sticky-mobile-header` vào main (chưa push), chuyển "Đã xong", gợi ý task kế.
 
 ## Backlog
 
@@ -19,7 +20,6 @@
 
 0. **[S] Tra nghĩa: vụn vặt hoãn từ ⑥ task B** — giới hạn lượt dựa IP `x-forwarded-for` (giả được nếu không chạy sau Vercel; đổi sang `x-vercel-forwarded-for`/`x-real-ip`); `sentenceAt` dùng lại `ABBREV` của `lib/content` (Mr./Dr., `."` khi lùi) — nội dung hiện chưa gặp.
 0. **[S] Tra nghĩa: `chunkAt` nhận cả trường hợp chữ khớp `chunk.match` ở chỗ khác trong đoạn** (spec task B ghi "hoặc chữ khớp").
-0. **[S · UI] Header mobile không dính → phải cuộn lên mới mở được danh sách đoạn** (từ ⑥ task A): cho header mobile dính, hoặc thêm nút "≡ 2/3" ở footer — cần mockup cho Minh chọn trước.
 0. **[S · UI] Vụn vặt danh sách đoạn** (từ ⑥ task A, mức thấp): tấm mobile đóng không trượt xuống (ChunkDrawer có `closing`); ô nổi desktop hiện bụp (fade 150ms); hover dòng gần như không thấy; gợi ý phím chân ô xuống 2 dòng; "Chương" hoa vs "chương" thường; ô nổi neo mép phải chứ không trên bộ đếm; 320px + explain chỉ dư 2px (mất ▾); readAll lặp logic `lib/progress.ts`.
 
 0. **[S] Vụn vặt từ ⑥ task "vẽ trước"** (không chặn, mức thấp): giữ Enter (auto-repeat) có thể nhảy qua thẻ; test chưa kiểm nét gạch chân rough-notation; test chữ-cách-nét liệt kê cứng thẻ 1–3 (thẻ mới phải tự thêm); flake `e2e/lookup.spec.ts:194` và `e2e/sketch.spec.ts:455/471` khi máy bận; vài tiêu đề test e2e còn chữ "nguyên văn"; thanh mẹo + footer dính chiếm 17% màn mobile (26% màn ngang) — cân nhắc ẩn mẹo lúc đang vẽ; ở 1440 "is a mess" xuống dòng, ghi chú ngang dòng đầu; "happy" (thẻ 3) cách nét 6.4 sát ngưỡng.
