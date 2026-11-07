@@ -1,6 +1,6 @@
 "use client";
 import { canLookUp } from "@/lib/selection";
-import { speak } from "@/lib/speech";
+import { play } from "@/lib/audio/player";
 
 interface Props {
   text: string;
@@ -53,7 +53,7 @@ export function SelectionActions({ text, speechOk, size, onLookUp, lookupOpen, c
     <>
       <button
         type="button"
-        onClick={() => speak(text)}
+        onClick={() => play(`tts:${text}`, { text })}
         disabled={!speechOk}
         title={speechOk ? undefined : "trình duyệt không hỗ trợ đọc"}
         className={nghe}

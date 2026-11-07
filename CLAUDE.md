@@ -25,6 +25,7 @@ gạch chân, ghi chú tay và drawer giải thích. Next.js 16 (App Router) · 
 | `npm run verify` | type-check + lint + unit + e2e — **bắt buộc xanh trước khi báo "xong"** |
 | `npm run ui:snap` | Chụp màn hình desktop/mobile × sáng/tối vào `.ui-snaps/` |
 | `npm run content -- status` | Sổ thẻ: đã biên tập tới đâu, thẻ nào dở (thêm `check [id]`, `preview <id>`, `ledger`) |
+| `npm run audio` | Tạo file giọng ElevenLabs còn thiếu vào `public/audio/` (`--dry-run` xem trước số ký tự, `--prune` xoá file thừa) |
 
 ## Cấu trúc
 

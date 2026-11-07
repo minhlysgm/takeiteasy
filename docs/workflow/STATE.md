@@ -5,10 +5,15 @@
 
 ## Đang làm
 
-_(trống — chờ Minh chọn task kế. Gợi ý: backlog mục đầu "Giọng đọc AI (ElevenLabs)", đang dừng ở ②, bước kế ③ spec + mockup.)_
+**Task:** [M · UI] Giọng đọc AI (ElevenLabs) + chọn 1 trong 5 giọng (chi tiết ② ở mục backlog 0 bên dưới, giữ nguyên làm ghi chú).
+**Trạm:** ⑦ Nghiệm thu — ⑥ xong 2026-11-07. Spec `docs/superpowers/specs/2026-11-06-ai-voice-design.md`, mockup https://claude.ai/artifact/6CpSz4ffdVoBQtjYvfkYJE (phương án A), plan `docs/superpowers/plans/2026-11-06-ai-voice.md`. Nhánh `task/ai-voice`.
+**Kết quả ⑥:** Minh duyệt sửa 9 mục (commit d5de636, e31b2af): mô tả giọng đang chọn dùng `text-text` (đủ tương phản); nút "thử" luôn `accent-strong`; nút ▶ ví dụ desktop vùng bấm 24px (viền focus thu vào trong); tiêu đề header desktop nằm giữa (2 bên `w-40`); `Glyph` (■/▶ `aria-hidden`, rộng 1ch) → nút "đọc to"↔"■ dừng" và "▶ thử"↔"■ dừng" không đổi bề rộng; `speak()` giữ tham chiếu utterance; `npm run audio` chặn file ≤ 1 KB + test coverage kiểm size; header `Cache-Control: immutable` cho `/audio/*`. Test mới `e2e/voice-polish.spec.ts`. `npm run verify` xanh: vitest 512 / e2e 255. Mục còn lại → backlog "Giọng đọc: vụn vặt từ ⑥".
+**Bước kế ⑦:** chờ Minh "ok" → merge `task/ai-voice` vào `main` (hỏi trước khi push), chuyển task sang "Đã xong", gợi ý task kế.
+**Chờ Minh xác nhận ở ⑦ (Claude tự quyết):** (a) tắt nút "N" của Next lúc dev (`devIndicators: false`) vì đè nút loa mobile; (b) desktop đóng ô chọn giọng bằng chuột thì focus không về nút mở (lệch chữ spec TC12, làm giống danh sách thẻ để Enter vẫn là "thẻ tiếp"); (c) `--dry-run` chạy được khi không có key.
 
 ## Backlog
 
+0. **[S · UI] Giọng đọc: vụn vặt từ ⑥** (mức thấp): viền focus dòng giọng chỉ bao nút chọn, chẻ dòng → viền cả dòng; nhóm radio thêm ←/→, nút "thử" nằm trong radiogroup; `setVoice` khi localStorage bị chặn thì mất lựa chọn (biến nhớ tạm); Safari bấm dòng radio có thể không focus nút; iOS có thể chặn giọng máy ngoài cú chạm; VoicePicker chép logic focus-out/backdrop của PassageJumpList (tách hook); test yếu (chunk-drawer assert rỗng, route 200 thừa trong `e2e/audio-helpers.ts`, `waitForTimeout(500)`, thiếu test: mẫu dừng khi đóng ô, chọn giọng lúc mẫu đang phát, ✕ desktop, Tab ra ngoài, không Web Speech); comment cũ SelectionActions.tsx:7; `<li>` ChunkDrawer lệch thụt; script audio: `.env.local` hỏng báo nhầm "thiếu key", không thử lại khi 429; ~1,6 MB audio/thẻ → tính Git LFS/kho ngoài trước ~50 thẻ.
 0. **[M · UI] Giọng đọc AI (ElevenLabs) + chọn 1 trong 5 giọng** — LÀM NGAY SAU task "vẽ trước". Mô tả gốc: Giọng đọc AI cho "đọc to" + câu ví dụ — tạo sẵn file audio bằng dịch vụ giọng AI (neural TTS), thay giọng trình duyệt. Chữ bôi đen + từ tra tạm giữ giọng trình duyệt.
 **Cỡ:** M (script tạo audio + chỗ lưu file + đổi cách phát ở 2 chỗ + có thể đổi UI nút)
 **Dừng ở ②:** Minh đã nghe 10 mẫu → **chốt ElevenLabs (model eleven_multilingual_v2), mặc định Will**, không dùng OpenAI. Bước kế: ③ spec + mockup (nút "■ dừng" + chỗ chọn giọng; gợi ý: mobile đặt ở ô trống trái header, desktop nút footer). Audio sẽ đọc **đoạn mô tả mới** của concept "vẽ trước" (đoạn ngắn hơn → rẻ hơn ước tính cũ).

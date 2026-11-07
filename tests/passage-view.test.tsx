@@ -7,13 +7,14 @@ import { books, firstSentence, getPassages } from "@/lib/content";
 import { getProgress } from "@/lib/progress";
 import { getReadPassages } from "@/lib/readPassages";
 import { sketchSeenKey } from "@/lib/sketchSeen";
-import { speak } from "@/lib/speech";
+import { audioPath } from "@/lib/audio/audioPath";
+import { togglePlay } from "@/lib/audio/player";
 
 const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
-vi.mock("@/lib/speech", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/lib/speech")>()),
-  speak: vi.fn(),
+vi.mock("@/lib/audio/player", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/audio/player")>()),
+  togglePlay: vi.fn(),
 }));
 // nút "giải thích" mount AnnotationLayer → cần mock rough-notation (jsdom không vẽ SVG được)
 vi.mock("rough-notation", () => ({
@@ -228,7 +229,7 @@ describe("PassageView — đọc to / Space lúc hình đang vẽ", () => {
   beforeEach(() => {
     localStorage.clear();
     push.mockClear();
-    vi.mocked(speak).mockClear();
+    vi.mocked(togglePlay).mockClear();
     vi.stubGlobal("speechSynthesis", { getVoices: () => [], cancel: () => {}, speak: () => {} });
   });
   afterEach(() => vi.unstubAllGlobals());
@@ -240,7 +241,10 @@ describe("PassageView — đọc to / Space lúc hình đang vẽ", () => {
     expect(screen.queryByTestId("caption-waiting")).toBeNull();
     expect(screen.getByTestId("caption-text").closest("[hidden]")).toBeNull();
     expect(screen.queryByText("đang gõ…")).toBeNull();
-    expect(speak).toHaveBeenCalledWith(passages[0].caption);
+    expect(togglePlay).toHaveBeenCalledWith(`caption:${passages[0].id}`, {
+      text: passages[0].caption,
+      src: audioPath("will", passages[0].caption),
+    });
   });
 
   it("Space trên nút đang focus lúc đang vẽ → không bị preventDefault (nút tự bấm); Space ở ngoài nút thì có", () => {
@@ -476,13 +480,13 @@ describe("PassageView — danh sách đoạn (g / Home / End)", () => {
   });
 
   it("danh sách mở: ArrowRight/Enter/e/s không chuyển đoạn, không bật giải thích, không đọc to", () => {
-    vi.mocked(speak).mockClear();
+    vi.mocked(togglePlay).mockClear();
     render(view2());
     skipTyping();
     fireEvent.keyDown(window, { key: "g" });
     for (const key of ["ArrowRight", "Enter", "e", "s", "ArrowLeft"]) fireEvent.keyDown(window, { key });
     expect(push).not.toHaveBeenCalled();
-    expect(speak).not.toHaveBeenCalled();
+    expect(togglePlay).not.toHaveBeenCalled();
     expect(screen.queryByText(/chunks đáng học/)).toBeNull();
     expect(list()).toBeTruthy();
   });
