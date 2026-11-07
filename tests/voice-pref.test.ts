@@ -3,7 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { VOICE_KEY, getVoice, setVoice, useVoice } from "@/lib/audio/voicePref";
 
 describe("voicePref", () => {
-  beforeEach(() => localStorage.clear());
+  beforeEach(() => {
+    setVoice("will"); // xoá giọng nhớ tạm của lượt test trước (ghi được thì không cần nhớ tạm)
+    localStorage.clear();
+  });
   afterEach(() => vi.restoreAllMocks());
 
   it("chưa lưu thì là will", () => {
@@ -30,6 +33,24 @@ describe("voicePref", () => {
       throw new Error("quota");
     });
     expect(() => setVoice("adam")).not.toThrow();
+  });
+  it("localStorage bị chặn hẳn (đọc lẫn ghi đều lỗi) → vẫn nhớ giọng vừa chọn trong phiên", () => {
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    setVoice("sarah");
+    expect(getVoice()).toBe("sarah");
+  });
+  it("ghi lỗi (đầy bộ nhớ) mà còn giá trị cũ → dùng giọng vừa chọn, không quay về giá trị cũ", () => {
+    localStorage.setItem("tie:voice", "brian");
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("quota");
+    });
+    setVoice("jessica");
+    expect(getVoice()).toBe("jessica");
   });
   it("useVoice đổi theo sau setVoice", () => {
     const { result } = renderHook(() => useVoice());
