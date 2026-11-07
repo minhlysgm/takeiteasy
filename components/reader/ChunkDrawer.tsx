@@ -114,28 +114,28 @@ export function ChunkDrawer({ chunks, index, closing = false, onNavigate, onClos
                 const exKey = `ex:${ex.en}`;
                 const on = playing === exKey;
                 return (
-                <li key={ex.en}>
-                  <div className="flex items-start gap-2">
-                    <button
-                      type="button"
-                      onClick={() => togglePlay(exKey, { text: ex.en, src: audioPath(voice, ex.en) })}
-                      aria-label={`${on ? "dừng" : "nghe"}: ${ex.en}`}
-                      className="-mb-4 -mt-3 -mx-4 shrink-0 p-4 text-accent max-lg:focus-visible:outline-offset-[-12px] lg:-m-1.5 lg:-mt-0.5 lg:p-1.5 lg:focus-visible:outline-offset-[-4px]"
-                    >
-                      <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true">
-                        {on ? (
-                          <rect x="3" y="3" width="10" height="10" fill="currentColor" />
-                        ) : (
-                          <path d="M4 2.5v11l9-5.5z" fill="currentColor" />
-                        )}
-                      </svg>
-                    </button>
-                    <div>
-                      <div className="text-[14.5px] text-bright">{ex.en}</div>
-                      <div className="text-[13px] text-muted">{ex.vi}</div>
+                  <li key={ex.en}>
+                    <div className="flex items-start gap-2">
+                      <button
+                        type="button"
+                        onClick={() => togglePlay(exKey, { text: ex.en, src: audioPath(voice, ex.en) })}
+                        aria-label={`${on ? "dừng" : "nghe"}: ${ex.en}`}
+                        className="-mb-4 -mt-3 -mx-4 shrink-0 p-4 text-accent max-lg:focus-visible:outline-offset-[-12px] lg:-m-1.5 lg:-mt-0.5 lg:p-1.5 lg:focus-visible:outline-offset-[-4px]"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true">
+                          {on ? (
+                            <rect x="3" y="3" width="10" height="10" fill="currentColor" />
+                          ) : (
+                            <path d="M4 2.5v11l9-5.5z" fill="currentColor" />
+                          )}
+                        </svg>
+                      </button>
+                      <div>
+                        <div className="text-[14.5px] text-bright">{ex.en}</div>
+                        <div className="text-[13px] text-muted">{ex.vi}</div>
+                      </div>
                     </div>
-                  </div>
-                </li>
+                  </li>
                 );
               })}
             </ul>

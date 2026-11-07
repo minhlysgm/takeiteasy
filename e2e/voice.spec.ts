@@ -126,6 +126,14 @@ test.describe("file lỗi → giọng trình duyệt", () => {
   });
 });
 
+test("không có Web Speech + file 404 → nút không kẹt ở '■ dừng'", async ({ page }) => {
+  await stubAudio(page, { status: 404, speech: false });
+  await page.goto(URL1);
+  expect(await page.evaluate(() => window.speechSynthesis)).toBeUndefined();
+  await readAloud(page).click();
+  await expect(readAloud(page)).toHaveAccessibleName(/^(s )?đọc to$/);
+});
+
 test.describe("chọn giọng (desktop)", () => {
   test.beforeEach(async ({ page }) => {
     await stubAudio(page);
@@ -234,6 +242,70 @@ test.describe("chọn giọng (desktop)", () => {
     await expect(picker(page).locator('[role="radio"][tabindex="0"]')).toHaveCount(1);
   });
 
+  test("←/→ cũng đổi giọng như ↓/↑", async ({ page }) => {
+    await page.goto(URL1);
+    await page.keyboard.press("v");
+    await expect(radio(page, "Will")).toBeFocused();
+    await page.keyboard.press("ArrowRight");
+    await expect(radio(page, "Brian")).toBeFocused();
+    await expect(radio(page, "Brian")).toHaveAttribute("aria-checked", "true");
+    await page.keyboard.press("ArrowLeft");
+    await expect(radio(page, "Will")).toHaveAttribute("aria-checked", "true");
+  });
+
+  test("dòng giọng có focus bàn phím thì viền bao cả dòng (gồm nút thử)", async ({ page }) => {
+    await page.goto(URL1);
+    await page.keyboard.press("v");
+    const will = radio(page, "Will");
+    await expect(will).toBeFocused();
+    const row = will.locator("xpath=..");
+    expect(await row.evaluate((el) => getComputedStyle(el).outlineStyle)).toBe("solid");
+    // nút chọn không vẽ viền riêng (Tailwind outline-none = viền trong suốt)
+    expect(await will.evaluate((el) => getComputedStyle(el).outlineColor)).toBe("rgba(0, 0, 0, 0)");
+    // dùng chuột (mở ô + bấm dòng bằng chuột) thì không có viền
+    await page.reload(); // trang mới: chưa có thao tác bàn phím nào
+    await trigger(page).click();
+    await radio(page, "Adam").click();
+    await expect(radio(page, "Adam")).toBeFocused(); // bấm là focus nút (Safari không tự làm)
+    expect(await radio(page, "Adam").locator("xpath=..").evaluate((el) => getComputedStyle(el).outlineStyle)).toBe("none");
+  });
+
+  test("đóng ô lúc câu nghe thử đang phát → câu thử dừng", async ({ page }) => {
+    await page.goto(URL1);
+    await trigger(page).click();
+    await picker(page).getByRole("button", { name: "nghe thử Brian" }).click();
+    const before = await pausedCount(page);
+    await page.keyboard.press("Escape");
+    await expect(picker(page)).toBeHidden();
+    expect(await pausedCount(page)).toBeGreaterThan(before);
+  });
+
+  test("chọn giọng khác lúc câu nghe thử đang phát → câu thử dừng", async ({ page }) => {
+    await page.goto(URL1);
+    await trigger(page).click();
+    const tryBrian = picker(page).getByRole("button", { name: "nghe thử Brian" });
+    await tryBrian.click();
+    await expect(tryBrian).toContainText("dừng");
+    await radio(page, "Adam").click();
+    await expect(tryBrian).toContainText("thử");
+  });
+
+  test("nút ✕ đóng ô", async ({ page }) => {
+    await page.goto(URL1);
+    await trigger(page).click();
+    await picker(page).getByRole("button", { name: "đóng" }).click();
+    await expect(picker(page)).toBeHidden();
+  });
+
+  test("Shift+Tab ra khỏi ô (desktop) → ô đóng, focus ở chỗ vừa tới", async ({ page }) => {
+    await page.goto(URL1);
+    await page.keyboard.press("v");
+    await picker(page).getByRole("button", { name: "đóng" }).focus();
+    await page.keyboard.press("Shift+Tab");
+    await expect(picker(page)).toBeHidden();
+    expect(await page.evaluate(() => document.activeElement !== document.body)).toBe(true);
+  });
+
   test("đã lưu Sarah: tải trang không có lỗi hydration, nút hiện Sarah", async ({ page }) => {
     const errors: string[] = [];
     page.on("console", (m) => {
@@ -242,8 +314,7 @@ test.describe("chọn giọng (desktop)", () => {
     page.on("pageerror", (e) => errors.push(e.message));
     await page.addInitScript(() => localStorage.setItem("tie:voice", "sarah"));
     await page.goto(URL1);
-    await expect(trigger(page)).toContainText("giọng: Sarah");
-    await page.waitForTimeout(500);
+    await expect(trigger(page)).toContainText("giọng: Sarah"); // chỉ hiện Sarah sau khi hydrate xong
     expect(errors.filter((e) => /hydrat/i.test(e))).toEqual([]);
   });
 });

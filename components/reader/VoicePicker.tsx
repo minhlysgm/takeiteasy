@@ -5,6 +5,7 @@ import { stopPlayback, togglePlay, usePlaying } from "@/lib/audio/player";
 import { setVoice, useVoice } from "@/lib/audio/voicePref";
 import { DEFAULT_VOICE, VOICES, voiceName, type VoiceId } from "@/lib/audio/voices";
 import { useSheetBehavior } from "@/lib/useSheetBehavior";
+import { useCloseOnFocusOut } from "@/lib/useCloseOnFocusOut";
 import { Glyph } from "./Glyph";
 
 interface Props {
@@ -40,22 +41,8 @@ export function VoicePicker({ onClose, restoreFocus }: Props) {
   // Đóng ô chọn thì dừng câu nghe thử đang phát (như đóng drawer dừng câu ví dụ).
   useEffect(() => () => stopPlayback("sample:"), []);
 
-  // Desktop không khoá focus: focus rơi ra ngoài ô (Tab ra) thì đóng, để focus yên chỗ vừa tới (như danh sách thẻ).
-  const onCloseRef = useRef(onClose);
-  useEffect(() => {
-    onCloseRef.current = onClose;
-  });
-  useEffect(() => {
-    const onFocusIn = (e: FocusEvent) => {
-      if (!(e.target instanceof Node) || ref.current?.contains(e.target)) return;
-      queueMicrotask(() => {
-        const at = document.activeElement;
-        if (ref.current?.isConnected && at && at !== document.body && !ref.current.contains(at)) onCloseRef.current("focus-out");
-      });
-    };
-    document.addEventListener("focusin", onFocusIn);
-    return () => document.removeEventListener("focusin", onFocusIn);
-  }, []);
+  // Desktop: focus rơi ra ngoài ô (Tab ra) thì đóng, để focus yên chỗ vừa tới
+  useCloseOnFocusOut(ref, () => onClose("focus-out"));
 
   // Mount ngoài màn hình rồi flip ở frame kế để transition chạy (giống PassageJumpList)
   const [entered, setEntered] = useState(false);
@@ -71,13 +58,14 @@ export function VoicePicker({ onClose, restoreFocus }: Props) {
       onClose("key");
       return;
     }
-    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
-    // Nhóm radio: ↑/↓ chọn giọng trước/kế (vòng tròn) và focus vào nó. Không tự phát câu nghe thử.
+    const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key];
+    if (!step) return;
+    // Nhóm radio: ↓/→ giọng kế, ↑/← giọng trước (vòng tròn), focus vào nó. Không tự phát câu nghe thử.
     const rows = Array.from(ref.current?.querySelectorAll<HTMLElement>('[role="radio"]') ?? []);
     const at = rows.indexOf(document.activeElement as HTMLElement);
     if (at < 0) return;
     e.preventDefault();
-    const to = (at + (e.key === "ArrowDown" ? 1 : -1) + rows.length) % rows.length;
+    const to = (at + step + rows.length) % rows.length;
     pick(VOICES[to].id);
     rows[to].focus();
   };
@@ -122,14 +110,21 @@ export function VoicePicker({ onClose, restoreFocus }: Props) {
             const sampleKey = `sample:${v.id}`;
             const sampling = playing === sampleKey;
             return (
-              <div key={v.id} className={`flex min-h-[52px] items-center ${selected ? "bg-accent-soft" : ""}`}>
+              // Focus bàn phím vào nút chọn → viền bao cả dòng (cả nút "thử"), không chẻ đôi dòng
+              <div
+                key={v.id}
+                className={`flex min-h-[52px] items-center outline-offset-[-2px] has-[[role=radio]:focus-visible]:outline has-[[role=radio]:focus-visible]:outline-2 has-[[role=radio]:focus-visible]:outline-[var(--focus)] ${selected ? "bg-accent-soft" : ""}`}
+              >
                 <button
                   type="button"
                   role="radio"
                   aria-checked={selected}
                   tabIndex={selected ? 0 : -1}
-                  onClick={() => pick(v.id)}
-                  className="flex min-h-[52px] min-w-0 flex-1 items-center gap-3 py-1.5 pl-5 text-left focus-visible:outline-offset-[-2px]"
+                  onClick={(e) => {
+                    e.currentTarget.focus(); // Safari không focus nút khi bấm chuột → ↑/↓ sau đó không chạy
+                    pick(v.id);
+                  }}
+                  className="flex min-h-[52px] min-w-0 flex-1 items-center gap-3 py-1.5 pl-5 text-left focus-visible:outline-none"
                 >
                   <span aria-hidden="true" className="w-3.5 shrink-0 text-accent-strong">
                     {selected ? "✓" : ""}

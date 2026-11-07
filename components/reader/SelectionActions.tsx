@@ -4,7 +4,7 @@ import { play } from "@/lib/audio/player";
 
 interface Props {
   text: string;
-  /** Trình duyệt đọc được không — PassageView đọc sau mount (khớp SSR), dùng chung với nút "đọc to". */
+  /** Trình duyệt đọc được không (Web Speech) — PassageView đọc sau mount (khớp SSR). Chữ bôi đen đọc bằng giọng máy. */
   speechOk: boolean;
   size: "popup" | "dock";
   /** Bấm "tra nghĩa": PassageView quyết định mở tấm giải thích (cụm soạn sẵn) hay gọi /api/lookup. */

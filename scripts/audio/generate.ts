@@ -13,6 +13,7 @@ import { audioTexts } from "../../lib/audio/texts";
 import { planAudio } from "../../lib/audio/plan";
 import { audioPath } from "../../lib/audio/audioPath";
 import { TTS_FORMAT, TTS_MODEL, VOICES } from "../../lib/audio/voices";
+import { withRetry429 } from "../../lib/audio/retry";
 
 const PUBLIC_DIR = join(process.cwd(), "public");
 const AUDIO_DIR = join(PUBLIC_DIR, "audio");
@@ -36,8 +37,13 @@ async function main() {
 
   try {
     process.loadEnvFile(".env.local");
-  } catch {
-    // không có .env.local: vẫn chạy được --dry-run; chạy thật sẽ báo thiếu key bên dưới
+  } catch (err) {
+    // Không có .env.local: vẫn chạy được --dry-run; chạy thật sẽ báo thiếu key bên dưới.
+    // Có mà đọc lỗi (sai cú pháp, không có quyền): báo đúng lỗi, đừng để người dùng tưởng là thiếu key.
+    if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
+      console.error(`Không đọc được .env.local: ${err instanceof Error ? err.message : String(err)}`);
+      process.exit(1);
+    }
   }
 
   const plan = planAudio(audioTexts(), scanExisting());
@@ -64,11 +70,15 @@ async function main() {
   let done = 0;
   for (const item of plan.todo) {
     const voice = VOICES.find((v) => v.id === item.voice)!;
-    const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice.elevenId}?output_format=${TTS_FORMAT}`, {
-      method: "POST",
-      headers: { "xi-api-key": apiKey, "Content-Type": "application/json", Accept: "audio/mpeg" },
-      body: JSON.stringify({ text: item.text, model_id: TTS_MODEL }),
-    });
+    const res = await withRetry429(
+      () =>
+        fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice.elevenId}?output_format=${TTS_FORMAT}`, {
+          method: "POST",
+          headers: { "xi-api-key": apiKey, "Content-Type": "application/json", Accept: "audio/mpeg" },
+          body: JSON.stringify({ text: item.text, model_id: TTS_MODEL }),
+        }),
+      (wait) => console.log(`  429 (quá nhiều lượt) — chờ ${Math.round(wait / 1000)}s rồi thử lại…`),
+    );
     if (!res.ok) {
       console.error(`Lỗi HTTP ${res.status} ở "${item.label}" · ${item.voice}. Dừng (đã tạo ${done} file, giữ nguyên).`);
       process.exit(1);

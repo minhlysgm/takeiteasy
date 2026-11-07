@@ -18,12 +18,13 @@ declare global {
 }
 
 /**
- * `status` 200 (mặc định): `play()` được thay bằng bản giả, file trả 200 rỗng.
+ * `status` 200 (mặc định): `play()` và `src` được thay bằng bản giả, trình duyệt không tải file.
  * `status` 404: KHÔNG thay `play()` (trình duyệt thật tự từ chối) và file trả 404 → bộ phát lui về giọng trình duyệt.
+ * `speech: false`: trình duyệt không có Web Speech (xoá `window.speechSynthesis`).
  */
-export async function stubAudio(page: Page, opts: { status?: 200 | 404 } = {}): Promise<void> {
+export async function stubAudio(page: Page, opts: { status?: 200 | 404; speech?: boolean } = {}): Promise<void> {
   const status = opts.status ?? 200;
-  await page.addInitScript((fake) => {
+  await page.addInitScript(({ fake, speech }) => {
     const spy: AudioSpy = { played: [], paused: 0, spoken: [], el: null, utter: null };
     window.__audio = spy;
     if (fake) {
@@ -47,6 +48,12 @@ export async function stubAudio(page: Page, opts: { status?: 200 | 404 } = {}): 
         spy.paused += 1;
       };
     }
+    if (!speech) {
+      // trình duyệt không có Web Speech
+      // `speechSynthesis` là getter trên prototype: `delete` không xoá được, phải che bằng thuộc tính riêng
+      Object.defineProperty(window, "speechSynthesis", { value: undefined, configurable: true });
+      return;
+    }
     const fakeSynth = {
       cancel: () => {},
       getVoices: () => [],
@@ -56,12 +63,9 @@ export async function stubAudio(page: Page, opts: { status?: 200 | 404 } = {}): 
       },
     };
     Object.defineProperty(window, "speechSynthesis", { value: fakeSynth, configurable: true });
-  }, status === 200);
-  await page.route("**/audio/**", (route) =>
-    status === 404
-      ? route.fulfill({ status: 404, body: "" })
-      : route.fulfill({ status: 200, contentType: "audio/mpeg", body: "" }),
-  );
+  }, { fake: status === 200, speech: opts.speech ?? true });
+  // 200: `src` giả nên trình duyệt không tải file, không cần chặn mạng. 404: file thật trả lỗi.
+  if (status === 404) await page.route("**/audio/**", (route) => route.fulfill({ status: 404, body: "" }));
 }
 
 /** Bắn `ended` lên phần tử audio đang phát. */
