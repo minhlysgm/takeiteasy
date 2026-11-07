@@ -5,10 +5,7 @@
 
 ## Đang làm
 
-**Task:** [S · UI] Giọng đọc: vụn vặt từ ⑥. Nhánh `task/voice-polish`.
-**Trạm:** ⑦ Nghiệm thu — đã làm (commit 009037c..a916e4c): viền focus bao cả dòng giọng (`has-[[role=radio]:focus-visible]`); ←/→ như ↓/↑; bấm dòng thì `focus()` nút (Safari); `voicePref` nhớ tạm khi localStorage chặn/đầy; hook `lib/useCloseOnFocusOut.ts` dùng chung VoicePicker + PassageJumpList; comment SelectionActions + thụt lề `<li>` ChunkDrawer; `npm run audio` báo đúng lỗi `.env.local` (chỉ bỏ qua ENOENT) + thử lại 429 (`lib/audio/retry.ts`, Retry-After hoặc 2/4/8s, tối đa 3 lần); test: bỏ route 200 thừa + `waitForTimeout`, chunk-drawer chứng minh đóng ngăn mới dừng, thêm e2e không Web Speech (đã thử làm hỏng code → đỏ), mẫu dừng khi đóng ô / đổi giọng, ✕, Shift+Tab, ←/→, viền cả dòng. `npm run verify` xanh: vitest 525 / e2e 268.
-**Claude tự chọn:** giữ nút "thử" trong radiogroup (ARIA không cấm, tách ra phải dựng lại bố cục dòng); iOS chặn giọng máy + Git LFS để lại backlog.
-**Bước kế:** Minh "ok" → merge vào main (chưa push), chuyển "Đã xong", gợi ý task kế.
+_(trống — đề xuất kế: "[S] Tra nghĩa: vụn vặt hoãn từ ⑥ task B" (giới hạn lượt theo IP giả được), chờ Minh đồng ý)_
 
 ## Backlog
 
@@ -29,6 +26,7 @@
 
 ## Đã xong
 
+- 2026-11-07 · Giọng đọc: vụn vặt từ ⑥ (cỡ S · UI): viền focus cả dòng giọng, ←/→, Safari focus khi bấm, nhớ giọng khi localStorage chặn, hook `useCloseOnFocusOut` dùng chung, `npm run audio` báo đúng lỗi `.env.local` + thử lại 429, gia cố test (không Web Speech, mẫu dừng, ✕, Shift+Tab). Giữ nút "thử" trong radiogroup. vitest 525 / e2e 268. Merge vào main (chưa push)
 - 2026-11-07 · Header mobile dính, ẩn khi cuộn xuống / hiện khi cuộn lên (cỡ S · UI) — mockup B https://claude.ai/artifact/MQCiiRy7KPJkK38nsARH9i; `lib/useHideOnScroll.ts` (≤ 44px luôn hiện, ngưỡng 8px, focus vào header đang ẩn → hiện + giữ chỗ đang đọc), chỉ mobile, 200ms ease-out + motion-reduce. Test `e2e/header-autohide(.mobile).spec.ts`, `tests/hide-on-scroll.test.ts`. vitest 517 / e2e 261. **Chưa thử máy thật** (iOS bounce cuối trang có thể làm header hiện thoáng). Merge vào main (chưa push)
 - 2026-11-07 · Giọng đọc AI ElevenLabs + chọn 1 trong 5 giọng (cỡ M · UI): "đọc to" + ▶ câu ví dụ phát file audio tạo sẵn (eleven_multilingual_v2, tạo lúc đang gói Starter → dùng thương mại được), file lỗi thì lui về giọng máy; chọn giọng Will (mặc định)/Brian/Adam/Sarah/Jessica, có nghe thử, nhớ lựa chọn (`tie:voice`), header mobile (loa) + desktop (phím v). `npm run audio` tạo file còn thiếu (tên theo hash nội dung, chặn file ≤ 1 KB), test đỏ khi thiếu audio, cache `immutable` cho `/audio/*`. Spec `2026-11-06-ai-voice-design.md`, plan `2026-11-06-ai-voice.md`, mockup A https://claude.ai/artifact/6CpSz4ffdVoBQtjYvfkYJE. ⑥ sửa 9 mục (tương phản, vùng bấm ▶ 24px, tiêu đề giữa, nút không giật, ■/▶ aria-hidden…). Minh duyệt 3 quyết định tự chọn: tắt nút "N" dev, đóng ô bằng chuột không trả focus (desktop), `--dry-run` không cần key. vitest 512 / e2e 255. Merge vào main (chưa push)
 - 2026-11-06 · Thẻ "vẽ trước" (cỡ L · UI): hình phác thảo là module chính chạy trước, vẽ xong hiện đoạn mô tả + bình tiếng Anh **do takeiteasy tự viết** (chunk gạch chân, bản dịch, ý chính), dòng ghi công cuối thẻ — sách chỉ là nguồn ý (tránh rủi ro bản quyền; vẫn khuyên hỏi luật sư SHTT trước khi mở cho user). Spec `2026-11-06-sketch-first-design.md`, bản nháp nội dung `2026-11-06-sketch-first-cards.html` (3 thẻ = nội dung tạm cho code). ⑥ sửa 16 mục: phím lúc đang vẽ (nhường danh sách/drawer, bỏ qua phím trình duyệt/cuộn), khoá `tie:sketch-seen:v2:`, thẻ đã xem hiện đủ từ HTML server, 1 chỗ `role=status`; mockup B (https://claude.ai/artifact/T2nGLpsRGmKTZzxgFcUZnk): mũi tên ghi chú dừng ở mép cột, dưới 1440px một cột giữa (breakpoint `2col`), theme sáng accent xanh lá #2f6f3e / ink #a34a08, nút vẽ lại vùng chạm 44px, chữ trong hình cỡ 21. vitest 464 / e2e 230. Merge vào main (chưa push)
