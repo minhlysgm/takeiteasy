@@ -22,6 +22,7 @@ import { useTypingText } from "@/lib/useTypingText";
 import { AnnotationLayer } from "./AnnotationLayer";
 import { ChunkDrawer } from "./ChunkDrawer";
 import { FirstTimeHint } from "./FirstTimeHint";
+import { useHideOnScroll } from "@/lib/useHideOnScroll";
 import { FooterButton } from "./FooterButton";
 import { Kbd } from "./Kbd";
 import type { LookupState } from "./LookupCard";
@@ -176,6 +177,7 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
 
   // Sang đoạn bằng nút/phím của app → về đầu trang trước khi vẽ (Next chỉ tự cuộn khi dựng lại page).
   // Back/forward thì để trình duyệt khôi phục chỗ đang đọc.
+  const [headerHidden, showHeader] = useHideOnScroll();
   const scrollTopOnChange = useRef(false);
   useLayoutEffect(() => {
     if (!scrollTopOnChange.current) return;
@@ -408,7 +410,11 @@ export function PassageView({ book, chapterId, passage, passageIndex, passageCou
   return (
     <div className="flex min-h-dvh flex-col">
       {pending && <style dangerouslySetInnerHTML={{ __html: sketchGateCss(passage.id) }} />}
-      <header className="flex h-11 shrink-0 items-center border-b border-line bg-surface lg:sticky lg:top-0 lg:z-[15] lg:gap-4 lg:px-5">
+      {/* Dính ở mọi cỡ; mobile ẩn khi cuộn xuống, hiện khi cuộn lên / focus vào (desktop luôn hiện) */}
+      <header
+        onFocus={showHeader}
+        className={`sticky top-0 z-[15] flex h-11 shrink-0 items-center border-b border-line bg-surface transition-transform duration-200 ease-out motion-reduce:transition-none lg:gap-4 lg:px-5 ${headerHidden ? "max-lg:-translate-y-full" : ""}`}
+      >
         {/* Mobile: nút chọn giọng (loa) bên trái, cân với nút theme bên phải để tiêu đề nằm giữa */}
         <button
           ref={voiceTriggerMobileRef}
