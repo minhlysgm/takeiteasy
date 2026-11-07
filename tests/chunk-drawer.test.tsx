@@ -95,7 +95,9 @@ describe("ChunkDrawer", () => {
     cleanup();
     vi.mocked(usePlaying).mockReturnValue(`ex:${en}`);
     render(<ChunkDrawer chunks={chunks} index={0} onNavigate={() => {}} onClose={() => {}} />);
-    expect(screen.getByRole("button", { name: `dừng: ${en}` })).toBeTruthy();
+    expect(screen.getByRole("button", { name: `dừng: ${en}` }).getAttribute("aria-label")).toBe(`dừng: ${en}`);
+    vi.mocked(stopPlayback).mockClear(); // chỉ tính lần gọi lúc đóng ngăn bên dưới
+    expect(stopPlayback).not.toHaveBeenCalled();
     cleanup();
     vi.mocked(usePlaying).mockReturnValue(null);
     expect(stopPlayback).toHaveBeenCalledWith("ex:");
