@@ -5,11 +5,14 @@
 
 ## Đang làm
 
-_(trống — đề xuất kế: "[S · UI] Giọng đọc: vụn vặt từ ⑥", chờ Minh đồng ý)_
+**Task:** [S · UI] Giọng đọc: vụn vặt từ ⑥. Nhánh `task/voice-polish`.
+**Trạm:** ⑦ Nghiệm thu — đã làm (commit 009037c..a916e4c): viền focus bao cả dòng giọng (`has-[[role=radio]:focus-visible]`); ←/→ như ↓/↑; bấm dòng thì `focus()` nút (Safari); `voicePref` nhớ tạm khi localStorage chặn/đầy; hook `lib/useCloseOnFocusOut.ts` dùng chung VoicePicker + PassageJumpList; comment SelectionActions + thụt lề `<li>` ChunkDrawer; `npm run audio` báo đúng lỗi `.env.local` (chỉ bỏ qua ENOENT) + thử lại 429 (`lib/audio/retry.ts`, Retry-After hoặc 2/4/8s, tối đa 3 lần); test: bỏ route 200 thừa + `waitForTimeout`, chunk-drawer chứng minh đóng ngăn mới dừng, thêm e2e không Web Speech (đã thử làm hỏng code → đỏ), mẫu dừng khi đóng ô / đổi giọng, ✕, Shift+Tab, ←/→, viền cả dòng. `npm run verify` xanh: vitest 525 / e2e 268.
+**Claude tự chọn:** giữ nút "thử" trong radiogroup (ARIA không cấm, tách ra phải dựng lại bố cục dòng); iOS chặn giọng máy + Git LFS để lại backlog.
+**Bước kế:** Minh "ok" → merge vào main (chưa push), chuyển "Đã xong", gợi ý task kế.
 
 ## Backlog
 
-0. **[S · UI] Giọng đọc: vụn vặt từ ⑥** (mức thấp): viền focus dòng giọng chỉ bao nút chọn, chẻ dòng → viền cả dòng; nhóm radio thêm ←/→, nút "thử" nằm trong radiogroup; `setVoice` khi localStorage bị chặn thì mất lựa chọn (biến nhớ tạm); Safari bấm dòng radio có thể không focus nút; iOS có thể chặn giọng máy ngoài cú chạm; VoicePicker chép logic focus-out/backdrop của PassageJumpList (tách hook); test yếu (chunk-drawer assert rỗng, route 200 thừa trong `e2e/audio-helpers.ts`, `waitForTimeout(500)`, thiếu test: mẫu dừng khi đóng ô, chọn giọng lúc mẫu đang phát, ✕ desktop, Tab ra ngoài, không Web Speech); comment cũ SelectionActions.tsx:7; `<li>` ChunkDrawer lệch thụt; script audio: `.env.local` hỏng báo nhầm "thiếu key", không thử lại khi 429; ~1,6 MB audio/thẻ → tính Git LFS/kho ngoài trước ~50 thẻ.
+0. **[S] Giọng đọc: còn lại** — iOS có thể chặn giọng máy (dự phòng khi file lỗi) vì gọi ngoài cú chạm → cần thử iPhone thật; ~1,6 MB audio/thẻ → tính Git LFS/kho ngoài trước ~50 thẻ.
 0. **[M] Affiliate link mua sách** (sau khi có user): ghi rõ là link affiliate; có thu tiền = thương mại → cần gói ElevenLabs trả phí; ảnh bìa lấy từ chương trình affiliate.
 
 0. **[M] Giọng đọc: phần hoãn từ task giọng AI** — highlight chữ đang đọc (cần dịch vụ trả thời điểm từng chữ), chỉnh tốc độ, giọng AI cho chữ bôi đen + từ tra (gọi lúc dùng, cần trần chi phí như lookup).
